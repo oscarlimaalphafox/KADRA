@@ -654,6 +654,8 @@ body {
               background var(--transition);
 }
 
+.tool-btn-icon { padding: 0 6px; }
+
 .tool-btn:hover {
   border-color: var(--accent-blue);
   color: var(--accent-blue);
