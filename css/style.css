@@ -624,6 +624,9 @@ body {
   background: var(--border);
   flex-shrink: 0;
 }
+.toolbar-tools > .toolbar-divider {
+  margin: 0 6px;
+}
 
 .toolbar-tools {
   display: flex;
