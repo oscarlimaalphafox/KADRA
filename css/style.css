@@ -1563,28 +1563,10 @@ select.form-input {
 /* ── Punkt-Filter ──────────────────────────────────────────── */
 .point-filter-wrap {
   position: relative;
-  margin-left: auto;
-  margin-right: 10px;
 }
 
-.point-filter-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
-  transition: background var(--transition), color var(--transition);
-}
-.point-filter-btn:hover {
-  background: var(--accent-blue-10);
-  color: var(--accent-blue);
-}
-.point-filter-btn.has-filter {
+.tool-btn-icon.has-filter {
+  border-color: var(--accent-blue);
   color: var(--accent-blue);
   background: var(--accent-blue-10);
 }

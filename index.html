@@ -229,6 +229,25 @@
               </svg>
               <span>PKT</span>
             </button>
+            <div class="point-filter-wrap">
+              <button id="btnPointFilter" class="tool-btn tool-btn-icon" title="Punkte filtern">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .39.812L9.5 7.606V13.5a.5.5 0 0 1-.257.437l-3 1.5A.5.5 0 0 1 5.5 15V7.606L.61 1.812A.5.5 0 0 1 1.5 1.5z"/>
+                </svg>
+              </button>
+              <div id="pointFilterPanel" class="point-filter-panel hidden">
+                <label class="filter-option">
+                  <input type="checkbox" id="filterHideDone" /> Erledigte ausblenden
+                </label>
+                <div class="filter-separator"></div>
+                <label class="filter-option">
+                  <input type="checkbox" id="filterOnlyOverdue" /> Nur überfällige
+                </label>
+                <label class="filter-option">
+                  <input type="checkbox" id="filterOnlyNew" /> Nur neue Punkte
+                </label>
+              </div>
+            </div>
             <button id="btnReload" class="tool-btn tool-btn-icon" title="Seite neu laden" onclick="location.reload()">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 1 1 .908-.418A6 6 0 1 1 8 2z"/>
@@ -369,26 +388,6 @@
                 </svg>
               </button>
               <h2 class="section-title" style="padding:0;margin:0">Protokollpunkte</h2>
-              <!-- Filter -->
-              <div class="point-filter-wrap">
-                <button id="btnPointFilter" class="point-filter-btn" title="Punkte filtern">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .39.812L9.5 7.606V13.5a.5.5 0 0 1-.257.437l-3 1.5A.5.5 0 0 1 5.5 15V7.606L.61 1.812A.5.5 0 0 1 1.5 1.5z"/>
-                  </svg>
-                </button>
-                <div id="pointFilterPanel" class="point-filter-panel hidden">
-                  <label class="filter-option">
-                    <input type="checkbox" id="filterHideDone" /> Erledigte ausblenden
-                  </label>
-                  <div class="filter-separator"></div>
-                  <label class="filter-option">
-                    <input type="checkbox" id="filterOnlyOverdue" /> Nur überfällige
-                  </label>
-                  <label class="filter-option">
-                    <input type="checkbox" id="filterOnlyNew" /> Nur neue Punkte
-                  </label>
-                </div>
-              </div>
             </div>
             <div class="table-wrapper">
               <table class="data-table points-table" id="pointsTable">
