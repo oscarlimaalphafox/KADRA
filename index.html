@@ -14,7 +14,23 @@
 </head>
 <body>
 
-  <div id="app" class="app-shell">
+  <!-- ════════════════════════════════════════════════════════
+       PASSWORT-GATE
+  ════════════════════════════════════════════════════════ -->
+  <div id="loginGate" class="login-gate">
+    <div class="login-card">
+      <img src="icons/kadra-logo.png" alt="KADRA" class="login-logo" />
+      <p class="login-subtitle">Besprechungsprotokolle</p>
+      <form id="loginForm" class="login-form" autocomplete="off">
+        <input id="loginPassword" type="password" class="login-input"
+               placeholder="Passwort" autofocus />
+        <button type="submit" class="login-btn">Anmelden</button>
+        <p id="loginError" class="login-error hidden">Falsches Passwort</p>
+      </form>
+    </div>
+  </div>
+
+  <div id="app" class="app-shell hidden">
 
     <!-- ════════════════════════════════════════════════════════
          SEITENLEISTE
@@ -695,6 +711,39 @@
   <input type="file" id="fileImportJson" accept=".json" class="hidden" />
   <input type="file" id="fileImportFullDB" accept=".json" class="hidden" />
   <div id="toastContainer" class="toast-container"></div>
+
+  <!-- ── Passwort-Gate ─────────────────────────────────────── -->
+  <script>
+  (function() {
+    const HASH = '4823abdc226c2b77aa9a279218efc682a4d973a267d8142ba3a6cb8630e6f579';
+
+    function unlockApp() {
+      document.getElementById('loginGate').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+    }
+
+    // Bereits authentifiziert in dieser Session?
+    if (sessionStorage.getItem('kadra_auth') === '1') {
+      unlockApp();
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const pw = document.getElementById('loginPassword').value;
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+      const hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      if (hash === HASH) {
+        sessionStorage.setItem('kadra_auth', '1');
+        unlockApp();
+      } else {
+        document.getElementById('loginError').classList.remove('hidden');
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('loginPassword').focus();
+      }
+    });
+  })();
+  </script>
 
   <script src="js/lib/jspdf.umd.min.js"></script>
   <script src="js/lib/jspdf.plugin.autotable.min.js"></script>
