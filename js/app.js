@@ -2418,6 +2418,12 @@ function setupProjectMenu() {
     openDeleteProjectModal();
   });
 
+  document.getElementById('btnLogout').addEventListener('click', () => {
+    panel.classList.add('hidden');
+    sessionStorage.removeItem('kadra_auth');
+    location.reload();
+  });
+
   // Datenbank exportieren
   document.getElementById('btnExportFullDB').addEventListener('click', () => {
     panel.classList.add('hidden');
