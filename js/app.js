@@ -2254,7 +2254,10 @@ function bindGlobalEvents() {
 
   // Sidebar Toggle
   document.getElementById('btnToggleSidebar').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('collapsed');
+    const sb = document.getElementById('sidebar');
+    sb.style.width = '';
+    sb.style.minWidth = '';
+    sb.classList.toggle('collapsed');
   });
 
   // Sidebar Resize (Drag am rechten Rand)
