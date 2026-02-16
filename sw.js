@@ -5,23 +5,23 @@
  * Ermöglicht Offline-Nutzung der App.
  */
 
-const CACHE_NAME    = 'protokoll-app-v2.0';
+const CACHE_NAME    = 'protokoll-app-v2.1';
 const SHELL_ASSETS  = [
-  '/index.html',
-  '/css/style.css',
-  '/js/lib/jspdf.umd.min.js',
-  '/js/lib/jspdf.plugin.autotable.min.js',
-  '/js/lib/nunito-sans-fonts.js',
-  '/js/db.js',
-  '/js/pdf-export.js',
-  '/js/app.js',
-  '/manifest.json',
-  '/icons/favicon.jpg',
-  '/icons/favicon.png',
-  '/icons/kadra-logo.png',
-  '/icons/HOPRO%20Logo_wei%C3%9FerHintergrund_medres.jpg',
-  '/fonts/nunito-sans-v19-latin-regular.woff2',
-  '/fonts/nunito-sans-v19-latin-600.woff2',
+  './index.html',
+  './css/style.css',
+  './js/lib/jspdf.umd.min.js',
+  './js/lib/jspdf.plugin.autotable.min.js',
+  './js/lib/nunito-sans-fonts.js',
+  './js/db.js',
+  './js/pdf-export.js',
+  './js/app.js',
+  './manifest.json',
+  './icons/favicon.jpg',
+  './icons/favicon.png',
+  './icons/kadra-logo.png',
+  './icons/HOPRO%20Logo_wei%C3%9FerHintergrund_medres.jpg',
+  './fonts/nunito-sans-v19-latin-regular.woff2',
+  './fonts/nunito-sans-v19-latin-600.woff2',
 ];
 
 /* ── Install: App-Shell in Cache legen ─────────────────────── */
