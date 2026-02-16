@@ -9,3 +9,6 @@ desktop.ini
 
 # Claude Code
 .claude/
+
+# Dev documentation (local only)
+DEV_LOG.md

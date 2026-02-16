@@ -2053,6 +2053,23 @@ input[type="date"].table-input {
   border-style: solid;
 }
 
+.btn-download-file {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  transition: color var(--transition);
+}
+.btn-download-file:hover { color: var(--accent-blue); }
+
 .btn-remove-file {
   width: 18px;
   height: 18px;

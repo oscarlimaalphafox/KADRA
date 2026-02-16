@@ -1784,6 +1784,16 @@ function buildFileCellContent(att, idx) {
     label.className = 'file-name-label';
     label.title     = att.fileName;
     label.textContent = att.fileName;
+    // Download-Button
+    const dlBtn = document.createElement('button');
+    dlBtn.type = 'button';
+    dlBtn.className = 'btn-download-file';
+    dlBtn.title = 'Datei herunterladen';
+    dlBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+      <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+    </svg>`;
+    dlBtn.addEventListener('click', () => downloadAttachmentFile(idx));
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'btn-remove-file';
@@ -1793,6 +1803,7 @@ function buildFileCellContent(att, idx) {
     </svg>`;
     removeBtn.addEventListener('click', () => removeAttachmentFile(idx));
     wrap.appendChild(label);
+    wrap.appendChild(dlBtn);
     wrap.appendChild(removeBtn);
   } else {
     const uploadBtn = document.createElement('button');
@@ -1839,8 +1850,14 @@ function openFilePicker(attachIdx) {
   input.click();
 }
 
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+
 async function handleFileSelected(file, attachIdx) {
   if (!file) return;
+  if (file.size > MAX_FILE_SIZE) {
+    showToast(`Datei zu groß (${(file.size/1024/1024).toFixed(1)} MB). Maximum: 2 MB.`, 'error');
+    return;
+  }
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) return;
   const att = protocol.attachments?.[attachIdx];
@@ -1866,6 +1883,22 @@ async function removeAttachmentFile(attachIdx) {
   await DB.Protocols.save(protocol);
   renderAttachments(protocol.attachments, protocol.number);
   renderProtocolList();
+}
+
+async function downloadAttachmentFile(attachIdx) {
+  const protocol = await DB.Protocols.get(App.currentProtocolId);
+  if (!protocol) return;
+  const att = protocol.attachments?.[attachIdx];
+  if (!att?.fileData || !att.fileName) return;
+  const blob = new Blob([att.fileData], { type: att.fileType || 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = att.fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function renderAbbrevList(participants, customAbbrevs) {
@@ -2178,6 +2211,10 @@ function bindGlobalEvents() {
     dropZone.classList.remove('drag-over');
     const file = e.dataTransfer?.files?.[0];
     if (!file || !App.currentProtocolId) return;
+    if (file.size > MAX_FILE_SIZE) {
+      showToast(`Datei zu groß (${(file.size/1024/1024).toFixed(1)} MB). Maximum: 2 MB.`, 'error');
+      return;
+    }
     // Neue Anlage mit Datei anlegen
     const buffer = await file.arrayBuffer();
     await addNewAttachment(file.name, file.type, buffer);
@@ -2611,10 +2648,10 @@ async function exportProject() {
 
   const backup = {
     _format: 'ProtokollApp-Backup',
-    _version: 1,
+    _version: 2,
     exportedAt: new Date().toISOString(),
     project,
-    protocols: allProtocols,
+    protocols: prepareProtocolsForExport(allProtocols),
   };
 
   const json = JSON.stringify(backup, null, 2);
@@ -2675,6 +2712,9 @@ async function importProject(file) {
   // Projekt speichern
   await DB.Projects.save(proj);
 
+  // Datei-Anlagen wiederherstellen (Base64 → ArrayBuffer)
+  restoreProtocolFiles(data.protocols);
+
   // Protokolle speichern
   let count = 0;
   for (const protocol of data.protocols) {
@@ -2709,10 +2749,10 @@ async function _buildBackup() {
   const protocols = await DB.Protocols.getAll();
   const backup = {
     _format:     'KADRA-FullBackup',
-    _version:    1,
+    _version:    2,
     _exportedAt: new Date().toISOString(),
     projects,
-    protocols,
+    protocols:   prepareProtocolsForExport(protocols),
   };
   const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -2923,6 +2963,9 @@ async function importFullDB(file) {
     }
   }
 
+  // Datei-Anlagen wiederherstellen (Base64 → ArrayBuffer)
+  restoreProtocolFiles(data.protocols);
+
   // Protokolle importieren
   let prCount = 0;
   for (const proto of data.protocols) {
@@ -2948,6 +2991,48 @@ async function importFullDB(file) {
 /* ============================================================
    UTILS
 ============================================================ */
+
+/** ArrayBuffer → Base64-String (für JSON-Export von Datei-Anlagen) */
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+/** Base64-String → ArrayBuffer (für JSON-Import von Datei-Anlagen) */
+function base64ToArrayBuffer(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+/** Bereitet Protokoll-Array für JSON-Export vor (fileData → Base64) */
+function prepareProtocolsForExport(protocols) {
+  return protocols.map(proto => {
+    if (!proto.attachments?.length) return proto;
+    const copy = { ...proto, attachments: proto.attachments.map(att => {
+      if (!att.fileData || !(att.fileData instanceof ArrayBuffer || att.fileData.byteLength !== undefined)) return att;
+      return { ...att, fileData: arrayBufferToBase64(att.fileData), _fileDataBase64: true };
+    })};
+    return copy;
+  });
+}
+
+/** Stellt Datei-Anlagen nach JSON-Import wieder her (Base64 → ArrayBuffer) */
+function restoreProtocolFiles(protocols) {
+  for (const proto of protocols) {
+    if (!proto.attachments?.length) continue;
+    for (const att of proto.attachments) {
+      if (att._fileDataBase64 && typeof att.fileData === 'string') {
+        att.fileData = base64ToArrayBuffer(att.fileData);
+        delete att._fileDataBase64;
+      }
+    }
+  }
+}
+
 function filterProtocolList(query) {
   document.querySelectorAll('.protocol-item').forEach(el => {
     el.style.display = (!query || el.textContent.toLowerCase().includes(query)) ? '' : 'none';
