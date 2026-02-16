@@ -50,6 +50,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindGlobalEvents();
   await loadProjects();
 
+  // Quick-Save-Dateiname nach Reload wiederherstellen
+  const savedFileName = localStorage.getItem('kadra_saveFileName');
+  if (savedFileName) _updateQuickSaveLabel(savedFileName);
+
   // Klick außerhalb → offene Zuständig-Panels schließen
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.resp-select')) {
@@ -2868,6 +2872,12 @@ function _updateQuickSaveLabel(fileName) {
   if (label) {
     label.textContent = fileName;
     label.title       = 'Dateinamen der letzten Speicherung eingeben';
+  }
+  // Persistieren für Reload
+  if (fileName && fileName !== '—') {
+    localStorage.setItem('kadra_saveFileName', fileName);
+  } else {
+    localStorage.removeItem('kadra_saveFileName');
   }
 }
 
