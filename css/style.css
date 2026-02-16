@@ -1298,9 +1298,9 @@ input[type="date"].meta-input {
 .btn-danger {
   background: transparent;
   color: var(--accent-red);
-  border-color: transparent;
+  border-color: var(--accent-red);
 }
-.btn-danger:hover { background: var(--accent-red-10); border-color: var(--accent-red); }
+.btn-danger:hover { background: var(--accent-red-10); }
 
 /* ── Empty State (Workspace) ─────────────────────────────────── */
 .empty-state {
@@ -2490,5 +2490,99 @@ input[type="date"].table-input {
   color: var(--accent-blue);
   background: var(--accent-blue-10);
   border-style: solid;
+}
+
+/* ============================================================
+   VOLLTEXTSUCHE
+============================================================ */
+
+/* ── Suchleiste (unterhalb Toolbar, sticky) ──────────────── */
+.search-bar {
+  position: sticky;
+  top: var(--toolbar-h);
+  z-index: 49;
+  background: rgba(245, 245, 247, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-light);
+  padding: 4px 24px;
+}
+.search-bar.hidden { display: none; }
+
+.search-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 480px;
+}
+
+.search-bar-icon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.search-bar-input {
+  flex: 1;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  padding: 0 8px;
+  min-width: 0;
+}
+.search-bar-input:focus {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -1px;
+}
+.search-bar-input::placeholder { color: var(--text-tertiary); }
+
+.search-bar-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: center;
+}
+
+.search-bar-nav,
+.search-bar-close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--transition), color var(--transition);
+}
+.search-bar-nav:hover,
+.search-bar-close:hover {
+  background: var(--accent-blue-10);
+  color: var(--accent-blue);
+}
+
+/* ── Treffer-Highlight (Zeile) ───────────────────────────── */
+.search-match {
+  background: rgba(255, 220, 40, 0.25) !important;
+}
+.search-match-active {
+  background: rgba(255, 160, 0, 0.35) !important;
+}
+
+/* ── Nicht-Treffer ausgeblendet ──────────────────────────── */
+.search-hidden { display: none !important; }
+
+/* ── Toolbar-Button aktiv wenn Suche offen ───────────────── */
+.tool-btn-icon.search-active {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-10);
 }
 

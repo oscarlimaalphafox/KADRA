@@ -320,9 +320,20 @@ function generateAttachmentId(protocolNumber, seq) {
   return `#${numStr}.${seqStr}`;
 }
 
+/** Löscht die gesamte Datenbank. */
+function deleteDatabase() {
+  return new Promise((resolve, reject) => {
+    if (_db) { _db.close(); _db = null; }
+    const req = indexedDB.deleteDatabase(DB_NAME);
+    req.onsuccess = () => resolve();
+    req.onerror   = () => reject(req.error);
+  });
+}
+
 /* ── Exports ───────────────────────────────────────────────── */
 window.DB = {
   openDB,
+  deleteDatabase,
   uuid,
   Projects,
   Protocols,

@@ -73,6 +73,13 @@
                 </svg>
                 Datenbank importieren
               </button>
+              <button id="btnCloseDatabase" class="project-menu-item danger">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 1a2 2 0 0 0-2 2v.5H3a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1h-3V3a2 2 0 0 0-2-2M6 3a2 2 0 0 1 4 0v.5H6z"/>
+                  <path d="M3 7.5V14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7.5zm3 1a.5.5 0 0 1 1 0V13a.5.5 0 0 1-1 0zm3 0a.5.5 0 0 1 1 0V13a.5.5 0 0 1-1 0z"/>
+                </svg>
+                Datenbank schließen
+              </button>
               <div class="project-menu-divider"></div>
               <button id="btnExportProject" class="project-menu-item">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
@@ -246,12 +253,33 @@
                 <label class="filter-option">
                   <input type="checkbox" id="filterOnlyNew" /> Nur neue Punkte
                 </label>
+                <div class="filter-separator"></div>
+                <label class="filter-option">
+                  <input type="checkbox" id="filterOnlyTasks" /> Nur Aufgaben
+                </label>
+                <label class="filter-option">
+                  <input type="checkbox" id="filterOnlyApproval" /> Nur Freigabe erfordl.
+                </label>
               </div>
             </div>
             <button id="btnReload" class="tool-btn tool-btn-icon" title="Seite neu laden" onclick="location.reload()">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 1 1 .908-.418A6 6 0 1 1 8 2z"/>
                 <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+              </svg>
+            </button>
+
+            <button id="btnExportPdf" class="tool-btn" title="PDF exportieren">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+              </svg>
+              <span>PDF</span>
+            </button>
+
+            <button id="btnOpenSearch" class="tool-btn tool-btn-icon" title="Volltextsuche (Ctrl+F)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
               </svg>
             </button>
 
@@ -264,19 +292,38 @@
         </div>
 
         <div class="toolbar-right">
-          <button id="btnExportPdf" class="btn-secondary btn-sm">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
-              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
-            </svg>
-            PDF
-          </button>
           <button id="btnDeleteProtocol" class="btn-danger btn-sm">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
               <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
               <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
             </svg>
             Löschen
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Suchleiste ───────────────────────────────────────── -->
+      <div id="searchBar" class="search-bar hidden">
+        <div class="search-bar-inner">
+          <svg class="search-bar-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+          </svg>
+          <input type="text" id="searchBarInput" class="search-bar-input" placeholder="Suchen …" autocomplete="off" />
+          <span id="searchBarCount" class="search-bar-count"></span>
+          <button id="searchBarPrev" class="search-bar-nav" title="Vorheriger Treffer (Shift+Enter)">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708z"/>
+            </svg>
+          </button>
+          <button id="searchBarNext" class="search-bar-nav" title="Nächster Treffer (Enter)">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+            </svg>
+          </button>
+          <button id="searchBarClose" class="search-bar-close" title="Suche schließen (Escape)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+            </svg>
           </button>
         </div>
       </div>
@@ -716,6 +763,36 @@
       <div class="modal-footer">
         <button class="btn-secondary" data-close="modalDeleteProject">Abbrechen</button>
         <button id="btnConfirmDeleteProject" class="btn-danger">In Papierkorb verschieben</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Datenbank schließen -->
+  <div id="modalCloseDatabase" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Datenbank schließen</h2>
+        <button class="modal-close" data-close="modalCloseDatabase">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="delete-warning">Die gesamte Datenbank wird geleert. Alle Projekte und Protokolle werden unwiderruflich gelöscht.</p>
+        <div class="delete-export-hint">
+          <button id="btnExportBeforeClose" class="btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:-2px;margin-right:4px">
+              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+            </svg>
+            Vorher exportieren (Backup)
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="modalCloseDatabase">Abbrechen</button>
+        <button id="btnConfirmCloseDatabase" class="btn-danger">Datenbank schließen</button>
       </div>
     </div>
   </div>

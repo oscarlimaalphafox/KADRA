@@ -34,7 +34,7 @@ const App = {
   collapsedSeriesSectionAll: false,  // TERMINSERIEN alle zugeklappt
   singleDocSectionCollapsed: false,  // EINZELDOKUMENTE zugeklappt
   // Punkt-Filter
-  pointFilters: { hideDone: false, onlyOverdue: false, onlyNew: false },
+  pointFilters: { hideDone: false, onlyOverdue: false, onlyNew: false, onlyTasks: false, onlyApproval: false },
   // Kapitel-Filter
   hiddenChapters: new Set(),
   // Quick-Save (File System Access API)
@@ -318,6 +318,7 @@ function _buildProtocolItem(proto) {
    PROTOKOLL ÖFFNEN
 ============================================================ */
 async function openProtocol(protocolId) {
+  if (Search.active) closeSearch();
   App.currentProtocolId = protocolId;
   App.selectedRow = null;
   App.collapsedSections = new Set();
@@ -1230,11 +1231,19 @@ function applyPointFilters() {
     if (f.onlyNew) {
       if (!tr.classList.contains('point-new')) hide = true;
     }
+    if (f.onlyTasks) {
+      const cat = tr.querySelector('[data-field="category"]')?.value || '';
+      if (cat !== 'Aufgabe') hide = true;
+    }
+    if (f.onlyApproval) {
+      const cat = tr.querySelector('[data-field="category"]')?.value || '';
+      if (cat !== 'Freigabe erfordl') hide = true;
+    }
     tr.classList.toggle('filter-hidden', hide);
   });
   // Button-Indikator
   const btn = document.getElementById('btnPointFilter');
-  btn.classList.toggle('has-filter', f.hideDone || f.onlyOverdue || f.onlyNew);
+  btn.classList.toggle('has-filter', f.hideDone || f.onlyOverdue || f.onlyNew || f.onlyTasks || f.onlyApproval);
 }
 
 function setupPointFilter() {
@@ -1242,7 +1251,9 @@ function setupPointFilter() {
   const panel = document.getElementById('pointFilterPanel');
   const cbDone    = document.getElementById('filterHideDone');
   const cbOverdue = document.getElementById('filterOnlyOverdue');
-  const cbNew     = document.getElementById('filterOnlyNew');
+  const cbNew      = document.getElementById('filterOnlyNew');
+  const cbTasks    = document.getElementById('filterOnlyTasks');
+  const cbApproval = document.getElementById('filterOnlyApproval');
 
   btn.addEventListener('click', e => {
     e.stopPropagation();
@@ -1269,6 +1280,24 @@ function setupPointFilter() {
       App.pointFilters.onlyOverdue = false;
     }
     App.pointFilters.onlyNew = cbNew.checked;
+    applyPointFilters();
+  });
+
+  cbTasks.addEventListener('change', () => {
+    if (cbTasks.checked) {
+      cbApproval.checked = false;
+      App.pointFilters.onlyApproval = false;
+    }
+    App.pointFilters.onlyTasks = cbTasks.checked;
+    applyPointFilters();
+  });
+
+  cbApproval.addEventListener('change', () => {
+    if (cbApproval.checked) {
+      cbTasks.checked = false;
+      App.pointFilters.onlyTasks = false;
+    }
+    App.pointFilters.onlyApproval = cbApproval.checked;
     applyPointFilters();
   });
 
@@ -2133,6 +2162,7 @@ function bindGlobalEvents() {
   document.getElementById('btnCollapseAll').addEventListener('click', toggleCollapseAll);
   setupPointFilter();
   setupChapterFilter();
+  setupFulltextSearch();
 
   // KAP / UKAP / THEMA Modals
   document.getElementById('btnSaveChapter').addEventListener('click', saveChapter);
@@ -2334,6 +2364,8 @@ function bindGlobalEvents() {
   setupProjectMenu();
   document.getElementById('btnConfirmDeleteProject').addEventListener('click', () => confirmDeleteProject());
   document.getElementById('btnExportBeforeDelete').addEventListener('click', () => exportProject());
+  document.getElementById('btnConfirmCloseDatabase').addEventListener('click', () => confirmCloseDatabase());
+  document.getElementById('btnExportBeforeClose').addEventListener('click', () => exportFullDB());
 
   // Papierkorb
   document.getElementById('btnTrash').addEventListener('click', () => openTrash());
@@ -2427,6 +2459,12 @@ function setupProjectMenu() {
     location.reload();
   });
 
+  // Datenbank schließen
+  document.getElementById('btnCloseDatabase').addEventListener('click', () => {
+    panel.classList.add('hidden');
+    openModal('modalCloseDatabase');
+  });
+
   // Datenbank exportieren
   document.getElementById('btnExportFullDB').addEventListener('click', () => {
     panel.classList.add('hidden');
@@ -2503,6 +2541,50 @@ async function confirmDeleteProject() {
 
   closeModal('modalDeleteProject');
   showToast(`Projekt "${label}" in den Papierkorb verschoben.`, 'success');
+}
+
+async function confirmCloseDatabase() {
+  if (Search.active) closeSearch();
+  if (App.currentProtocolId) await saveCurrentProtocol();
+  await DB.deleteDatabase();
+  await DB.openDB();
+
+  // App-State zurücksetzen
+  App.currentProjectId  = null;
+  App.currentProtocolId = null;
+  App.projects  = [];
+  App.protocols = [];
+  App.selectedRow       = null;
+  App.collapsedSections = new Set();
+  App.allCollapsed      = false;
+  App.selectedSeriesId  = null;
+  App.collapsedSeriesIds = new Set();
+  App.collapsedSeriesSectionAll = false;
+  App.singleDocSectionCollapsed = false;
+  App.pointFilters = { hideDone: false, onlyOverdue: false, onlyNew: false, onlyTasks: false, onlyApproval: false };
+  App.hiddenChapters = new Set();
+  App._saveFileHandle = null;
+  App._saveFileName   = null;
+
+  // localStorage leeren
+  localStorage.removeItem('lastProjectId');
+  localStorage.removeItem('lastProtocolId');
+
+  // Quick-Save-Label zurücksetzen
+  _updateQuickSaveLabel('—');
+
+  // UI: sauberer Zustand
+  renderProjectSelect();
+  document.getElementById('projectSelect').value = '';
+  document.getElementById('protocolList').innerHTML =
+    '<div class="empty-state-sidebar"><p>Kein Projekt ausgewählt.</p></div>';
+  document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('protocolView').classList.add('hidden');
+  document.getElementById('workspaceToolbar').classList.add('hidden');
+  document.getElementById('btnNewProtocol').disabled = true;
+
+  closeModal('modalCloseDatabase');
+  showToast('Datenbank geschlossen — alle Daten gelöscht.', 'success');
 }
 
 async function openTrash() {
@@ -2994,6 +3076,9 @@ async function importFullDB(file) {
     renderProtocolList();
   }
 
+  // Dateiname in Quick-Save-Label übernehmen
+  _updateQuickSaveLabel(file.name);
+
   showToast(`Import: ${pCount} Projekt(e), ${prCount} Protokoll(e) importiert.`, 'success');
 }
 
@@ -3064,6 +3149,202 @@ function showToast(message, type = '') {
   t.textContent = message;
   c.appendChild(t);
   setTimeout(() => t.remove(), 3500);
+}
+
+/* ============================================================
+   VOLLTEXTSUCHE
+============================================================ */
+const Search = {
+  active: false,
+  query: '',
+  matches: [],       // Array of matched .row-point <tr> elements
+  currentIndex: -1,  // Active match index
+  _debounceTimer: null,
+};
+
+function setupFulltextSearch() {
+  const btn     = document.getElementById('btnOpenSearch');
+  const input   = document.getElementById('searchBarInput');
+  const btnPrev = document.getElementById('searchBarPrev');
+  const btnNext = document.getElementById('searchBarNext');
+  const btnClose= document.getElementById('searchBarClose');
+
+  btn.addEventListener('click', () => {
+    if (Search.active) { closeSearch(); } else { openSearch(); }
+  });
+
+  btnClose.addEventListener('click', closeSearch);
+  btnPrev.addEventListener('click', () => jumpToMatch(-1));
+  btnNext.addEventListener('click', () => jumpToMatch(1));
+
+  input.addEventListener('input', () => {
+    clearTimeout(Search._debounceTimer);
+    Search._debounceTimer = setTimeout(() => executeSearch(input.value), 150);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      jumpToMatch(e.shiftKey ? -1 : 1);
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeSearch();
+    }
+  });
+
+  // Ctrl+F / Cmd+F → eigene Suche statt Browser-Suche
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      // Nur abfangen wenn Protokoll offen
+      if (!document.getElementById('protocolView').classList.contains('hidden')) {
+        e.preventDefault();
+        openSearch();
+      }
+    }
+  });
+}
+
+function openSearch() {
+  Search.active = true;
+  const bar   = document.getElementById('searchBar');
+  const input = document.getElementById('searchBarInput');
+  const btn   = document.getElementById('btnOpenSearch');
+  bar.classList.remove('hidden');
+  btn.classList.add('search-active');
+  input.focus();
+  if (input.value) executeSearch(input.value);
+}
+
+function closeSearch() {
+  Search.active = false;
+  Search.query  = '';
+  Search.matches = [];
+  Search.currentIndex = -1;
+
+  const bar   = document.getElementById('searchBar');
+  const input = document.getElementById('searchBarInput');
+  const btn   = document.getElementById('btnOpenSearch');
+  const count = document.getElementById('searchBarCount');
+
+  bar.classList.add('hidden');
+  btn.classList.remove('search-active');
+  input.value = '';
+  count.textContent = '';
+
+  // Remove all search classes
+  document.querySelectorAll('#pointsBody .search-hidden').forEach(tr => tr.classList.remove('search-hidden'));
+  document.querySelectorAll('#pointsBody .search-match').forEach(tr => tr.classList.remove('search-match'));
+  document.querySelectorAll('#pointsBody .search-match-active').forEach(tr => tr.classList.remove('search-match-active'));
+
+  // Re-show structure rows that were hidden
+  document.querySelectorAll('#pointsBody .search-struct-hidden').forEach(tr => {
+    tr.classList.remove('search-struct-hidden');
+    tr.style.removeProperty('display');
+  });
+}
+
+function executeSearch(rawQuery) {
+  const query = rawQuery.trim().toLowerCase();
+  Search.query = query;
+  Search.matches = [];
+  Search.currentIndex = -1;
+
+  const countEl = document.getElementById('searchBarCount');
+
+  // Clear previous highlights
+  document.querySelectorAll('#pointsBody .search-hidden').forEach(tr => tr.classList.remove('search-hidden'));
+  document.querySelectorAll('#pointsBody .search-match').forEach(tr => tr.classList.remove('search-match'));
+  document.querySelectorAll('#pointsBody .search-match-active').forEach(tr => tr.classList.remove('search-match-active'));
+  document.querySelectorAll('#pointsBody .search-struct-hidden').forEach(tr => {
+    tr.classList.remove('search-struct-hidden');
+    tr.style.removeProperty('display');
+  });
+
+  if (!query) {
+    countEl.textContent = '';
+    return;
+  }
+
+  const pointRows = document.querySelectorAll('#pointsBody .row-point');
+  const structRows = document.querySelectorAll('#pointsBody .row-chapter, #pointsBody .row-subchapter, #pointsBody .row-topic');
+
+  // Track which structure keys have at least one matching point
+  const matchedChapters    = new Set();
+  const matchedSubchapters = new Set();
+  const matchedTopics      = new Set();
+
+  pointRows.forEach(tr => {
+    // Skip rows already hidden by other filters
+    if (tr.classList.contains('filter-hidden') || tr.classList.contains('chapter-filtered')) return;
+
+    const content    = (tr.querySelector('[data-field="content"]')?.value || '').toLowerCase();
+    const pointId    = (tr.querySelector('.point-id')?.textContent || '').toLowerCase();
+    const responsible= (tr.querySelector('.resp-display')?.textContent || '').toLowerCase();
+
+    const isMatch = content.includes(query) || pointId.includes(query) || responsible.includes(query);
+
+    if (isMatch) {
+      tr.classList.add('search-match');
+      Search.matches.push(tr);
+      // Track parent structure
+      if (tr.dataset.chapter)    matchedChapters.add(tr.dataset.chapter);
+      if (tr.dataset.subchapter) matchedSubchapters.add(tr.dataset.subchapter);
+      if (tr.dataset.topic)      matchedTopics.add(tr.dataset.topic);
+    } else {
+      tr.classList.add('search-hidden');
+    }
+  });
+
+  // Hide structure rows that have no matching children
+  structRows.forEach(tr => {
+    let keep = false;
+    if (tr.classList.contains('row-chapter')) {
+      keep = matchedChapters.has(tr.dataset.chapter);
+    } else if (tr.classList.contains('row-subchapter')) {
+      keep = matchedSubchapters.has(tr.dataset.subchapter);
+    } else if (tr.classList.contains('row-topic')) {
+      keep = matchedTopics.has(tr.dataset.topic);
+    }
+    if (!keep) {
+      tr.classList.add('search-struct-hidden');
+      tr.style.display = 'none';
+    }
+  });
+
+  // Update counter
+  const total = Search.matches.length;
+  if (total > 0) {
+    Search.currentIndex = 0;
+    Search.matches[0].classList.add('search-match-active');
+    countEl.textContent = `1 von ${total}`;
+    scrollToMatch(Search.matches[0]);
+  } else {
+    countEl.textContent = 'Keine Treffer';
+  }
+}
+
+function jumpToMatch(direction) {
+  if (Search.matches.length === 0) return;
+
+  // Remove active from current
+  if (Search.currentIndex >= 0) {
+    Search.matches[Search.currentIndex].classList.remove('search-match-active');
+  }
+
+  Search.currentIndex += direction;
+  if (Search.currentIndex >= Search.matches.length) Search.currentIndex = 0;
+  if (Search.currentIndex < 0) Search.currentIndex = Search.matches.length - 1;
+
+  const tr = Search.matches[Search.currentIndex];
+  tr.classList.add('search-match-active');
+  document.getElementById('searchBarCount').textContent =
+    `${Search.currentIndex + 1} von ${Search.matches.length}`;
+  scrollToMatch(tr);
+}
+
+function scrollToMatch(tr) {
+  tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function esc(str) {
