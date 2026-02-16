@@ -15,7 +15,8 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0F3188 0%, #1a4bc6 100%);
+  background: url('../icons/260216_Login Hintergrund screen_V2.png') center / cover no-repeat fixed;
+  background-color: #0F3188;
   padding: 24px;
 }
 .login-card {
