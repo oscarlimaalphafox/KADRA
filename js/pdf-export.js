@@ -94,6 +94,35 @@ const PDFExport = (() => {
     return '';
   }
 
+  /* ── Spiegelstrich: Hanging Indent für PDF ─────────────────── */
+
+  function applyHangingIndent(doc, text, maxWidth) {
+    if (!text) return text;
+    const lines = text.split('\n');
+    const result = [];
+    lines.forEach(line => {
+      const bulletMatch = line.match(/^(\s*-\s)/);
+      if (!bulletMatch) {
+        result.push(line);
+        return;
+      }
+      const prefix = bulletMatch[1];
+      const rest = line.slice(prefix.length);
+      // Messen, wie breit das Präfix in Leerzeichen ist
+      const prefixWidth = doc.getTextWidth(prefix);
+      // Padding für Folgezeilen (gleich breit wie Präfix)
+      const padChars = Math.ceil(prefixWidth / doc.getTextWidth(' '));
+      const pad = ' '.repeat(padChars);
+      // Erste Zeile mit Präfix, Folgezeilen mit Padding umbrechen
+      const availWidth = maxWidth - doc.getTextWidth(prefix);
+      const wrapped = doc.splitTextToSize(rest, availWidth > 10 ? availWidth : maxWidth);
+      wrapped.forEach((w, i) => {
+        result.push(i === 0 ? prefix + w : pad + w);
+      });
+    });
+    return result.join('\n');
+  }
+
   /* ── Kopf- und Fußzeile ───────────────────────────────────── */
 
   function addHeaderFooter(doc) {
@@ -187,14 +216,23 @@ const PDFExport = (() => {
   /* ── Checkbox zeichnen ──────────────────────────────────────── */
 
   function drawCheckbox(doc, x, y, size, checked) {
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(0.3);
-    doc.rect(x, y - size + 1, size, size);
+    const boxTop = y - size + 1;
+    doc.setDrawColor(160, 160, 160);
+    doc.setLineWidth(0.15);
+    doc.roundedRect(x, boxTop, size, size, 0.4, 0.4);
     if (checked) {
+      // Häkchen innerhalb der Box
       doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(0.4);
-      doc.line(x + 0.5, y - size + 1.5, x + size - 0.5, y + 0.5);
-      doc.line(x + size - 0.5, y - size + 1.5, x + 0.5, y + 0.5);
+      doc.setLineWidth(0.25);
+      const m = 0.15 * size; // Innenabstand
+      const x0 = x + m;
+      const y0 = boxTop + size * 0.55;
+      const x1 = x + size * 0.38;
+      const y1 = boxTop + size - m;
+      const x2 = x + size - m;
+      const y2 = boxTop + m;
+      doc.line(x0, y0, x1, y1);
+      doc.line(x1, y1, x2, y2);
     }
   }
 
@@ -389,9 +427,15 @@ const PDFExport = (() => {
         // Erledigt-Zustand merken für Checkbox-Zeichnung
         pointDoneState[body.length] = isDone;
 
+        // Spiegelstrich-Einrückung (hanging indent) für PDF
+        const contentWidth = CONTENT_WIDTH - 16 - 20 - 15 - 18 - 14 - 12; // auto-Spalte minus Padding
+        doc.setFont(FONT_NAME, contentStyle.fontStyle || 'normal');
+        doc.setFontSize(contentStyle.fontSize || 8);
+        const formattedContent = applyHangingIndent(doc, pt.content || '', contentWidth);
+
         body.push([
           { content: pt.id || '', styles: { ...baseStyle, fontSize: 6 } },
-          { content: pt.content || '', styles: contentStyle },
+          { content: formattedContent, styles: contentStyle },
           { content: catVal, styles: { ...baseStyle, fontSize: 6.5 } },
           { content: pt.responsible || '', styles: { ...baseStyle, fontSize: 6.5 } },
           { content: pt.deadline || '', styles: deadlineStyle },
@@ -487,8 +531,6 @@ const PDFExport = (() => {
   /* ── Anlagen ──────────────────────────────────────────────── */
 
   function renderAttachments(doc, attachments, startY) {
-    if (!attachments || !attachments.length) return startY;
-
     const pageH = doc.internal.pageSize.getHeight();
     if (startY > pageH - MARGIN_BOTTOM - 30) {
       doc.addPage();
@@ -502,6 +544,14 @@ const PDFExport = (() => {
     doc.setTextColor(...BLACK);
     doc.text('ANLAGEN', MARGIN_LEFT + 3, startY + 4);
     startY += 10;
+
+    if (!attachments || !attachments.length) {
+      doc.setFont(FONT_NAME, 'italic');
+      doc.setFontSize(8);
+      doc.setTextColor(...GRAY_DONE);
+      doc.text('keine Anlagen', MARGIN_LEFT + 3, startY);
+      return startY + 8;
+    }
 
     doc.setFont(FONT_NAME, 'normal');
     doc.setFontSize(8);
@@ -521,20 +571,31 @@ const PDFExport = (() => {
     return startY + 4;
   }
 
-  /* ── Legende ──────────────────────────────────────────────── */
+  /* ── Sektions-Überschrift (GROSSBUCHSTABEN, wie KAP) ──────── */
 
-  function renderLegend(doc, startY) {
+  function renderSectionHeading(doc, title, startY, minSpace) {
     const pageH = doc.internal.pageSize.getHeight();
-    if (startY > pageH - MARGIN_BOTTOM - 50) {
+    if (startY > pageH - MARGIN_BOTTOM - (minSpace || 20)) {
       doc.addPage();
       startY = MARGIN_TOP + 4;
     }
-
     doc.setFontSize(9);
     doc.setFont(FONT_NAME, 'bold');
     doc.setTextColor(...BLACK);
-    doc.text('LEGENDE', MARGIN_LEFT, startY);
+    doc.text(title, MARGIN_LEFT, startY);
+    return startY + 6;
+  }
+
+  /* ── Formatierungskonventionen (inkl. Farblegenden) ──────── */
+
+  function renderFormatConventions(doc, startY) {
+    // Trennlinie mittelgrau
+    doc.setDrawColor(...GRAY_MID);
+    doc.setLineWidth(0.3);
+    doc.line(MARGIN_LEFT, startY, MARGIN_LEFT + CONTENT_WIDTH, startY);
     startY += 6;
+
+    startY = renderSectionHeading(doc, 'FORMATIERUNGSKONVENTIONEN', startY, 40);
 
     doc.setFontSize(8);
 
@@ -554,14 +615,31 @@ const PDFExport = (() => {
 
     doc.setTextColor(...GRAY_DONE);
     doc.text('Erledigte Punkte sind in hellgrauer Schrift markiert und werden mit dem nächsten Protokoll gelöscht', MARGIN_LEFT, startY);
-    startY += 6;
+    startY += 10;
 
-    doc.setTextColor(...BLACK);
+    return startY;
+  }
+
+  /* ── ID-Syntax ──────────────────────────────────────────────── */
+
+  function renderIdSyntax(doc, startY) {
+    startY = renderSectionHeading(doc, 'ID-SYNTAX', startY, 25);
+
+    doc.setFontSize(8);
     doc.setFont(FONT_NAME, 'normal');
+    doc.setTextColor(...BLACK);
     doc.text('Syntax der Protokollpunkte:', MARGIN_LEFT, startY);
     doc.setFont(FONT_NAME, 'bold');
-    doc.text('#[aus Protokoll-Nr]|[Kapitel].[Unterkapitel].[lfd. Punkt je Protokoll]', MARGIN_LEFT + 50, startY);
-    startY += 8;
+    doc.text('#[Protokoll-Nr]|[Kapitel].[Unterkapitel].[lfd. Nr.]', MARGIN_LEFT + 48, startY);
+    startY += 5;
+
+    doc.setFont(FONT_NAME, 'normal');
+    doc.text('Beispiel:', MARGIN_LEFT, startY);
+    doc.setFont(FONT_NAME, 'bold');
+    doc.text('#11|B.1.02', MARGIN_LEFT + 48, startY);
+    doc.setFont(FONT_NAME, 'normal');
+    doc.text('= Punkt aus Protokoll Nr. 11, Kapitel B, Unterkapitel 1, laufende Nr. 02', MARGIN_LEFT + 62, startY);
+    startY += 10;
 
     return startY;
   }
@@ -583,18 +661,16 @@ const PDFExport = (() => {
 
     if (abbrevs.length === 0) return startY;
 
+    // Trennlinie mittelgrau
+    doc.setDrawColor(...GRAY_MID);
+    doc.setLineWidth(0.3);
+    doc.line(MARGIN_LEFT, startY, MARGIN_LEFT + CONTENT_WIDTH, startY);
+    startY += 6;
+
+    startY = renderSectionHeading(doc, 'ABKÜRZUNGSVERZEICHNIS', startY, 20);
+
     const pageH = doc.internal.pageSize.getHeight();
-    if (startY > pageH - MARGIN_BOTTOM - 20) {
-      doc.addPage();
-      startY = MARGIN_TOP + 4;
-    }
-
     doc.setFontSize(8);
-    doc.setFont(FONT_NAME, 'bold');
-    doc.setTextColor(...BLACK);
-    doc.text('Verwendete Abkürzungen:', MARGIN_LEFT, startY);
-    startY += 5;
-
     doc.setFont(FONT_NAME, 'normal');
     abbrevs.forEach(a => {
       if (startY > pageH - MARGIN_BOTTOM - 8) {
@@ -611,18 +687,15 @@ const PDFExport = (() => {
   /* ── Hinweistext ──────────────────────────────────────────── */
 
   function renderDisclaimer(doc, startY) {
-    const pageH = doc.internal.pageSize.getHeight();
-    if (startY > pageH - MARGIN_BOTTOM - 30) {
-      doc.addPage();
-      startY = MARGIN_TOP + 4;
-    }
+    // Trennlinie mittelgrau
+    doc.setDrawColor(...GRAY_MID);
+    doc.setLineWidth(0.3);
+    doc.line(MARGIN_LEFT, startY, MARGIN_LEFT + CONTENT_WIDTH, startY);
+    startY += 6;
 
-    doc.setFontSize(7.5);
-    doc.setFont(FONT_NAME, 'bold');
-    doc.setTextColor(...BLACK);
-    doc.text('Hinweis:', MARGIN_LEFT, startY);
-    startY += 4;
+    startY = renderSectionHeading(doc, 'HINWEIS', startY, 30);
 
+    doc.setFontSize(8);
     doc.setFont(FONT_NAME, 'normal');
     const disclaimer =
       'Der in obenstehendem Text beschriebene Besprechungsinhalt gibt das Verständnis des Verfassers wieder. ' +
@@ -634,7 +707,7 @@ const PDFExport = (() => {
 
     const lines = doc.splitTextToSize(disclaimer, CONTENT_WIDTH);
     doc.text(lines, MARGIN_LEFT, startY);
-    startY += lines.length * 3.5 + 4;
+    startY += lines.length * 3.5 + 8;
 
     return startY;
   }
@@ -681,9 +754,10 @@ const PDFExport = (() => {
     y = renderPointsTable(doc, protocol, y, hiddenChapters);
     y = renderAttachments(doc, protocol.attachments || [], y);
     y = renderAuthor(doc, protocol.author, y);
-    y = renderLegend(doc, y);
-    y = renderAbbreviations(doc, protocol.participants, protocol.customAbbreviations, y);
+    y = renderFormatConventions(doc, y);
+    y = renderIdSyntax(doc, y);
     y = renderDisclaimer(doc, y);
+    y = renderAbbreviations(doc, protocol.participants, protocol.customAbbreviations, y);
 
     addHeaderFooter(doc);
 

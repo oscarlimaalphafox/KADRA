@@ -248,6 +248,15 @@ const Protocols = {
  * }
  */
 function getDefaultStructure(type) {
+  // Aktennotiz: eigene Kapitelstruktur P / A / N
+  if (type === 'Aktennotiz') {
+    return {
+      P: { label: 'Präambel',         subchapters: [] },
+      A: { label: 'Abschnitt 1',      subchapters: [] },
+      N: { label: 'Nächste Schritte',  subchapters: [] },
+    };
+  }
+
   const chapters = {
     A: { label: 'Organisation | Information',                              subchapters: [] },
     B: { label: 'Qualitäten | Planung',                                    subchapters: [] },
@@ -296,9 +305,14 @@ function getDefaultStructure(type) {
  * @param {number} seq              – laufende Nummer ab 1
  * @returns {string} z. B. '#11|B.1.02'
  */
-function generatePointId(protocolNumber, chapter, subchapter, seq) {
-  const numStr = String(protocolNumber).padStart(2, '0');
+function generatePointId(protocolNumber, chapter, subchapter, seq, akSectionNum) {
   const seqStr = String(seq).padStart(2, '0');
+  // Aktennotiz: kein #Nr-Prefix, Abschnitt-Nummer statt Buchstabe
+  if (akSectionNum !== undefined) {
+    const prefix = chapter === 'P' ? 'P' : chapter === 'N' ? 'N' : String(akSectionNum);
+    return `${prefix}.${seqStr}`;
+  }
+  const numStr = String(protocolNumber).padStart(2, '0');
   if (subchapter) {
     return `#${numStr}|${chapter}.${subchapter}.${seqStr}`;
   } else {

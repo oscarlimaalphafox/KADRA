@@ -14,6 +14,8 @@
  *  - Bessere Löschen-Bestätigung
  */
 
+const APP_VERSION = '2.3';
+
 /* ── App-State ─────────────────────────────────────────────── */
 const App = {
   currentProjectId:  null,
@@ -37,6 +39,9 @@ const App = {
   pointFilters: { hideDone: false, onlyOverdue: false, onlyNew: false, onlyTasks: false, onlyApproval: false },
   // Kapitel-Filter
   hiddenChapters: new Set(),
+  // Drag & Drop
+  _dragGroup: null,        // Aktive Drag-Gruppe (z.B. "A|A.1")
+  _dragType:  null,        // 'point' | 'topic' — was wird gerade gezogen
   // Quick-Save (File System Access API)
   _saveFileHandle: null,   // FileSystemFileHandle (Chrome/Edge) oder null
   _saveFileName:   null,   // Letzter Dateiname
@@ -349,6 +354,9 @@ async function openProtocol(protocolId) {
 }
 
 function renderProtocol(protocol) {
+  const isAk = protocol.type === 'Aktennotiz';
+  document.getElementById('workspace').classList.toggle('is-aktennotiz', isAk);
+
   const project = App.projects.find(p => p.id === protocol.projectId);
   if (project) {
     document.getElementById('projectBadge').textContent = project.code;
@@ -356,8 +364,9 @@ function renderProtocol(protocol) {
   }
   const fieldTitle = document.getElementById('fieldTitle');
   fieldTitle.textContent  = protocol.seriesName || protocol.title || '';
+  fieldTitle.dataset.placeholder = isAk ? 'Betreff …' : 'Protokolltitel …';
   // Serientitel sperren bei Folgeprotokollen (number > 1)
-  const isFollowup = protocol.number > 1;
+  const isFollowup = !isAk && protocol.number > 1;
   fieldTitle.contentEditable = isFollowup ? 'false' : 'true';
   fieldTitle.classList.toggle('field-locked', isFollowup);
   fieldTitle.title = isFollowup ? 'Serienname wird im ersten Protokoll festgelegt' : '';
@@ -375,6 +384,10 @@ function renderProtocol(protocol) {
   document.getElementById('fieldAuthorLastName').value  = author.lastName  ?? 'Schüler';
   document.getElementById('fieldAuthorCompany').value   = author.company   ?? 'Hopro GmbH & Co. KG';
   document.getElementById('fieldAuthorDate').value      = author.date      ?? '';
+
+  // Abschnittstitel: "Inhalte" für Aktennotiz, "Protokollpunkte" für JFx
+  const pointsTitle = document.querySelector('#sectionPoints .section-title');
+  if (pointsTitle) pointsTitle.textContent = isAk ? 'Inhalte' : 'Protokollpunkte';
 
   renderParticipants(protocol.participants || []);
   renderPoints(protocol);
@@ -501,9 +514,10 @@ function createResponsibleSelect(currentValue, disabled) {
     trigger.classList.toggle('open', opening);
 
     if (opening) {
-      // Teilnehmer-Kürzel live aus DOM lesen
+      // Teilnehmer live aus DOM lesen: Aktennotiz → Firma, JFx → Kürzel
+      const isAk = document.getElementById('workspace').classList.contains('is-aktennotiz');
       const abbrevList = [...new Set(
-        getParticipantsFromDOM().map(p => p.abbr).filter(Boolean)
+        getParticipantsFromDOM().map(p => isAk ? p.company : p.abbr).filter(Boolean)
       )];
       const selected = (wrap.dataset.value || '').split('/').filter(Boolean);
 
@@ -609,6 +623,10 @@ function renderPoints(protocol) {
   const structure  = protocol.structure || DB.getDefaultStructure(protocol.type);
   const points     = protocol.points    || [];
 
+  const isAk = protocol.type === 'Aktennotiz';
+  // Für Aktennotiz: Abschnitt-Nummerierung (nur A-Abschnitte, nicht P/N)
+  let akSectionNum = 0;
+
   Object.entries(structure).forEach(([chKey, chapter]) => {
     const chCollId    = 'chapter-' + chKey;
     const chCollapsed = App.collapsedSections.has(chCollId);
@@ -620,9 +638,41 @@ function renderPoints(protocol) {
     chRow.dataset.chapter    = chKey;
     chRow.dataset.collapseId = chCollId;
 
-    const chDelBtn = DEFAULT_CHAPTERS.includes(chKey) ? '' :
-      `<button class="btn-delete-structure btn-delete-chapter" data-action="deleteChapter"
-        data-chapter="${chKey}" title="Kapitel löschen">${iconTrash()}</button>`;
+    let chLabelHtml, chDelBtn;
+
+    if (isAk) {
+      // Aktennotiz: P/N fix, A-Abschnitte nummeriert + editierbar
+      const isFixed = chKey === 'P' || chKey === 'N';
+      const akSectionKeys = Object.keys(structure).filter(k => k !== 'P' && k !== 'N');
+      const canDelete = !isFixed && akSectionKeys.length > 1;
+
+      if (!isFixed) {
+        akSectionNum++;
+        chLabelHtml = `<span class="ak-section-num">${akSectionNum}.</span>
+          <span class="ak-section-label" contenteditable="true"
+                data-chapter="${chKey}" data-field="chapterLabel">${esc(chapter.label)}</span>`;
+      } else {
+        chLabelHtml = `<span>${esc(chapter.label)}</span>`;
+      }
+
+      chDelBtn = canDelete
+        ? `<button class="btn-delete-structure btn-delete-chapter" data-action="deleteChapter"
+            data-chapter="${chKey}" title="Abschnitt löschen">${iconTrash()}</button>`
+        : '';
+    } else {
+      // JFx: Standardanzeige — Nutzer-Kapitel (ab F) editierbar
+      const isUserChapter = !DEFAULT_CHAPTERS.includes(chKey);
+      if (isUserChapter) {
+        chLabelHtml = `<span class="structure-label-group"><span>${chKey} — </span><span class="editable-label" contenteditable="true"
+          data-chapter="${chKey}" data-field="chapterLabel">${esc(chapter.label)}</span></span>`;
+      } else {
+        chLabelHtml = `<span>${chKey} — ${esc(chapter.label)}</span>`;
+      }
+      chDelBtn = isUserChapter
+        ? `<button class="btn-delete-structure btn-delete-chapter" data-action="deleteChapter"
+            data-chapter="${chKey}" title="Kapitel löschen">${iconTrash()}</button>`
+        : '';
+    }
 
     chRow.innerHTML = `
       <td>
@@ -633,17 +683,67 @@ function renderPoints(protocol) {
       </td>
       <td colspan="7">
         <div class="structure-label-cell">
-          <span>${chKey} — ${esc(chapter.label)}</span>
+          ${chLabelHtml}
           ${chDelBtn}
         </div>
       </td>
     `;
-    addRowClick(chRow, { type:'chapter', chapterKey:chKey, label:`Kapitel ${chKey}` });
+
+    // Aktennotiz: Abschnitt-Label editierbar — blur speichert
+    if (isAk) {
+      const labelSpan = chRow.querySelector('.ak-section-label');
+      if (labelSpan) {
+        labelSpan.addEventListener('blur', async () => {
+          const newLabel = labelSpan.textContent.trim();
+          if (!newLabel) { labelSpan.textContent = chapter.label; return; }
+          await saveCurrentProtocol();
+          const proto = await DB.Protocols.get(App.currentProtocolId);
+          if (proto && proto.structure[chKey]) {
+            proto.structure[chKey].label = newLabel;
+            await DB.Protocols.save(proto);
+          }
+        });
+        labelSpan.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); labelSpan.blur(); }
+        });
+      }
+    }
+
+    // JFx: Nutzer-Kapitel-Label editierbar — blur speichert
+    if (!isAk) {
+      const editLabel = chRow.querySelector('.editable-label[data-field="chapterLabel"]');
+      if (editLabel) {
+        editLabel.addEventListener('blur', async () => {
+          const newLabel = editLabel.textContent.trim();
+          if (!newLabel) { editLabel.textContent = chapter.label; return; }
+          await saveCurrentProtocol();
+          const proto = await DB.Protocols.get(App.currentProtocolId);
+          if (proto && proto.structure[chKey]) {
+            proto.structure[chKey].label = newLabel;
+            await DB.Protocols.save(proto);
+          }
+        });
+        editLabel.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); editLabel.blur(); }
+        });
+      }
+    }
+
+    addRowClick(chRow, { type:'chapter', chapterKey:chKey, label: isAk ? chapter.label : `Kapitel ${chKey}` });
     tbody.appendChild(chRow);
 
     // Direkte Punkte ohne Unterkapitel
+    let akPointSeq = 0;
     points.filter(pt => pt.chapter === chKey && !pt.subchapter).forEach(pt => {
       const row = createPointRow(pt, protocol.number, chKey, null, null);
+      // Aktennotiz: Anzeige-ID dynamisch berechnen
+      if (isAk) {
+        akPointSeq++;
+        const prefix = chKey === 'P' ? 'P' : chKey === 'N' ? 'N' : String(akSectionNum);
+        const displayId = `${prefix}.${String(akPointSeq).padStart(2,'0')}`;
+        const idSpan = row.querySelector('.point-id');
+        if (idSpan) idSpan.textContent = displayId;
+      }
       if (chCollapsed) row.classList.add('row-hidden');
       tbody.appendChild(row);
     });
@@ -660,6 +760,7 @@ function renderPoints(protocol) {
       subRow.dataset.chapter    = chKey;
       subRow.dataset.subchapter = sub.id;
       subRow.dataset.collapseId = subCollId;
+      subRow.draggable = false;
       if (hideRow) subRow.classList.add('row-hidden');
 
       // Lösch-Button für Unterkapitel
@@ -676,11 +777,118 @@ function renderPoints(protocol) {
         </td>
         <td colspan="7">
           <div class="structure-label-cell">
-            <span>${esc(sub.id)} ${esc(sub.label)}</span>
-            ${delBtn}
+            <span class="structure-label-group"><span>${esc(sub.id)} </span><span class="editable-label" contenteditable="true"
+              data-chapter="${chKey}" data-subchapter="${esc(sub.id)}"
+              data-field="subchapterLabel">${esc(sub.label)}</span></span>
+            <span class="structure-actions">
+              ${delBtn}
+              <span class="drag-handle sub-drag-handle" title="Unterkapitel verschieben">⠿</span>
+            </span>
           </div>
         </td>
       `;
+      // UKAP-Label editierbar — blur speichert
+      const subLabel = subRow.querySelector('.editable-label[data-field="subchapterLabel"]');
+      if (subLabel) {
+        subLabel.addEventListener('blur', async () => {
+          const newLabel = subLabel.textContent.trim();
+          if (!newLabel) { subLabel.textContent = sub.label; return; }
+          await saveCurrentProtocol();
+          const proto = await DB.Protocols.get(App.currentProtocolId);
+          const ch = proto?.structure[chKey];
+          const s = (ch?.subchapters||[]).find(sc => sc.id === sub.id);
+          if (s) { s.label = newLabel; await DB.Protocols.save(proto); }
+        });
+        subLabel.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); subLabel.blur(); }
+        });
+      }
+
+      // ── UKAP Drag & Drop (nur über Handle starten) ──
+      const subHandle = subRow.querySelector('.drag-handle');
+      let subHandleDown = false;
+
+      subHandle.addEventListener('mousedown',  () => { subHandleDown = true; subRow.draggable = true; });
+      subHandle.addEventListener('touchstart', () => { subHandleDown = true; subRow.draggable = true; }, { passive: true });
+      document.addEventListener('mouseup',  () => { subHandleDown = false; subRow.draggable = false; });
+      document.addEventListener('touchend', () => { subHandleDown = false; subRow.draggable = false; });
+
+      subRow.addEventListener('dragstart', e => {
+        if (!subHandleDown) { e.preventDefault(); return; }
+        e.dataTransfer.setData('text/plain', sub.id);
+        e.dataTransfer.setData('application/x-dragtype', 'subchapter');
+        e.dataTransfer.effectAllowed = 'move';
+        subRow.classList.add('drag-active');
+        App._dragGroup = chKey;
+        App._dragType  = 'subchapter';
+        // Kind-Zeilen (Topics + Punkte) während Drag ausblenden
+        let sib = subRow.nextElementSibling;
+        while (sib && sib.dataset.type !== 'subchapter' && sib.dataset.type !== 'chapter') {
+          if (sib.dataset.chapter === chKey && sib.dataset.subchapter === sub.id) {
+            sib.classList.add('drag-child-hidden');
+          }
+          sib = sib.nextElementSibling;
+        }
+      });
+
+      subRow.addEventListener('dragend', () => {
+        subRow.classList.remove('drag-active');
+        App._dragGroup = null;
+        App._dragType  = null;
+        document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+          el.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+        document.querySelectorAll('.drag-child-hidden').forEach(el => {
+          el.classList.remove('drag-child-hidden');
+        });
+      });
+
+      subRow.addEventListener('dragover', e => {
+        if (App._dragType !== 'subchapter' || !App._dragGroup) return;
+        if (subRow.dataset.chapter !== App._dragGroup) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = subRow.getBoundingClientRect();
+        const mid  = rect.top + rect.height / 2;
+        subRow.classList.toggle('drag-over-top',    e.clientY < mid);
+        subRow.classList.toggle('drag-over-bottom', e.clientY >= mid);
+      });
+
+      subRow.addEventListener('dragleave', () => {
+        subRow.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+
+      subRow.addEventListener('drop', async e => {
+        e.preventDefault();
+        subRow.classList.remove('drag-over-top', 'drag-over-bottom');
+        if (App._dragType !== 'subchapter') return;
+
+        const draggedSubId = e.dataTransfer.getData('text/plain');
+        if (draggedSubId === sub.id) return;
+
+        await saveCurrentProtocol();
+        const proto = await DB.Protocols.get(App.currentProtocolId);
+        if (!proto) return;
+        const ch = proto.structure[chKey];
+        if (!ch?.subchapters) return;
+
+        const fromIdx = ch.subchapters.findIndex(s => s.id === draggedSubId);
+        if (fromIdx === -1) return;
+        const [movedSub] = ch.subchapters.splice(fromIdx, 1);
+
+        let toIdx = ch.subchapters.findIndex(s => s.id === sub.id);
+        if (toIdx === -1) toIdx = ch.subchapters.length;
+
+        const rect = subRow.getBoundingClientRect();
+        if (e.clientY >= rect.top + rect.height / 2) toIdx++;
+
+        ch.subchapters.splice(toIdx, 0, movedSub);
+
+        await DB.Protocols.save(proto);
+        renderPoints(proto);
+        showToast('Unterkapitel verschoben.', 'success');
+      });
+
       addRowClick(subRow, {
         type:'subchapter', chapterKey:chKey, subchapterId:sub.id,
         label:`${sub.id} ${sub.label}`
@@ -697,6 +905,7 @@ function renderPoints(protocol) {
         topicRow.dataset.chapter    = chKey;
         topicRow.dataset.subchapter = sub.id;
         topicRow.dataset.topic      = topic.id;
+        topicRow.draggable = false;
         if (hideChildren) topicRow.classList.add('row-hidden');
 
         const topicDelBtn = `<button class="btn-delete-structure" data-action="deleteTopic"
@@ -705,14 +914,121 @@ function renderPoints(protocol) {
           title="Thema löschen">${iconTrash()}</button>`;
 
         topicRow.innerHTML = `
-          <td></td>
+          <td><span class="drag-handle" title="Thema verschieben">⠿</span></td>
           <td colspan="7">
             <div class="structure-label-cell">
-              <span class="topic-label">${esc(topic.label)}</span>
+              <span class="topic-label editable-label" contenteditable="true"
+                data-chapter="${chKey}" data-subchapter="${esc(sub.id)}"
+                data-topic="${esc(topic.id)}" data-field="topicLabel">${esc(topic.label)}</span>
               ${topicDelBtn}
             </div>
           </td>
         `;
+        // Thema-Label editierbar — blur speichert
+        const topicLabel = topicRow.querySelector('.editable-label[data-field="topicLabel"]');
+        if (topicLabel) {
+          topicLabel.addEventListener('blur', async () => {
+            const newLabel = topicLabel.textContent.trim();
+            if (!newLabel) { topicLabel.textContent = topic.label; return; }
+            await saveCurrentProtocol();
+            const proto = await DB.Protocols.get(App.currentProtocolId);
+            const ch = proto?.structure[chKey];
+            const s = (ch?.subchapters||[]).find(sc => sc.id === sub.id);
+            const t = (s?.topics||[]).find(tp => tp.id === topic.id);
+            if (t) { t.label = newLabel; await DB.Protocols.save(proto); }
+          });
+          topicLabel.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); topicLabel.blur(); }
+          });
+        }
+
+        // ── Thema Drag & Drop (nur über Handle starten) ──
+        const topicHandle = topicRow.querySelector('.drag-handle');
+        let topicHandleDown = false;
+
+        topicHandle.addEventListener('mousedown',  () => { topicHandleDown = true; topicRow.draggable = true; });
+        topicHandle.addEventListener('touchstart', () => { topicHandleDown = true; topicRow.draggable = true; }, { passive: true });
+        document.addEventListener('mouseup',  () => { topicHandleDown = false; topicRow.draggable = false; });
+        document.addEventListener('touchend', () => { topicHandleDown = false; topicRow.draggable = false; });
+
+        topicRow.addEventListener('dragstart', e => {
+          if (!topicHandleDown) { e.preventDefault(); return; }
+          const group = [chKey, sub.id].join('|');
+          e.dataTransfer.setData('text/plain', topic.id);
+          e.dataTransfer.setData('application/x-group', group);
+          e.dataTransfer.setData('application/x-dragtype', 'topic');
+          e.dataTransfer.effectAllowed = 'move';
+          topicRow.classList.add('drag-active');
+          App._dragGroup = group;
+          App._dragType  = 'topic';
+          // Kind-Punkte während Drag ausblenden
+          let sib = topicRow.nextElementSibling;
+          while (sib && sib.dataset.type === 'point' && sib.dataset.topic === topic.id) {
+            sib.classList.add('drag-child-hidden');
+            sib = sib.nextElementSibling;
+          }
+        });
+
+        topicRow.addEventListener('dragend', () => {
+          topicRow.classList.remove('drag-active');
+          App._dragGroup = null;
+          App._dragType  = null;
+          document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+            el.classList.remove('drag-over-top', 'drag-over-bottom');
+          });
+          document.querySelectorAll('.drag-child-hidden').forEach(el => {
+            el.classList.remove('drag-child-hidden');
+          });
+        });
+
+        topicRow.addEventListener('dragover', e => {
+          if (App._dragType !== 'topic' || !App._dragGroup) return;
+          const myGroup = [topicRow.dataset.chapter, topicRow.dataset.subchapter].join('|');
+          if (myGroup !== App._dragGroup) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          const rect = topicRow.getBoundingClientRect();
+          const mid  = rect.top + rect.height / 2;
+          topicRow.classList.toggle('drag-over-top',    e.clientY < mid);
+          topicRow.classList.toggle('drag-over-bottom', e.clientY >= mid);
+        });
+
+        topicRow.addEventListener('dragleave', () => {
+          topicRow.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+
+        topicRow.addEventListener('drop', async e => {
+          e.preventDefault();
+          topicRow.classList.remove('drag-over-top', 'drag-over-bottom');
+          if (App._dragType !== 'topic') return;
+
+          const draggedTopicId = e.dataTransfer.getData('text/plain');
+          if (draggedTopicId === topic.id) return;
+
+          await saveCurrentProtocol();
+          const proto = await DB.Protocols.get(App.currentProtocolId);
+          if (!proto) return;
+          const ch = proto.structure[chKey];
+          const s = (ch?.subchapters || []).find(sc => sc.id === sub.id);
+          if (!s?.topics) return;
+
+          const fromIdx = s.topics.findIndex(t => t.id === draggedTopicId);
+          if (fromIdx === -1) return;
+          const [movedTopic] = s.topics.splice(fromIdx, 1);
+
+          let toIdx = s.topics.findIndex(t => t.id === topic.id);
+          if (toIdx === -1) toIdx = s.topics.length;
+
+          const rect = topicRow.getBoundingClientRect();
+          if (e.clientY >= rect.top + rect.height / 2) toIdx++;
+
+          s.topics.splice(toIdx, 0, movedTopic);
+
+          await DB.Protocols.save(proto);
+          renderPoints(proto);
+          showToast('Thema verschoben.', 'success');
+        });
+
         addRowClick(topicRow, {
           type:'topic', chapterKey:chKey, subchapterId:sub.id,
           topicId:topic.id, label:`Thema: ${topic.label}`
@@ -780,7 +1096,7 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
       <textarea class="table-textarea" data-field="content"
         placeholder="Inhalt …">${esc(point.content || '')}</textarea>
     </td>
-    <td>
+    <td class="col-category">
       <select class="table-select" data-field="category">
         <option value="Aufgabe"          ${catVal==='Aufgabe'          ?'selected':''}>Aufgabe</option>
         <option value="Info"             ${catVal==='Info'             ?'selected':''}>Info</option>
@@ -801,7 +1117,7 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
         <input type="date" class="termin-date-hidden" tabindex="-1" aria-hidden="true" />
       </div>
     </td>
-    <td style="text-align:center">
+    <td class="col-done" style="text-align:center">
       <input type="checkbox" class="table-checkbox" data-field="done"
         ${point.done?'checked':''} />
     </td>
@@ -904,18 +1220,20 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
     e.dataTransfer.effectAllowed = 'move';
     tr.classList.add('drag-active');
     App._dragGroup = group;
+    App._dragType  = 'point';
   });
 
   tr.addEventListener('dragend', () => {
     tr.classList.remove('drag-active');
     App._dragGroup = null;
+    App._dragType  = null;
     document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
       el.classList.remove('drag-over-top', 'drag-over-bottom');
     });
   });
 
   tr.addEventListener('dragover', e => {
-    if (!App._dragGroup) return;
+    if (App._dragType !== 'point' || !App._dragGroup) return;
     const myGroup = [tr.dataset.chapter, tr.dataset.subchapter || ''].join('|');
     if (myGroup !== App._dragGroup) return;
     e.preventDefault();
@@ -934,6 +1252,7 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
   tr.addEventListener('drop', async e => {
     e.preventDefault();
     tr.classList.remove('drag-over-top', 'drag-over-bottom');
+    if (App._dragType !== 'point') return;
 
     const draggedId = e.dataTransfer.getData('text/plain');
     const targetId  = point.id;
@@ -1058,8 +1377,9 @@ function setupBulletPoints(ta) {
 function addRowClick(row, ctx) {
   row.addEventListener('click', (e) => {
     if (e.target.closest('.collapse-btn') || e.target.closest('.btn-delete-structure')) return;
-    // Formularelemente nicht abfangen — Cursor/Fokus soll normal funktionieren
+    // Formularelemente + editierbare Labels nicht abfangen — Cursor/Fokus soll normal funktionieren
     if (e.target.closest('textarea') || e.target.closest('input') || e.target.closest('select')) return;
+    if (e.target.closest('[contenteditable="true"]')) return;
     selectRow(ctx, row);
   });
 }
@@ -1111,6 +1431,9 @@ function toggleCollapse(sectionId) {
       // Nur anzeigen, wenn nicht durch übergeordnetes Kapitel versteckt
       const chKey = tr.dataset.chapter;
       if (chKey && App.collapsedSections.has('chapter-' + chKey)) return;
+      // Nur anzeigen, wenn nicht durch eingeklapptes UKAP versteckt
+      const subKey = tr.dataset.subchapter;
+      if (subKey && tr.dataset.type !== 'subchapter' && App.collapsedSections.has('subchapter-' + subKey)) return;
       tr.style.opacity    = '0';
       tr.style.transition = '';
       tr.classList.remove('row-hidden');
@@ -1325,6 +1648,9 @@ async function populateChapterFilter() {
   const structure = protocol.structure || {};
   const points    = protocol.points    || [];
 
+  const isAk = protocol.type === 'Aktennotiz';
+  let akNum = 0;
+
   Object.entries(structure).forEach(([chKey, chapter]) => {
     const hasTopics = (chapter.subchapters || []).some(s => (s.topics || []).length > 0);
     const hasPoints = points.some(pt => pt.chapter === chKey);
@@ -1349,7 +1675,13 @@ async function populateChapterFilter() {
     });
 
     const span = document.createElement('span');
-    span.textContent = `${chKey} — ${chapter.label}`;
+    if (isAk) {
+      const isFixed = chKey === 'P' || chKey === 'N';
+      if (!isFixed) akNum++;
+      span.textContent = isFixed ? chapter.label : `${akNum}. ${chapter.label}`;
+    } else {
+      span.textContent = `${chKey} — ${chapter.label}`;
+    }
 
     label.appendChild(cb);
     label.appendChild(span);
@@ -1384,29 +1716,50 @@ function setupChapterFilter() {
   });
 }
 
+/* Aktennotiz: Abschnitt-Nummer für einen chapter-Key ermitteln */
+function _getAkSectionNum(protocol, chKey) {
+  if (chKey === 'P' || chKey === 'N') return undefined; // P/N behalten Buchstaben
+  let num = 0;
+  for (const k of Object.keys(protocol.structure)) {
+    if (k === 'P' || k === 'N') continue;
+    num++;
+    if (k === chKey) return num;
+  }
+  return undefined;
+}
+
 /* ============================================================
    TOOLBAR-AKTIONEN: KAP / UKAP / THEMA / PKT
 ============================================================ */
 
 const DEFAULT_CHAPTERS = ['A','B','C','D','E'];
 
-/* Nächsten freien Buchstaben ab F ermitteln (Lücken füllen) */
+/* Nächsten freien Buchstaben ermitteln */
 function getNextChapterKey(protocol) {
   const existing = Object.keys(protocol.structure);
-  for (let code = 70; code <= 90; code++) {            // F=70 … Z=90
+  const isAk = protocol.type === 'Aktennotiz';
+  // Aktennotiz: B–M (A ist erster Abschnitt, N+P reserviert)
+  // JFx: F–Z (A–E sind Default)
+  const startCode = isAk ? 66 : 70;   // B=66, F=70
+  const endCode   = isAk ? 77 : 90;   // M=77, Z=90
+  for (let code = startCode; code <= endCode; code++) {
     const key = String.fromCharCode(code);
     if (!existing.includes(key)) return key;
   }
-  return null;                                          // alle 21 Slots belegt (unwahrscheinlich)
+  return null;
 }
 
 /* KAP – Modal öffnen */
 async function startAddChapter() {
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) { showToast('Kein Protokoll geöffnet.', 'error'); return; }
+  const isAk = protocol.type === 'Aktennotiz';
   const nextKey = getNextChapterKey(protocol);
-  if (!nextKey) { showToast('Maximale Kapitelanzahl erreicht (A–Z).', 'error'); return; }
-  document.getElementById('chapterKeyHint').textContent = `Wird als Kapitel ${nextKey} angelegt`;
+  if (!nextKey) { showToast(isAk ? 'Maximale Abschnittanzahl erreicht.' : 'Maximale Kapitelanzahl erreicht (A–Z).', 'error'); return; }
+  const sectionCount = isAk ? Object.keys(protocol.structure).filter(k => k !== 'P' && k !== 'N').length + 1 : 0;
+  document.getElementById('chapterKeyHint').textContent = isAk
+    ? `Wird als Abschnitt ${sectionCount} angelegt`
+    : `Wird als Kapitel ${nextKey} angelegt`;
   document.getElementById('chapterLabel').value = '';
   openModal('modalChapter');
   setTimeout(() => document.getElementById('chapterLabel').focus(), 80);
@@ -1421,27 +1774,62 @@ async function saveChapter() {
   try {
     const protocol = await DB.Protocols.get(App.currentProtocolId);
     if (!protocol) return;
+    const isAk = protocol.type === 'Aktennotiz';
     const nextKey = getNextChapterKey(protocol);
-    if (!nextKey) { showToast('Maximale Kapitelanzahl erreicht.', 'error'); return; }
-    protocol.structure[nextKey] = { label, subchapters: [] };
+    if (!nextKey) { showToast('Maximale Anzahl erreicht.', 'error'); return; }
+
+    if (isAk) {
+      // Neuen Abschnitt VOR N einfügen: structure neu aufbauen
+      const newStructure = {};
+      for (const [k, v] of Object.entries(protocol.structure)) {
+        if (k === 'N') {
+          newStructure[nextKey] = { label, subchapters: [] };
+        }
+        newStructure[k] = v;
+      }
+      // Falls N nicht existiert (Fallback)
+      if (!newStructure[nextKey]) newStructure[nextKey] = { label, subchapters: [] };
+      protocol.structure = newStructure;
+    } else {
+      protocol.structure[nextKey] = { label, subchapters: [] };
+    }
+
     await DB.Protocols.save(protocol);
     closeModal('modalChapter');
     renderPoints(protocol);
-    showToast(`Kapitel ${nextKey} angelegt.`, 'success');
+    showToast(isAk ? `Abschnitt "${label}" angelegt.` : `Kapitel ${nextKey} angelegt.`, 'success');
   } finally { App._busy = false; }
 }
 
-/* KAP – Löschen (nur Nutzer-Kapitel F+) */
+/* KAP – Löschen */
 async function deleteChapter(chKey) {
-  if (DEFAULT_CHAPTERS.includes(chKey)) {
-    showToast('Vordefinierte Kapitel (A–E) können nicht gelöscht werden.', 'error');
-    return;
-  }
-  await saveCurrentProtocol();  // DOM-Inhalte sichern bevor DB gelesen wird
+  await saveCurrentProtocol();
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) return;
   const chapter = protocol.structure[chKey];
   if (!chapter) return;
+
+  const isAk = protocol.type === 'Aktennotiz';
+
+  if (isAk) {
+    // Aktennotiz: P und N sind fix
+    if (chKey === 'P' || chKey === 'N') {
+      showToast('Präambel und Nächste Schritte können nicht gelöscht werden.', 'error');
+      return;
+    }
+    // Mindestens ein Abschnitt muss bleiben
+    const sectionKeys = Object.keys(protocol.structure).filter(k => k !== 'P' && k !== 'N');
+    if (sectionKeys.length <= 1) {
+      showToast('Mindestens ein Abschnitt muss vorhanden sein.', 'error');
+      return;
+    }
+  } else {
+    // JFx: Vordefinierte Kapitel A–E nicht löschbar
+    if (DEFAULT_CHAPTERS.includes(chKey)) {
+      showToast('Vordefinierte Kapitel (A–E) können nicht gelöscht werden.', 'error');
+      return;
+    }
+  }
 
   // Prüfe ob Themen in Unterkapiteln existieren
   const hasTopics = (chapter.subchapters || []).some(s => (s.topics || []).length > 0);
@@ -1457,13 +1845,13 @@ async function deleteChapter(chKey) {
     return;
   }
 
-  const msg = `Kapitel "${chKey} — ${chapter.label}" löschen?`;
-  if (!confirm(msg)) return;
+  const displayLabel = isAk ? chapter.label : `${chKey} — ${chapter.label}`;
+  if (!confirm(`"${displayLabel}" löschen?`)) return;
 
   delete protocol.structure[chKey];
   await DB.Protocols.save(protocol);
   renderPoints(protocol);
-  showToast(`Kapitel ${chKey} gelöscht.`, '');
+  showToast(isAk ? `Abschnitt "${chapter.label}" gelöscht.` : `Kapitel ${chKey} gelöscht.`, '');
 }
 
 /* UKAP */
@@ -1526,8 +1914,9 @@ async function saveTopic() {
     sub.topics    = [...(sub.topics||[]), { id:topicId, label }];
     const subNum  = subId.split('.')[1] || null;
     const seq     = getNextPointSeq(protocol, chKey, subId);
+    const akNum   = protocol.type === 'Aktennotiz' ? _getAkSectionNum(protocol, chKey) : undefined;
     const newPoint = {
-      id: DB.generatePointId(protocol.number, chKey, subNum, seq),
+      id: DB.generatePointId(protocol.number, chKey, subNum, seq, akNum),
       chapter:chKey, subchapter:subId, topic:topicId,
       content:'', category:'Aufgabe', responsible:'', deadline:'',
       done:false, isNew:true, doneLastProtocol:false, createdInProtocol:protocol.number,
@@ -1564,8 +1953,9 @@ async function addPoint() {
     }
     const subNum   = subId ? subId.split('.')[1] : null;
     const seq      = getNextPointSeq(protocol, chKey, subId);
+    const akNum    = protocol.type === 'Aktennotiz' ? _getAkSectionNum(protocol, chKey) : undefined;
     const newPoint = {
-      id: DB.generatePointId(protocol.number, chKey, subNum, seq),
+      id: DB.generatePointId(protocol.number, chKey, subNum, seq, akNum),
       chapter:chKey, subchapter:subId, topic:topId,
       content:'', category:'Aufgabe', responsible:'', deadline:'',
       done:false, isNew:true, doneLastProtocol:false, createdInProtocol:protocol.number,
@@ -1762,7 +2152,7 @@ async function createProtocol(type, continueFromPrevious, seriesName, sourceSeri
 
   const protocol = {
     projectId, type, seriesId, seriesName: resolvedSeriesName, number,
-    title: resolvedSeriesName || type,
+    title: resolvedSeriesName || (isAktennotiz ? '' : type),
     date:     new Date().toISOString().slice(0,10),
     time:'', location:'',
     tenant:   project.tenant || '',
@@ -1790,6 +2180,9 @@ async function createProtocol(type, continueFromPrevious, seriesName, sourceSeri
 function renderAttachments(attachments, protocolNumber) {
   const tbody = document.getElementById('attachmentsBody');
   tbody.innerHTML = '';
+  // Leerhinweis
+  const emptyMsg = document.getElementById('attachmentsEmpty');
+  if (emptyMsg) emptyMsg.style.display = attachments.length ? 'none' : '';
   attachments.forEach((att, idx) => {
     const tr = document.createElement('tr');
     tr.dataset.idx = idx;
@@ -2350,6 +2743,23 @@ function bindGlobalEvents() {
   });
   document.getElementById('fieldTitle').addEventListener('input', saveCurrentProtocol);
 
+  // Aufgestellt: Kalender-Button → hidden date input → Textfeld befüllen
+  const authorDateInput  = document.getElementById('fieldAuthorDate');
+  const authorCalBtn     = document.getElementById('btnAuthorDatePicker');
+  const authorDateHidden = document.getElementById('authorDateHidden');
+  if (authorCalBtn && authorDateHidden && authorDateInput) {
+    authorCalBtn.addEventListener('click', () => {
+      authorDateHidden.showPicker?.() || authorDateHidden.click();
+    });
+    authorDateHidden.addEventListener('change', () => {
+      if (authorDateHidden.value) {
+        const [y, m, d] = authorDateHidden.value.split('-');
+        authorDateInput.value = `${d}.${m}.${y}`;
+        saveCurrentProtocol();
+      }
+    });
+  }
+
   // Modals
   document.querySelectorAll('[data-close]').forEach(btn =>
     btn.addEventListener('click', () => closeModal(btn.dataset.close)));
@@ -2455,6 +2865,12 @@ function setupProjectMenu() {
   document.getElementById('btnDeleteProject').addEventListener('click', () => {
     panel.classList.add('hidden');
     openDeleteProjectModal();
+  });
+
+  document.getElementById('btnAppInfo').addEventListener('click', () => {
+    panel.classList.add('hidden');
+    document.getElementById('appInfoVersion').textContent = 'Version ' + APP_VERSION;
+    openModal('modalAppInfo');
   });
 
   document.getElementById('btnLogout').addEventListener('click', () => {
