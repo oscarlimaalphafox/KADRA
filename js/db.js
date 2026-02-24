@@ -273,9 +273,32 @@ function getDefaultStructure(type) {
       { id: 'B.4', label: 'Genehmigung',                              topics: [] },
     ];
   } else if (type === 'JFx Mieter') {
+    chapters.A.subchapters = [
+      { id: 'A.1', label: 'Termine & Abwesenheiten',   topics: [] },
+      { id: 'A.2', label: 'Datenaustausch | Unterlagen', topics: [] },
+      { id: 'A.3', label: 'MEV-Übersicht',              topics: [] },
+      { id: 'A.4', label: 'Begehungen',                 topics: [] },
+    ];
     chapters.B.subchapters = [
-      { id: 'B.1', label: 'Mieterausbau',      topics: [] },
-      { id: 'B.2', label: 'Planungsunterlagen', topics: [] },
+      { id: 'B.1', label: 'Belegungsplanung',       topics: [] },
+      { id: 'B.2', label: 'Objektplanung',           topics: [] },
+      { id: 'B.3', label: 'IT | Medientechnik',      topics: [] },
+      { id: 'B.4', label: 'Fachplanung TGA',         topics: [] },
+      { id: 'B.5', label: 'Bemusterung',             topics: [] },
+      { id: 'B.6', label: 'Ausführungsplanung',      topics: [] },
+      { id: 'B.7', label: 'Sonstiges',               topics: [] },
+    ];
+    chapters.C.subchapters = [
+      { id: 'C.1', label: 'Kostenabrechnung | Massen+Qualitäten', topics: [] },
+    ];
+    chapters.D.subchapters = [
+      { id: 'D.1', label: 'Bauablauf',              topics: [] },
+      { id: 'D.2', label: 'Bemusterungstermine',    topics: [] },
+      { id: 'D.3', label: 'Übergabe',               topics: [] },
+    ];
+    chapters.E.subchapters = [
+      { id: 'E.1', label: 'Nachträge',                   topics: [] },
+      { id: 'E.2', label: 'Übergabe von Unterlagen',     topics: [] },
     ];
   } else if (type === 'JFx Bauherr') {
     chapters.B.subchapters = [
