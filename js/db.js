@@ -300,17 +300,6 @@ function getDefaultStructure(type) {
       { id: 'E.1', label: 'Nachträge',                   topics: [] },
       { id: 'E.2', label: 'Übergabe von Unterlagen',     topics: [] },
     ];
-  } else if (type === 'JFx Bauherr') {
-    chapters.B.subchapters = [
-      { id: 'B.1', label: 'Planung',     topics: [] },
-      { id: 'B.2', label: 'Ausführung',  topics: [] },
-    ];
-  } else if (type === 'Baubesprechung') {
-    chapters.B.subchapters = [
-      { id: 'B.1', label: 'Rohbau',              topics: [] },
-      { id: 'B.2', label: 'Ausbau',              topics: [] },
-      { id: 'B.3', label: 'Technische Anlagen',  topics: [] },
-    ];
   }
 
   return chapters;
