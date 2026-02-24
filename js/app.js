@@ -59,15 +59,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedFileName = localStorage.getItem('kadra_saveFileName');
   if (savedFileName) _updateQuickSaveLabel(savedFileName);
 
-  // Klick außerhalb → offene Zuständig-Panels schließen
+  // Klick außerhalb → offene Zuständig-Panels committen und schließen
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.resp-select')) {
-      document.querySelectorAll('.resp-panel:not(.hidden)').forEach(p =>
-        p.classList.add('hidden')
-      );
-      document.querySelectorAll('.resp-trigger.open').forEach(t =>
-        t.classList.remove('open')
-      );
+      document.querySelectorAll('.resp-panel:not(.hidden)').forEach(panel => {
+        const wrap    = panel.closest('.resp-select');
+        const trigger = wrap?.querySelector('.resp-trigger');
+        const vals    = Array.from(panel.querySelectorAll('input[type="checkbox"]:checked'))
+          .map(cb => cb.value);
+        const joined  = vals.join('/');
+        if (wrap)    wrap.dataset.value = joined;
+        if (trigger) trigger.querySelector('.resp-display').textContent = vals.length ? joined : '—';
+        panel.classList.add('hidden');
+        if (trigger) trigger.classList.remove('open');
+      });
+      saveCurrentProtocol();
     }
   });
 });
@@ -2134,7 +2140,7 @@ async function createProtocol(type, continueFromPrevious, seriesName, sourceSeri
     const maxNum = allOfSeries.reduce((m, p) => Math.max(m, p.number), 0);
     number = continueFromPrevious && maxNum > 0
       ? maxNum + 1
-      : await DB.Protocols.nextNumber(projectId, type);
+      : 1;
   }
 
   // customAbbreviations bei Fortschreibung übernehmen
@@ -2869,6 +2875,11 @@ function setupProjectMenu() {
 
   document.getElementById('btnAppInfo').addEventListener('click', () => {
     panel.classList.add('hidden');
+    document.getElementById('appInfoVersion').textContent = 'Version ' + APP_VERSION;
+    openModal('modalAppInfo');
+  });
+
+  document.querySelector('.sidebar-logo').addEventListener('click', () => {
     document.getElementById('appInfoVersion').textContent = 'Version ' + APP_VERSION;
     openModal('modalAppInfo');
   });

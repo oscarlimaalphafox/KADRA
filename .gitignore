@@ -13,3 +13,7 @@ desktop.ini
 # Dev documentation (local only)
 DEV_LOG.md
 CLAUDE.md
+
+# Lokale Notizen und Dokumentation (nicht im Repo)
+# Alle Unterordner die mit _ beginnen werden ignoriert
+_*/
