@@ -91,6 +91,20 @@
   font-display: swap;
   src: url('../fonts/nunito-sans-v19-latin-600.woff2') format('woff2');
 }
+@font-face {
+  font-family: 'Nunito Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/nunito-sans-v19-latin-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Nunito Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('../fonts/nunito-sans-v19-latin-800.woff2') format('woff2');
+}
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
@@ -1060,7 +1074,7 @@ input[type="date"].meta-input {
 }
 
 /* Neuer Punkt (fett) */
-.point-new td { font-weight: 600; }
+.point-new td { font-weight: 700; }
 
 /* Erledigter Punkt (hellgrau) */
 .point-done td { color: var(--text-done) !important; }
