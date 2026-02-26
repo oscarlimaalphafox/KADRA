@@ -407,9 +407,17 @@ function renderProtocol(protocol) {
 function renderParticipants(participants) {
   const tbody = document.getElementById('participantsBody');
   tbody.innerHTML = '';
+
+  // Cleanup document-Listener vom vorherigen Render
+  if (renderParticipants._ac) renderParticipants._ac.abort();
+  const ac = renderParticipants._ac = new AbortController();
+  document.addEventListener('mouseup',  () => tbody.querySelectorAll('tr').forEach(r => r.draggable = false), { signal: ac.signal });
+  document.addEventListener('touchend', () => tbody.querySelectorAll('tr').forEach(r => r.draggable = false), { signal: ac.signal });
+
   participants.forEach((p, idx) => {
     const tr = document.createElement('tr');
     tr.dataset.idx = idx;
+    tr.draggable = false;
     tr.innerHTML = `
       <td><input class="table-input" value="${esc(p.name)}"    data-field="name" /></td>
       <td><input class="table-input" value="${esc(p.company)}" data-field="company" /></td>
@@ -417,7 +425,12 @@ function renderParticipants(participants) {
       <td><input class="table-input" type="email" value="${esc(p.email)}" data-field="email"/></td>
       <td style="text-align:center"><input type="checkbox" class="table-checkbox" data-field="attended"  ${p.attended  ?'checked':''}/></td>
       <td style="text-align:center"><input type="checkbox" class="table-checkbox" data-field="inDistrib" ${p.inDistrib ?'checked':''}/></td>
-      <td><button class="btn-delete-row" data-action="deleteParticipant" data-idx="${idx}" title="Entfernen">${iconTrash()}</button></td>
+      <td>
+        <div class="participant-actions">
+          <span class="drag-handle" title="Teilnehmer verschieben">⠿</span>
+          <button class="btn-delete-row" data-action="deleteParticipant" data-idx="${idx}" title="Entfernen">${iconTrash()}</button>
+        </div>
+      </td>
     `;
     tr.querySelectorAll('input').forEach(el => el.addEventListener('change', saveCurrentProtocol));
     // Soft email validation
@@ -430,6 +443,63 @@ function renderParticipants(participants) {
       emailInput.addEventListener('input', checkEmail);
       checkEmail();
     }
+
+    // ── Drag & Drop (nur über Handle) ──
+    const handle = tr.querySelector('.drag-handle');
+    handle.addEventListener('mousedown',  () => { tr.draggable = true; App._dragType = 'participant'; });
+    handle.addEventListener('touchstart', () => { tr.draggable = true; App._dragType = 'participant'; }, { passive: true });
+
+    tr.addEventListener('dragstart', e => {
+      if (App._dragType !== 'participant') { e.preventDefault(); return; }
+      e.dataTransfer.setData('text/plain', String(idx));
+      e.dataTransfer.setData('application/x-participant', '1');
+      e.dataTransfer.effectAllowed = 'move';
+      tr.classList.add('drag-active');
+    });
+
+    tr.addEventListener('dragover', e => {
+      if (App._dragType !== 'participant') return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = tr.getBoundingClientRect();
+      const mid  = rect.top + rect.height / 2;
+      tr.classList.toggle('drag-over-top',    e.clientY < mid);
+      tr.classList.toggle('drag-over-bottom', e.clientY >= mid);
+    });
+
+    tr.addEventListener('dragleave', () => {
+      tr.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+
+    tr.addEventListener('drop', async e => {
+      e.preventDefault();
+      tr.classList.remove('drag-over-top', 'drag-over-bottom');
+      if (App._dragType !== 'participant') return;
+      const draggedIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const targetIdx  = idx;
+      if (draggedIdx === targetIdx || isNaN(draggedIdx)) return;
+
+      await saveCurrentProtocol();
+      const protocol = await DB.Protocols.get(App.currentProtocolId);
+      if (!protocol?.participants) return;
+
+      const [moved] = protocol.participants.splice(draggedIdx, 1);
+      let insertIdx = targetIdx > draggedIdx ? targetIdx - 1 : targetIdx;
+      const rect = tr.getBoundingClientRect();
+      if (e.clientY >= rect.top + rect.height / 2) insertIdx++;
+      protocol.participants.splice(insertIdx, 0, moved);
+
+      await DB.Protocols.save(protocol);
+      renderParticipants(protocol.participants);
+      showToast('Teilnehmer verschoben.', 'success');
+    });
+
+    tr.addEventListener('dragend', () => {
+      tr.classList.remove('drag-active');
+      App._dragType = null;
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+    });
+
     tbody.appendChild(tr);
   });
 }

@@ -952,6 +952,15 @@ input[type="date"].meta-input {
   background: var(--accent-red-10);
 }
 
+/* Teilnehmer: Handle + Papierkorb nebeneinander */
+.participant-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.participant-actions .btn-delete-row { margin: 0; }
+
 /* Unterer Hinzufügen-Button */
 .btn-add-bottom {
   margin: 8px 14px 14px;
