@@ -100,7 +100,7 @@
   --accent-red:        #FF3300;
   --accent-red-10:     rgba(255, 51, 0, 0.10);
 
-  --bg-app:            #F5F5F7;
+  --bg-app:            #F0F0F0;
   --bg-surface:        #FFFFFF;
   --bg-sidebar:        #FFFFFF;
   --bg-chapter:        #7C7C7C;  /* Kapitel-Zeilen */
@@ -186,6 +186,8 @@ body {
 }
 
 .sidebar.collapsed .sidebar-toggle { margin: 0 auto; }
+.sidebar-toggle-arrow { transition: transform 200ms ease; transform-origin: 50% 50%; transform: rotate(180deg); }
+.sidebar.collapsed .sidebar-toggle-arrow { transform: rotate(0deg); }
 
 .sidebar-logo {
   display: flex;
@@ -592,7 +594,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(245, 245, 247, 0.92);
+  background: rgba(240, 240, 240, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-light);
@@ -889,7 +891,7 @@ input[type="date"].meta-input {
   margin: 0 auto;
 }
 
-.add-row td { padding: 7px 10px; background: var(--bg-app); }
+.add-row td { padding: 7px 10px; background: #F5F5F5; }
 
 .btn-add-row {
   height: 26px;
@@ -1046,7 +1048,7 @@ input[type="date"].meta-input {
   background: var(--bg-surface);
 }
 
-.row-point:hover { background: var(--bg-app) !important; }
+.row-point:hover { background: #F5F5F5 !important; }
 
 /* Zeile ist ausgewählt (Fokus in einer Zelle) */
 .row-selected td {
@@ -2599,7 +2601,7 @@ input[type="date"].table-input {
   position: sticky;
   top: var(--toolbar-h);
   z-index: 49;
-  background: rgba(245, 245, 247, 0.96);
+  background: rgba(240, 240, 240, 0.96);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-light);
