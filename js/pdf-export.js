@@ -405,17 +405,17 @@ const PDFExport = (() => {
 
         const contentStyle = {
           textColor: isDone ? GRAY_DONE : (contentAmended ? BLUE_AMENDMENT : BLACK),
-          fontStyle: isNew ? 'bold' : 'normal',
+          fontStyle: isNew ? 'bolditalic' : 'normal',
           fontSize: 8,
         };
         const deadlineStyle = {
           textColor: isDone ? GRAY_DONE : (isOverdue ? RED_OVERDUE : (deadlineAmended ? BLUE_AMENDMENT : BLACK)),
-          fontStyle: (isNew || isOverdue) ? 'bold' : 'normal',
+          fontStyle: isNew ? 'bolditalic' : (isOverdue ? 'bold' : 'normal'),
           fontSize: 6.5,
         };
         const baseStyle = {
           textColor: isDone ? GRAY_DONE : BLACK,
-          fontStyle: isNew ? 'bold' : 'normal',
+          fontStyle: isNew ? 'bolditalic' : 'normal',
           fontSize: 8,
         };
 
