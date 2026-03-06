@@ -88,7 +88,7 @@
                 </svg>
                 Projekt öffnen
               </button>
-              <button id="btnExportProject" class="project-menu-item">
+<button id="btnExportProject" class="project-menu-item">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
                   <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
@@ -144,6 +144,13 @@
             <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
           </svg>
           NEUES PROTOKOLL
+        </button>
+        <button id="btnImportJamieSidebar" class="btn-import-jamie" disabled>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+          </svg>
+          IMPORT PROTOKOLL
         </button>
       </div>
 
@@ -661,6 +668,50 @@
     </div>
   </div>
 
+  <!-- meetjamie Markdown Import -->
+  <div id="modalJamieImport" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Aktennotiz aus meetjamie importieren</h2>
+        <button class="modal-close" data-close="modalJamieImport">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="jamieImportTitle">Titel der Aktennotiz <span class="required">*</span></label>
+          <input type="text" id="jamieImportTitle" class="form-input" placeholder="z. B. HIS. Liste Unterlagen Inbetriebnahme" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="jamieImportDate">Datum</label>
+          <input type="date" id="jamieImportDate" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="jamieImportParticipants">Teilnehmer <span class="form-hint-inline">(kommagetrennt)</span></label>
+          <input type="text" id="jamieImportParticipants" class="form-input" placeholder="z. B. Olaf Schueler, Josef Zohner" />
+          <span class="form-hint">Werden als Teilnehmer ohne Kürzel angelegt.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Markdown-Datei <span class="required">*</span></label>
+          <div class="jamie-file-drop" id="jamieFileDrop">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color:var(--text-tertiary)">
+              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+              <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+            </svg>
+            <span id="jamieFileLabel">Datei hierher ziehen oder <u>auswählen</u></span>
+          </div>
+          <input type="file" id="jamieImportFile" accept=".md,.txt" class="hidden" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="modalJamieImport">Abbrechen</button>
+        <button id="btnJamieImportConfirm" class="btn-primary" disabled>Importieren</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Unterkapitel benennen -->
   <div id="modalSubchapter" class="modal-overlay hidden">
     <div class="modal modal-sm">
@@ -840,6 +891,7 @@
 
   <input type="file" id="fileImportJson" accept=".json" class="hidden" />
   <input type="file" id="fileImportFullDB" accept=".json" class="hidden" />
+  <input type="file" id="fileImportJamieMd" accept=".md,.txt" class="hidden" />
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- ── Passwort-Gate ─────────────────────────────────────── -->

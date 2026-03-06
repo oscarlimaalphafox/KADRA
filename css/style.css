@@ -376,6 +376,28 @@ body {
 .btn-new-protocol:hover:not(:disabled) { background: var(--accent-blue); }
 .btn-new-protocol:disabled { opacity: .38; cursor: not-allowed; }
 
+.btn-import-jamie {
+  width: 100%;
+  height: 32px;
+  background: var(--bg-chapter);
+  color: var(--text-inverted);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  transition: background var(--transition), opacity var(--transition);
+}
+.btn-import-jamie:hover:not(:disabled) { background: #666; }
+.btn-import-jamie:disabled { opacity: .38; cursor: not-allowed; }
+.btn-import-jamie.drag-over { background: var(--accent-blue); outline: 2px dashed rgba(255,255,255,0.6); outline-offset: -4px; }
+
 .sidebar-search {
   position: relative;
   padding: 8px 10px;
@@ -2753,4 +2775,33 @@ input[type="date"].table-input {
   margin-right: auto;
 }
 .ak-section-label:focus { border-bottom-color: var(--text-primary); }
+
+/* ============================================================
+   MEETJAMIE IMPORT — Drop-Zone
+============================================================ */
+.jamie-file-drop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 14px;
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+.jamie-file-drop:hover,
+.jamie-file-drop.drag-over {
+  border-color: var(--accent-blue);
+  background: rgba(15, 49, 136, 0.04);
+  color: var(--accent-blue);
+}
+.jamie-file-drop u { color: var(--accent-blue); }
+.form-hint-inline {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 400;
+}
 

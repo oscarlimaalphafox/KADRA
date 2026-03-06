@@ -110,6 +110,7 @@ async function selectProject(projectId) {
     document.getElementById('projectSelect').value = projectId;
   }
   document.getElementById('btnNewProtocol').disabled = false;
+  document.getElementById('btnImportJamieSidebar').disabled = false;
   await loadProtocolList();
   const lastProtId = localStorage.getItem('lastProtocolId');
   if (lastProtId && App.protocols.find(p => p.id === lastProtId)) {
@@ -2996,6 +2997,65 @@ function setupProjectMenu() {
     projFileInput.value = '';
     projFileInput.click();
   });
+
+  // meetjamie Import
+  const jamieMdInput = document.getElementById('fileImportJamieMd');
+  const jamieBtn = document.getElementById('btnImportJamieSidebar');
+
+  jamieBtn.addEventListener('click', () => {
+    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt öffnen.', 'error'); return; }
+    jamieMdInput.value = '';
+    jamieMdInput.click();
+  });
+  jamieMdInput.addEventListener('change', () => {
+    if (jamieMdInput.files.length > 0) openJamieImportModal(jamieMdInput.files[0]);
+  });
+
+  // Drag & Drop direkt auf den Import-Button
+  jamieBtn.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (!jamieBtn.disabled) jamieBtn.classList.add('drag-over');
+  });
+  jamieBtn.addEventListener('dragleave', () => jamieBtn.classList.remove('drag-over'));
+  jamieBtn.addEventListener('drop', (e) => {
+    e.preventDefault();
+    jamieBtn.classList.remove('drag-over');
+    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt öffnen.', 'error'); return; }
+    const f = e.dataTransfer.files[0];
+    if (f) openJamieImportModal(f);
+  });
+
+  // Jamie Modal: Datei-Drop-Zone klickbar machen
+  document.getElementById('jamieFileDrop').addEventListener('click', () => {
+    document.getElementById('jamieImportFile').value = '';
+    document.getElementById('jamieImportFile').click();
+  });
+  document.getElementById('jamieImportFile').addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      const f = e.target.files[0];
+      document.getElementById('jamieFileLabel').textContent = f.name;
+      document.getElementById('btnJamieImportConfirm').disabled = false;
+      e.target._pendingFile = f;
+    }
+  });
+
+  // Jamie Modal: Drag & Drop auf Drop-Zone
+  const dropZone = document.getElementById('jamieFileDrop');
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) {
+      document.getElementById('jamieFileLabel').textContent = f.name;
+      document.getElementById('btnJamieImportConfirm').disabled = false;
+      document.getElementById('jamieImportFile')._pendingFile = f;
+    }
+  });
+
+  // Jamie Modal: Importieren-Button
+  document.getElementById('btnJamieImportConfirm').addEventListener('click', importJamieMarkdown);
 }
 
 function openDeleteProjectModal() {
@@ -3039,6 +3099,7 @@ async function confirmDeleteProject() {
   document.getElementById('protocolView').classList.add('hidden');
   document.getElementById('workspaceToolbar').classList.add('hidden');
   document.getElementById('btnNewProtocol').disabled = true;
+  document.getElementById('btnImportJamieSidebar').disabled = true;
 
   closeModal('modalDeleteProject');
   showToast(`Projekt "${label}" in den Papierkorb verschoben.`, 'success');
@@ -3083,6 +3144,7 @@ async function confirmCloseDatabase() {
   document.getElementById('protocolView').classList.add('hidden');
   document.getElementById('workspaceToolbar').classList.add('hidden');
   document.getElementById('btnNewProtocol').disabled = true;
+  document.getElementById('btnImportJamieSidebar').disabled = true;
 
   closeModal('modalCloseDatabase');
   showToast('Datenbank geschlossen — alle Daten gelöscht.', 'success');
@@ -3263,6 +3325,300 @@ async function exportProject() {
   URL.revokeObjectURL(url);
 
   showToast(`Export: ${project.code} — ${allProtocols.length} Protokoll(e).`, 'success');
+}
+
+/* ============================================================
+   MEETJAMIE MARKDOWN IMPORT
+============================================================ */
+
+/**
+ * Parst eine meetjamie-Markdown-Datei und erstellt daraus eine KADRA-Aktennotiz.
+ *
+ * Regeln:
+ *   # Titel          → Protokolltitel (zurückgegeben als docTitle)
+ *   ## / ### Heading → neuer Abschnitt (außer ignorierte und Task-Blöcke)
+ *   Ignoriert:       ## Executive Summary, ## Full Summary (nur als Wrapper-Marker)
+ *   Task-Blöcke:     ## Aufgaben / Als Nächstes / Nächste Schritte / Tasks → Kapitel N
+ *   Bullet - Text    → 1 Punkt pro Bullet
+ *   Sub-Bullet         → an übergeordneten Punkt angehängt
+ *   Fließtext        → 1 Punkt pro Absatz (Leerzeile = neuer Punkt)
+ *   Checkboxen       → immer Tasks, egal wo im Dokument
+ */
+function parseJamieMarkdown(text) {
+  const lines = text.split('\n');
+  const sections = [];
+  const tasks = [];
+  let docTitle = '';
+
+  const hasFullSummary = /^##\s+Full Summary/im.test(text);
+  let inContent = !hasFullSummary;
+  let inTasks = false;
+  let currentSection = null;
+  let lastMainBullet = null;
+  let pendingFließtext = ''; // sammelt aufeinanderfolgende Fließtextzeilen eines Absatzes
+
+  function stripBold(s) { return s.replace(/\*\*([^*]+)\*\*/g, '$1'); }
+
+  function flushFließtext() {
+    const t = pendingFließtext.trim();
+    pendingFließtext = '';
+    if (!t || !currentSection) return;
+    currentSection.points.push({ content: t, category: 'Info', responsible: '' });
+    lastMainBullet = currentSection.points.length - 1;
+  }
+
+  function parseTask(line) {
+    const m = line.match(/^-\s+\[\s*\]\s+(.+)/);
+    if (!m) return null;
+    const full = m[1].trim();
+    const respMatch = full.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+    if (respMatch) return { content: respMatch[1].trim(), responsible: respMatch[2].trim() };
+    return { content: full, responsible: '' };
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trimEnd();
+
+    // Checkbox → immer Task, egal in welchem Block
+    const task = parseTask(line);
+    if (task) { flushFließtext(); tasks.push(task); continue; }
+
+    // Task-Block-Überschrift
+    if (/^##\s+(Tasks?|Aufgaben|Als N[äa]chstes?|N[äa]chste Schritte)\b/i.test(line)) {
+      flushFließtext();
+      inTasks = true; inContent = false; currentSection = null; lastMainBullet = null;
+      continue;
+    }
+
+    // # Titel (H1) → Dokumenttitel
+    if (/^#\s+/.test(line)) {
+      docTitle = line.replace(/^#\s+/, '').trim();
+      continue;
+    }
+
+    // Full Summary → Content-Modus ein
+    if (/^##\s+Full Summary/i.test(line)) {
+      flushFließtext();
+      inContent = true; inTasks = false; currentSection = null; lastMainBullet = null;
+      continue;
+    }
+
+    // Ignorierte Sektionen
+    if (/^##\s+(Executive Summary)\b/i.test(line)) {
+      flushFließtext();
+      inContent = false; inTasks = false; currentSection = null;
+      continue;
+    }
+
+    // ## / ### Überschrift → neuer Abschnitt
+    if (/^#{2,3}\s+/.test(line)) {
+      flushFließtext();
+      if (!inTasks) {
+        inContent = true;
+        const title = line.replace(/^#{2,3}\s+/, '').trim();
+        currentSection = { title, points: [] };
+        sections.push(currentSection);
+        lastMainBullet = null;
+      }
+      continue;
+    }
+
+    if (!inContent || !currentSection) continue;
+
+    // Leerzeile → Absatzende → Fließtext flushen (neuer Punkt)
+    if (line === '') {
+      flushFließtext();
+      lastMainBullet = null;
+      continue;
+    }
+
+    // Eingerückter Sub-Bullet
+    const subBullet = line.match(/^[ \t]{2,}-\s+(.*)/);
+    if (subBullet && lastMainBullet !== null) {
+      flushFließtext();
+      const subContent = stripBold(subBullet[1]).trim();
+      if (subContent) currentSection.points[lastMainBullet].content += '\n- ' + subContent;
+      continue;
+    }
+
+    // Haupt-Bullet → eigener Punkt
+    const mainBullet = line.match(/^-\s+(.*)/);
+    if (mainBullet) {
+      flushFließtext();
+      const content = stripBold(mainBullet[1]).trim();
+      if (content) {
+        currentSection.points.push({ content, category: 'Info', responsible: '' });
+        lastMainBullet = currentSection.points.length - 1;
+      }
+      continue;
+    }
+
+    // Fließtext → sammeln (Leerzeile oder nächste Überschrift beendet Absatz)
+    const trimmed = stripBold(line).trim();
+    if (trimmed) {
+      pendingFließtext += (pendingFließtext ? ' ' : '') + trimmed;
+    }
+  }
+
+  flushFließtext(); // letzten Absatz sichern
+
+  return { sections, tasks, docTitle };
+}
+
+/**
+ * Öffnet den Jamie-Import-Dialog.
+ * Liest die Datei vor und extrahiert # H1-Titel (Vorrang) oder Dateinamen als Titel-Vorschlag.
+ */
+async function openJamieImportModal(file) {
+  const name = file.name.replace(/\.[^.]+$/, '');
+  const dateMatch = name.match(/^(\d{2})(\d{2})(\d{2})_/);
+  let dateVal = new Date().toISOString().slice(0, 10);
+  if (dateMatch) dateVal = `20${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+
+  // Dateiinhalt vorab lesen um H1-Titel zu extrahieren
+  let titleVal = name.replace(/^\d{6}_/, '').replace(/_/g, ' ').trim();
+  try {
+    const text = await file.text();
+    const { docTitle } = parseJamieMarkdown(text);
+    if (docTitle) titleVal = docTitle;
+    // Datei für späteren Import cachen
+    document.getElementById('jamieImportFile')._pendingFile = file;
+    document.getElementById('jamieImportFile')._pendingText = text;
+  } catch (e) {
+    document.getElementById('jamieImportFile')._pendingFile = file;
+    document.getElementById('jamieImportFile')._pendingText = null;
+  }
+
+  document.getElementById('jamieImportTitle').value = titleVal;
+  document.getElementById('jamieImportDate').value  = dateVal;
+  document.getElementById('jamieImportParticipants').value = '';
+  document.getElementById('jamieFileLabel').textContent = file.name;
+  document.getElementById('btnJamieImportConfirm').disabled = false;
+
+  openModal('modalJamieImport');
+}
+
+/**
+ * Erstellt aus geparsten Jamie-Daten eine KADRA-Aktennotiz im aktuellen Projekt.
+ */
+async function importJamieMarkdown() {
+  if (!App.currentProjectId) {
+    showToast('Kein Projekt geöffnet.', 'error');
+    return;
+  }
+
+  const fileInput = document.getElementById('jamieImportFile');
+  const file = fileInput._pendingFile;
+  if (!file) { showToast('Keine Datei ausgewählt.', 'error'); return; }
+
+  const title        = document.getElementById('jamieImportTitle').value.trim();
+  const date         = document.getElementById('jamieImportDate').value;
+  const participantRaw = document.getElementById('jamieImportParticipants').value.trim();
+
+  if (!title) { showToast('Bitte Titel eingeben.', 'error'); return; }
+
+  let text = fileInput._pendingText;
+  if (!text) {
+    try {
+      text = await file.text();
+    } catch (e) {
+      showToast('Datei konnte nicht gelesen werden.', 'error');
+      return;
+    }
+  }
+
+  const { sections, tasks } = parseJamieMarkdown(text);
+
+  const project = App.projects.find(p => p.id === App.currentProjectId) || {};
+
+  // Struktur aufbauen: P + A-Abschnitte aus Full Summary + N
+  const structure = { P: { label: 'Präambel', subchapters: [] } };
+  const chKeys = [];
+  let charCode = 65; // A
+  for (const sec of sections) {
+    // P und N überspringen (reserviert)
+    while (charCode === 78 || charCode === 80) charCode++; // N=78, P=80
+    if (charCode > 90) break;
+    const key = String.fromCharCode(charCode);
+    structure[key] = { label: sec.title, subchapters: [] };
+    chKeys.push(key);
+    charCode++;
+  }
+  structure['N'] = { label: 'Nächste Schritte', subchapters: [] };
+
+  // Punkte erzeugen
+  const points = [];
+  let akSectionNum = 0;
+
+  for (let si = 0; si < sections.length; si++) {
+    const chKey = chKeys[si];
+    akSectionNum++;
+    const sec = sections[si];
+    sec.points.forEach((pt, idx) => {
+      points.push({
+        id: `${akSectionNum}.${String(idx + 1).padStart(2, '0')}`,
+        chapter: chKey, subchapter: null, topic: null,
+        content: pt.content,
+        category: 'Info', responsible: '', deadline: '',
+        done: false, isNew: false, doneLastProtocol: false,
+        createdInProtocol: null,
+      });
+    });
+  }
+
+  // Tasks → Kapitel N
+  tasks.forEach((t, idx) => {
+    points.push({
+      id: `N.${String(idx + 1).padStart(2, '0')}`,
+      chapter: 'N', subchapter: null, topic: null,
+      content: t.content,
+      category: 'Aufgabe', responsible: t.responsible, deadline: '',
+      done: false, isNew: false, doneLastProtocol: false,
+      createdInProtocol: null,
+    });
+  });
+
+  // Teilnehmer parsen
+  const participants = participantRaw
+    ? participantRaw.split(',').map(s => {
+        const name = s.trim();
+        return {
+          id: DB.uuid(),
+          name, company: '', abbr: '', email: '',
+          attended: true, inDistrib: true,
+        };
+      }).filter(p => p.name)
+    : [];
+
+  const protocol = {
+    projectId: App.currentProjectId,
+    type: 'Aktennotiz',
+    seriesId: DB.uuid(),
+    seriesName: title,
+    title,
+    number: null,
+    date: date || new Date().toISOString().slice(0, 10),
+    time: '', location: '',
+    tenant:   project.tenant || '',
+    landlord: project.owner  || '',
+    participants,
+    structure,
+    points,
+    attachments: [],
+    deletedAt: null,
+    author: { firstName: 'Olaf', lastName: 'Schüler', company: 'Hopro GmbH & Co. KG', date: '' },
+    customAbbreviations: [],
+  };
+
+  closeModal('modalJamieImport');
+  fileInput._pendingFile = null;
+  fileInput._pendingText = null;
+
+  const saved = await DB.Protocols.save(protocol);
+  App.protocols = await DB.Protocols.getActiveByProject(App.currentProjectId);
+  renderProtocolList();
+  await openProtocol(saved.id);
+  showToast(`Aktennotiz "${title}" importiert (${points.length} Punkte).`, 'success');
 }
 
 /**
