@@ -2317,6 +2317,7 @@ function buildFileCellContent(att, idx) {
 
 async function addNewAttachment(fileName, fileType, fileData) {
   if (!App.currentProtocolId) return;
+  await saveCurrentProtocol();
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) return;
   const seq = (protocol.attachments||[]).length + 1;
@@ -2343,14 +2344,15 @@ function openFilePicker(attachIdx) {
   input.click();
 }
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 async function handleFileSelected(file, attachIdx) {
   if (!file) return;
   if (file.size > MAX_FILE_SIZE) {
-    showToast(`Datei zu groß (${(file.size/1024/1024).toFixed(1)} MB). Maximum: 2 MB.`, 'error');
+    showToast(`Datei zu groß (${(file.size/1024/1024).toFixed(1)} MB). Maximum: 5 MB.`, 'error');
     return;
   }
+  await saveCurrentProtocol();
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) return;
   const att = protocol.attachments?.[attachIdx];
@@ -2368,6 +2370,7 @@ async function handleFileSelected(file, attachIdx) {
 }
 
 async function removeAttachmentFile(attachIdx) {
+  await saveCurrentProtocol();
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) return;
   const att = protocol.attachments?.[attachIdx];
@@ -2493,6 +2496,7 @@ async function deletePoint(pointId) {
 }
 
 async function deleteAttachment(idx) {
+  await saveCurrentProtocol();
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) return;
   protocol.attachments.splice(idx, 1);
@@ -2676,10 +2680,9 @@ function bindGlobalEvents() {
     if (!App.currentProtocolId) return;
     const protocol = await DB.Protocols.get(App.currentProtocolId);
     if (!protocol) return;
-    const seq = (protocol.attachments||[]).length;
-    // Erst addNewAttachment aufrufen, dann Picker öffnen
+    const newIdx = (protocol.attachments||[]).length;
+    // addNewAttachment ruft intern saveCurrentProtocol() auf
     await addNewAttachment();
-    const newIdx = seq; // Index der neu angelegten Anlage
     openFilePicker(newIdx);
   });
 
@@ -2704,7 +2707,7 @@ function bindGlobalEvents() {
     const file = e.dataTransfer?.files?.[0];
     if (!file || !App.currentProtocolId) return;
     if (file.size > MAX_FILE_SIZE) {
-      showToast(`Datei zu groß (${(file.size/1024/1024).toFixed(1)} MB). Maximum: 2 MB.`, 'error');
+      showToast(`Datei zu groß (${(file.size/1024/1024).toFixed(1)} MB). Maximum: 5 MB.`, 'error');
       return;
     }
     // Neue Anlage mit Datei anlegen
