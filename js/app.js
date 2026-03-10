@@ -159,8 +159,7 @@ function renderProtocolList() {
   const terminList = Object.entries(terminMap).sort(([, a], [, b]) =>
     (b[0].date||'') > (a[0].date||'') ? 1 : -1);
 
-  const chevronSvg = `<svg width="9" height="9" viewBox="0 0 16 16" fill="currentColor">
-    <path d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>`;
+  const chevronSvg = `<i data-lucide="chevron-down"></i>`;
 
   /* ── TERMINSERIEN ───────────────────────────────────────── */
   if (terminList.length > 0) {
@@ -251,6 +250,7 @@ function renderProtocolList() {
     sdSection.appendChild(sdBody);
     container.appendChild(sdSection);
   }
+  lucide.createIcons();
 }
 
 function _buildProtocolItem(proto) {
@@ -262,10 +262,7 @@ function _buildProtocolItem(proto) {
     ? new Date(proto.date + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' })
     : '–';
   const hasFiles = (proto.attachments||[]).some(a => a.fileName);
-  const clipHtml = hasFiles ? `<span class="protocol-item-clip" title="Enthält Datei-Anlagen">
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-      <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0V3z"/>
-    </svg></span>` : '';
+  const clipHtml = hasFiles ? `<span class="protocol-item-clip" title="Enthält Datei-Anlagen"><i data-lucide="paperclip"></i></span>` : '';
 
   const sName = esc(proto.seriesName || proto.title || proto.type);
   const label = proto.type === 'Aktennotiz'
@@ -291,10 +288,7 @@ function _buildProtocolItem(proto) {
 
   const dupBtn = document.createElement('button');
   dupBtn.type = 'button'; dupBtn.className = 'protocol-item-dup-btn'; dupBtn.title = 'Duplizieren';
-  dupBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"/>
-    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
-  </svg>`;
+  dupBtn.innerHTML = `<i data-lucide="copy"></i>`;
   dupBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     App._duplicatingProtocolId = proto.id;
@@ -400,6 +394,7 @@ function renderProtocol(protocol) {
   renderPoints(protocol);
   renderAttachments(protocol.attachments || [], protocol.number);
   renderAbbrevList(protocol.participants || [], protocol.customAbbreviations || []);
+  lucide.createIcons();
 }
 
 /* ============================================================
@@ -428,7 +423,7 @@ function renderParticipants(participants) {
       <td style="text-align:center"><input type="checkbox" class="table-checkbox" data-field="inDistrib" ${p.inDistrib ?'checked':''}/></td>
       <td>
         <div class="participant-actions">
-          <span class="drag-handle" title="Teilnehmer verschieben">⠿</span>
+          <span class="drag-handle" title="Teilnehmer verschieben"><i data-lucide="grip-vertical"></i></span>
           <button class="btn-delete-row" data-action="deleteParticipant" data-idx="${idx}" title="Entfernen">${iconTrash()}</button>
         </div>
       </td>
@@ -553,9 +548,7 @@ function createResponsibleSelect(currentValue, disabled) {
   trigger.disabled  = !!disabled;
   trigger.innerHTML = `
     <span class="resp-display">${esc(display)}</span>
-    <svg class="resp-chevron" width="8" height="6" viewBox="0 0 10 6" fill="currentColor">
-      <path d="M0 0l5 6 5-6z"/>
-    </svg>`;
+    <i data-lucide="chevron-down" class="resp-chevron"></i>`;
 
   const panel = document.createElement('div');
   panel.className = 'resp-panel hidden';
@@ -859,7 +852,7 @@ function renderPoints(protocol) {
               data-field="subchapterLabel">${esc(sub.label)}</span></span>
             <span class="structure-actions">
               ${delBtn}
-              <span class="drag-handle sub-drag-handle" title="Unterkapitel verschieben">⠿</span>
+              <span class="drag-handle sub-drag-handle" title="Unterkapitel verschieben"><i data-lucide="grip-vertical"></i></span>
             </span>
           </div>
         </td>
@@ -991,7 +984,7 @@ function renderPoints(protocol) {
           title="Thema löschen">${iconTrash()}</button>`;
 
         topicRow.innerHTML = `
-          <td><span class="drag-handle" title="Thema verschieben">⠿</span></td>
+          <td><span class="drag-handle" title="Thema verschieben"><i data-lucide="grip-vertical"></i></span></td>
           <td colspan="7">
             <div class="structure-label-cell">
               <span class="topic-label editable-label" contenteditable="true"
@@ -1167,7 +1160,7 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
   tr.draggable = false;
 
   tr.innerHTML = `
-    <td><span class="drag-handle" title="Punkt verschieben">⠿</span></td>
+    <td><span class="drag-handle" title="Punkt verschieben"><i data-lucide="grip-vertical"></i></span></td>
     <td><span class="point-id">${esc(point.id)}</span></td>
     <td class="content-cell${contentAmended ? ' content-amended' : ''}">
       <textarea class="table-textarea" data-field="content"
@@ -1187,9 +1180,7 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
         <input type="text" class="table-input termin-input" data-field="deadline"
           value="${esc(point.deadline || '')}" placeholder="—" />
         <button type="button" class="termin-cal-btn" title="Kalender öffnen">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
-          </svg>
+          <i data-lucide="calendar"></i>
         </button>
         <input type="date" class="termin-date-hidden" tabindex="-1" aria-hidden="true" />
       </div>
@@ -1589,7 +1580,10 @@ function toggleCollapseAll() {
     setTimeout(() => {
       allSectionIds.forEach(s => App.collapsedSections.add(s));
       App.allCollapsed = true;
-      document.getElementById('btnCollapseAll')?.classList.add('all-collapsed');
+      const cabEl = document.getElementById('btnCollapseAll');
+      cabEl?.classList.add('all-collapsed');
+      const cabIcon = cabEl?.querySelector('[data-lucide]');
+      if (cabIcon) { cabIcon.setAttribute('data-lucide', 'chevrons-up'); lucide.createIcons({ nodes: [cabIcon] }); }
       rowsToHide.forEach(tr => {
         tr.classList.add('row-hidden');
         tr.style.transition = ''; tr.style.opacity = '';
@@ -1603,7 +1597,10 @@ function toggleCollapseAll() {
     // ── Alle aufklappen ───────────────────────────────────
     App.collapsedSections.clear();
     App.allCollapsed = false;
-    document.getElementById('btnCollapseAll')?.classList.remove('all-collapsed');
+    const cabEl2 = document.getElementById('btnCollapseAll');
+    cabEl2?.classList.remove('all-collapsed');
+    const cabIcon2 = cabEl2?.querySelector('[data-lucide]');
+    if (cabIcon2) { cabIcon2.setAttribute('data-lucide', 'chevrons-down'); lucide.createIcons({ nodes: [cabIcon2] }); }
     document.querySelectorAll('.collapse-btn').forEach(b => b.classList.remove('is-collapsed'));
 
     const rowsToShow = document.querySelectorAll('#pointsBody tr.row-hidden');
@@ -2292,18 +2289,13 @@ function buildFileCellContent(att, idx) {
     dlBtn.type = 'button';
     dlBtn.className = 'btn-download-file';
     dlBtn.title = 'Datei herunterladen';
-    dlBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-      <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-      <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-    </svg>`;
+    dlBtn.innerHTML = `<i data-lucide="download"></i>`;
     dlBtn.addEventListener('click', () => downloadAttachmentFile(idx));
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'btn-remove-file';
     removeBtn.title = 'Datei entfernen';
-    removeBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-      <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
-    </svg>`;
+    removeBtn.innerHTML = `<i data-lucide="x"></i>`;
     removeBtn.addEventListener('click', () => removeAttachmentFile(idx));
     wrap.appendChild(label);
     wrap.appendChild(dlBtn);
@@ -2312,9 +2304,7 @@ function buildFileCellContent(att, idx) {
     const uploadBtn = document.createElement('button');
     uploadBtn.type = 'button';
     uploadBtn.className = 'btn-upload-file';
-    uploadBtn.innerHTML = `<svg width="9" height="9" viewBox="0 0 16 16" fill="currentColor">
-      <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0V3z"/>
-    </svg> Datei wählen`;
+    uploadBtn.innerHTML = `<i data-lucide="paperclip"></i> Datei wählen`;
     uploadBtn.addEventListener('click', () => openFilePicker(idx));
     const noFile = document.createElement('span');
     noFile.className = 'file-name-label no-file';
@@ -2451,9 +2441,7 @@ function renderAbbrevList(participants, customAbbrevs) {
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'btn-add-abbrev';
-  addBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-    <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
-  </svg> Abkürzung hinzufügen`;
+  addBtn.innerHTML = `<i data-lucide="plus"></i> Abkürzung hinzufügen`;
   addBtn.addEventListener('click', async () => {
     const protocol = await DB.Protocols.get(App.currentProtocolId);
     if (!protocol) return;
@@ -4216,16 +4204,15 @@ function esc(str) {
 }
 
 function iconTrash() {
-  return `<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-  </svg>`;
+  return `<i data-lucide="trash-2"></i>`;
 }
 
 function iconChevron() {
-  return `<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-    <path d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-  </svg>`;
+  return `<i data-lucide="chevron-down"></i>`;
+}
+
+function lucideIcon(name, extraClass = '') {
+  return `<i data-lucide="${name}"${extraClass ? ` class="${extraClass}"` : ''}></i>`;
 }
 
 if ('serviceWorker' in navigator) {

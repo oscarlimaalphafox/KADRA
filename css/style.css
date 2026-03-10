@@ -9,6 +9,21 @@
      Thema       — weiß, unterstrichen
 ============================================================ */
 
+/* ── Lucide Icons ────────────────────────────────────────── */
+/* Standardgröße für alle Lucide-SVGs (werden als <i data-lucide> eingebunden) */
+[data-lucide] {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.125em;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
+}
+
 /* ── Passwort-Gate (Login-Screen) ────────────────────────── */
 .login-gate {
   display: flex;
@@ -1127,15 +1142,22 @@ input[type="date"].meta-input {
 
 /* Drag & Drop Handle + States */
 .drag-handle {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   cursor: grab;
   color: var(--text-done);
-  font-size: 14px;
   line-height: 1;
   user-select: none;
   padding: 2px 4px;
   border-radius: var(--radius-sm);
   transition: color var(--transition), background var(--transition);
+}
+.drag-handle i[data-lucide] {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  flex-shrink: 0;
 }
 .drag-handle:hover {
   color: var(--text-secondary);
@@ -1617,9 +1639,6 @@ select.form-input {
   color: var(--accent-blue);
 }
 
-.collapse-all-btn.all-collapsed svg {
-  transform: rotate(-90deg);
-}
 
 /* ── Punkt-Filter ──────────────────────────────────────────── */
 .point-filter-wrap {

@@ -5,13 +5,14 @@
  * Ermöglicht Offline-Nutzung der App.
  */
 
-const CACHE_NAME    = 'protokoll-app-v2.13';
+const CACHE_NAME    = 'protokoll-app-v2.14';
 const SHELL_ASSETS  = [
   './index.html',
   './css/style.css',
   './js/lib/jspdf.umd.min.js',
   './js/lib/jspdf.plugin.autotable.min.js',
   './js/lib/nunito-sans-fonts.js',
+  './js/lib/lucide.min.js',
   './js/db.js',
   './js/pdf-export.js',
   './js/app.js',
