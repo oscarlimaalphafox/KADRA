@@ -398,9 +398,10 @@ body {
   color: var(--text-inverted);
   border: none;
   border-radius: var(--radius-sm);
+  font: inherit;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .04em;
+  font-weight: 600;
+  letter-spacing: .06em;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1124,7 +1125,8 @@ input[type="date"].meta-input {
 
 /* Erledigter Punkt (hellgrau) */
 .point-done td { color: var(--text-done) !important; }
-.point-done input, .point-done select, .point-done textarea {
+.point-done input, .point-done select, .point-done textarea,
+.point-done .resp-trigger {
   color: var(--text-done) !important;
 }
 
@@ -1645,7 +1647,8 @@ select.form-input {
   position: relative;
 }
 
-.tool-btn-icon.has-filter {
+.tool-btn-icon.has-filter,
+.tool-btn.has-filter {
   border-color: var(--accent-blue);
   color: var(--accent-blue);
   background: var(--accent-blue-10);

@@ -2750,6 +2750,11 @@ function bindGlobalEvents() {
     sb.style.width = '';
     sb.style.minWidth = '';
     sb.classList.toggle('collapsed');
+    const icon = document.querySelector('#btnToggleSidebar [data-lucide]');
+    if (icon) {
+      icon.setAttribute('data-lucide', sb.classList.contains('collapsed') ? 'panel-left-open' : 'panel-left-close');
+      lucide.createIcons({ nodes: [icon] });
+    }
   });
 
   // Sidebar Resize (Drag am rechten Rand)
@@ -3337,6 +3342,27 @@ function parseJamieMarkdown(text) {
   const sections = [];
   const tasks = [];
   let docTitle = '';
+  let docDate = '';
+  let docTime = '';
+  const docParticipants = [];
+
+  // Metadaten-Block parsen (Zeilen vor ## Executive Summary / ## Full Summary)
+  let inParticipantList = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trimEnd();
+    if (/^##\s+/.test(line)) break; // Ende Metadaten-Block
+    const titleMatch = line.match(/^Titel:\s*(.+)/i);
+    if (titleMatch) { docTitle = titleMatch[1].trim(); inParticipantList = false; continue; }
+    const dateMatch = line.match(/^Datum:\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/i);
+    if (dateMatch) { docDate = `${dateMatch[3]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[1].padStart(2,'0')}`; inParticipantList = false; continue; }
+    const timeMatch = line.match(/^Uhrzeit:\s*(\d{1,2}:\d{2})/i);
+    if (timeMatch) { docTime = timeMatch[1]; inParticipantList = false; continue; }
+    if (/^Teilnehmer/i.test(line)) { inParticipantList = true; continue; }
+    if (inParticipantList) {
+      const bullet = line.match(/^-\s+(.+)/);
+      if (bullet) docParticipants.push(bullet[1].trim());
+    }
+  }
 
   const hasFullSummary = /^##\s+Full Summary/im.test(text);
   let inContent = !hasFullSummary;
@@ -3450,7 +3476,7 @@ function parseJamieMarkdown(text) {
 
   flushFließtext(); // letzten Absatz sichern
 
-  return { sections, tasks, docTitle };
+  return { sections, tasks, docTitle, docDate, docTime, docParticipants };
 }
 
 /**
@@ -3463,18 +3489,21 @@ async function openJamieImportModal(file) {
   let dateVal = new Date().toISOString().slice(0, 10);
   if (dateMatch) dateVal = `20${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
 
-  // Dateiinhalt vorab lesen um H1-Titel zu extrahieren
+  // Dateiinhalt vorab lesen um Metadaten zu extrahieren
   let titleVal = name.replace(/^\d{6}_/, '').replace(/_/g, ' ').trim();
   try {
     const text = await file.text();
-    const { docTitle } = parseJamieMarkdown(text);
+    const { docTitle, docDate, docParticipants } = parseJamieMarkdown(text);
     if (docTitle) titleVal = docTitle;
-    // Datei für späteren Import cachen
+    if (docDate) dateVal = docDate;
+    // Datei für späteren Import cachen (inkl. Teilnehmer)
     document.getElementById('jamieImportFile')._pendingFile = file;
     document.getElementById('jamieImportFile')._pendingText = text;
+    document.getElementById('jamieImportFile')._pendingParticipants = docParticipants;
   } catch (e) {
     document.getElementById('jamieImportFile')._pendingFile = file;
     document.getElementById('jamieImportFile')._pendingText = null;
+    document.getElementById('jamieImportFile')._pendingParticipants = [];
   }
 
   document.getElementById('jamieImportTitle').value = titleVal;
@@ -3515,7 +3544,7 @@ async function importJamieMarkdown() {
     }
   }
 
-  const { sections, tasks } = parseJamieMarkdown(text);
+  const { sections, tasks, docTime, docParticipants: parsedParticipants } = parseJamieMarkdown(text);
 
   const project = App.projects.find(p => p.id === App.currentProjectId) || {};
 
@@ -3566,17 +3595,16 @@ async function importJamieMarkdown() {
     });
   });
 
-  // Teilnehmer parsen
-  const participants = participantRaw
-    ? participantRaw.split(',').map(s => {
-        const name = s.trim();
-        return {
-          id: DB.uuid(),
-          name, company: '', abbr: '', email: '',
-          attended: true, inDistrib: true,
-        };
-      }).filter(p => p.name)
-    : [];
+  // Teilnehmer: aus Metadaten-Block der MD-Datei (gecacht), sonst aus manuellem Eingabefeld
+  const cachedParticipants = fileInput._pendingParticipants;
+  const participantNames = (cachedParticipants && cachedParticipants.length)
+    ? cachedParticipants
+    : (participantRaw ? participantRaw.split(',').map(s => s.trim()).filter(Boolean) : []);
+  const participants = participantNames.map(name => ({
+    id: DB.uuid(),
+    name, company: '', abbr: '', email: '',
+    attended: true, inDistrib: true,
+  }));
 
   const protocol = {
     projectId: App.currentProjectId,
@@ -3586,7 +3614,7 @@ async function importJamieMarkdown() {
     title,
     number: null,
     date: date || new Date().toISOString().slice(0, 10),
-    time: '', location: '',
+    time: docTime || '', location: '',
     tenant:   project.tenant || '',
     landlord: project.owner  || '',
     participants,
