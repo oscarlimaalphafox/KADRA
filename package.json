@@ -1,0 +1,26 @@
+{
+  "name": "kadra",
+  "version": "1.0.0",
+  "description": "",
+  "main": "sw.js",
+  "scripts": {
+    "build": "node node_modules/@tailwindcss/cli/dist/index.mjs -i src/main.css -o css/style.css",
+    "watch": "node node_modules/@tailwindcss/cli/dist/index.mjs -i src/main.css -o css/style.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oscarlimaalphafox/KADRA.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/oscarlimaalphafox/KADRA/issues"
+  },
+  "homepage": "https://github.com/oscarlimaalphafox/KADRA#readme",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.2.1",
+"tailwindcss": "^4.2.1"
+  }
+}

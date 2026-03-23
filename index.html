@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0F3188" />
-  <meta name="description" content="KADRA — Besprechungsprotokolle für Immobilienprojekte nach AHO-Standard" />
+  <meta name="theme-color" content="#0e2d58" />
+  <meta name="description" content="KADRA - Besprechungsprotokolle für Immobilienprojekte nach AHO-Standard" />
   <title>KADRA</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" sizes="96x96" href="icons/favicon.png" />
@@ -14,128 +14,161 @@
 </head>
 <body>
 
-  <!-- ════════════════════════════════════════════════════════
+  <!-- --------------------------------------------------------
        PASSWORT-GATE
-  ════════════════════════════════════════════════════════ -->
+  -------------------------------------------------------- -->
   <div id="loginGate" class="login-gate">
     <div class="login-card">
       <img src="icons/kadra-logo.png" alt="KADRA" class="login-logo" />
       <p class="login-subtitle">Besprechungsprotokolle</p>
       <form id="loginForm" class="login-form" autocomplete="off">
-        <input id="loginPassword" type="password" class="login-input"
-               placeholder="Passwort" autofocus />
+        <div class="login-password-wrap">
+          <input id="loginPassword" type="password" class="login-input"
+                 placeholder="Passwort" autofocus />
+          <button id="btnLoginPasswordToggle" class="login-password-toggle" type="button" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false"></button>
+        </div>
         <button type="submit" class="login-btn">Anmelden</button>
         <p id="loginError" class="login-error hidden">Falsches Passwort</p>
       </form>
     </div>
   </div>
 
+  <!-- --------------------------------------------------------
+       APP-SHELL
+  -------------------------------------------------------- -->
   <div id="app" class="app-shell hidden">
 
-    <!-- ════════════════════════════════════════════════════════
-         SEITENLEISTE
-    ════════════════════════════════════════════════════════ -->
+    <!-- -- SIDEBAR -------------------------------------------- -->
     <aside id="sidebar" class="sidebar">
 
-      <div class="sidebar-logo">
-        <img src="icons/kadra-logo.png" alt="KADRA" class="kadra-logo" />
-        <img src="icons/favicon.png" alt="K" class="kadra-favicon" />
-      </div>
+      <!-- Sidebar Topbar: Logo | Hamburger | Toggle -->
+      <div class="sidebar-topbar">
+        <img src="icons/kadra-logo.png" alt="KADRA" class="sidebar-logo-img" />
 
-      <div class="sidebar-header">
-        <div class="project-selector-wrap">
-          <select id="projectSelect" class="project-select" title="Projekt zur Bearbeitung auswählen">
-            <option value="">Projekt wählen</option>
-          </select>
-          <button id="btnNewProject" class="icon-btn" title="Neues Projekt anlegen">
-            <i data-lucide="folder-plus"></i>
+        <!-- Hamburger-Menü -->
+        <div class="sidebar-menu-wrap">
+          <button id="btnProjectMenu" class="sidebar-icon-btn" title="Menü">
+            
           </button>
-          <div class="project-menu-wrap">
-            <button id="btnProjectMenu" class="icon-btn" title="Projekt-Aktionen">
-              <i data-lucide="ellipsis-vertical"></i>
+          <div id="projectMenuPanel" class="project-menu-panel hidden">
+            <button id="btnImportFullDB" class="project-menu-item">
+              
+              Datenbank öffnen
             </button>
-            <div id="projectMenuPanel" class="project-menu-panel hidden">
-              <button id="btnImportFullDB" class="project-menu-item">
-                <i data-lucide="upload"></i>
-                Datenbank öffnen
-              </button>
-              <button id="btnExportFullDB" class="project-menu-item">
-                <i data-lucide="download"></i>
-                Datenbank speichern
-              </button>
-              <button id="btnCloseDatabase" class="project-menu-item danger">
-                <i data-lucide="circle-x"></i>
-                Datenbank schließen
-              </button>
-              <div class="project-menu-divider"></div>
-              <button id="btnImportProject" class="project-menu-item">
-                <i data-lucide="folder-open"></i>
-                Projekt öffnen
-              </button>
-              <button id="btnExportProject" class="project-menu-item">
-                <i data-lucide="folder-down"></i>
-                Projekt speichern
-              </button>
-              <button id="btnDeleteProject" class="project-menu-item danger">
-                <i data-lucide="trash-2"></i>
-                Projekt löschen
-              </button>
-              <div class="project-menu-divider"></div>
-              <button id="btnAppInfo" class="project-menu-item">
-                <i data-lucide="info"></i>
-                Info
-              </button>
-              <button id="btnLogout" class="project-menu-item">
-                <i data-lucide="log-out"></i>
-                Abmelden
-              </button>
-            </div>
+            <button id="btnExportFullDB" class="project-menu-item">
+              
+              Datenbank speichern
+            </button>
+            <button id="btnCloseDatabase" class="project-menu-item">
+              
+              Datenbank schließen
+            </button>
+            <div class="project-menu-divider"></div>
+            <button id="btnNewProjectMenu" class="project-menu-item">
+              
+              Projekt anlegen
+            </button>
+            <button id="btnImportProject" class="project-menu-item">
+              
+              Projekt öffnen
+            </button>
+            <button id="btnExportProject" class="project-menu-item">
+              
+              Projekt speichern
+            </button>
+            <button id="btnDeleteProject" class="project-menu-item danger">
+              
+              Projekt löschen
+            </button>
+            <div class="project-menu-divider"></div>
+            <button id="btnSettings" class="project-menu-item">
+              
+              Einstellungen
+            </button>
+            <button id="btnTrash" class="project-menu-item" title="Papierkorb anzeigen">
+              
+              Papierkorb anzeigen
+            </button>
+            <button id="btnAppInfo" class="project-menu-item">
+              
+              Info
+            </button>
+            <button id="btnLogout" class="project-menu-item">
+              
+              Abmelden
+            </button>
           </div>
         </div>
-        <button id="btnToggleSidebar" class="sidebar-toggle" title="Seitenleiste ein-/ausklappen">
-          <i data-lucide="panel-left-close"></i>
+
+        <!-- Sidebar-Toggle -->
+        <button id="btnToggleSidebar" class="sidebar-icon-btn sidebar-toggle-btn" title="Seitenleiste ein-/ausklappen">
+          
         </button>
       </div>
 
-      <div class="sidebar-quicksave">
-        <button id="btnQuickSave" class="btn-quicksave" title="Datenbank speichern">
-          <i data-lucide="save"></i>
-        </button>
-        <span id="quickSaveLabel" class="quicksave-label" title="">—</span>
-      </div>
-
-      <div class="sidebar-actions">
-        <button id="btnNewProtocol" class="btn-new-protocol" disabled>
-          <i data-lucide="file-plus"></i>
-          NEUES PROTOKOLL
-        </button>
-        <button id="btnImportJamieSidebar" class="btn-import-jamie" disabled>
-          <i data-lucide="file-up"></i>
-          IMPORT PROTOKOLL
-        </button>
-      </div>
-
-      <div class="sidebar-search">
-        <i data-lucide="file-search-2" class="search-icon"></i>
-        <input type="search" id="searchInput" class="search-input" placeholder="Protokoll suchen …" />
-      </div>
-
-      <div class="docs-section-header">
-        <span class="docs-label">Dokumente</span>
-      </div>
-
-      <div class="sidebar-list-container">
-        <div id="protocolList" class="protocol-list">
-          <div class="empty-state-sidebar"><p>Kein Projekt ausgewählt.</p></div>
+      <div class="sidebar-divider sidebar-divider-top"></div>
+      <!-- Projekt wählen -->
+      <div class="sidebar-project-section">
+        <div class="project-selector-wrap">
+          <button id="btnProjectSelector" class="btn-project-selector">
+            
+            <span id="projectSelectorLabel">Projekt wählen...</span>
+            
+          </button>
+          <div id="projectSelectorPanel" class="project-selector-panel hidden">
+            <button id="btnNewProject" class="project-selector-item project-selector-action">
+              
+              Projekt anlegen
+            </button>
+            <button id="btnImportProjectSelector" class="project-selector-item project-selector-action">
+              
+              Projekt &ouml;ffnen
+            </button>
+            <div class="project-selector-divider" id="projectSelectorDivider"></div>
+            <div id="projectSelectorList" class="project-selector-list"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Papierkorb-Panel (überlagert die Protokollliste) -->
+      <!-- Aktionsbuttons -->
+      <div class="sidebar-actions">
+        <button id="btnNewProtocol" class="btn-sidebar-action" disabled>Neues Protokoll</button>
+        <button id="btnImportJamieSidebar" class="btn-sidebar-action" disabled>Import Protokoll</button>
+      </div>
+
+      <!-- Protokoll-Suche -->
+      <div class="sidebar-search">
+        
+        <input type="search" id="searchInput" class="sidebar-search-input" placeholder="Protokoll suchen..." />
+        <button id="btnSidebarSearchClear" class="sidebar-search-clear hidden" type="button" title="Suche leeren" aria-label="Suche leeren"></button>
+      </div>
+
+      <div class="sidebar-save-group">
+        <button id="btnQuickSave" class="btn-sidebar-action">
+          Save DB
+        </button>
+        <div id="quickSaveLabel" class="quicksave-label-inline">Dateiname.json</div>
+      </div>
+
+      <div class="sidebar-divider sidebar-divider-after-actions"></div>
+      <button id="btnSeriesToggle" class="btn-sidebar-action btn-series-toggle hidden" type="button" aria-expanded="true">
+        <span class="series-toggle-label">Terminserien</span>
+        <span id="seriesToggleChevron" class="series-toggle-chevron-wrap" aria-hidden="true"></span>
+      </button>
+
+      <!-- Protokollliste -->
+      <div class="sidebar-list-container">
+        <div id="protocolList" class="protocol-list">
+          <div class="empty-state-sidebar"><p>Kein Projekt ausgewaehlt.</p></div>
+        </div>
+      </div>
+
+      <!-- Papierkorb-Panel -->
       <div id="trashPanel" class="trash-panel hidden">
         <div class="trash-panel-header">
           <h3 class="trash-panel-title">Papierkorb</h3>
-          <button id="btnCloseTrash" class="trash-panel-close" title="Schließen">
-            <i data-lucide="x"></i>
+          <button id="btnCloseTrash" class="trash-panel-close" title="Schliessen">
+            
           </button>
         </div>
         <div id="trashProjectList" class="trash-project-list"></div>
@@ -143,161 +176,149 @@
         <div id="trashList" class="trash-list"></div>
       </div>
 
-      <div class="sidebar-footer">
-        <button id="btnTrash" class="footer-btn footer-btn-wide" title="Papierkorb anzeigen">
-          <i data-lucide="trash-2"></i>
-          Papierkorb anzeigen
-        </button>
-      </div>
-
     </aside>
 
     <!-- Sidebar Resize Handle -->
     <div id="sidebarResizeHandle" class="sidebar-resize-handle"></div>
 
-    <!-- ════════════════════════════════════════════════════════
-         HAUPTBEREICH
-    ════════════════════════════════════════════════════════ -->
+    <!-- -- HAUPTBEREICH ---------------------------------------- -->
     <main id="workspace" class="workspace">
 
-      <!-- ── Sticky Toolbar ──────────────────────────────────── -->
+      <!-- -- STICKY TOOLBAR ------------------------------------ -->
       <div id="workspaceToolbar" class="workspace-toolbar hidden">
-        <div class="toolbar-left">
-          <span class="toolbar-label">TOOLBOX</span>
-          <div class="toolbar-divider"></div>
 
-          <!-- Werkzeug-Buttons -->
-          <div class="toolbar-tools">
-            <div class="chapter-filter-wrap">
-              <button id="btnChapterFilter" class="tool-btn" title="Kapitel ein-/ausblenden">
-                <i data-lucide="eye"></i>
-                <span>KAP</span>
-              </button>
-              <div id="chapterFilterPanel" class="chapter-filter-panel hidden">
-                <div class="chapter-filter-header">Kapitel einblenden</div>
-                <div id="chapterFilterList"></div>
-              </div>
+        <!-- PKT / KAP / UKAP / THEMA Buttons + Filter + Export -->
+        <div class="toolbar-tools-group">
+
+          <!-- Hinzufuegen (Reihenfolge wie Figma) -->
+          <button id="btnAddChapter" class="toolbar-btn" title="Neues Kapitel hinzufuegen">
+            
+            <span>KAP</span>
+          </button>
+          <button id="btnAddSubchapter" class="toolbar-btn" title="Neues Unterkapitel">
+            
+            <span>UKAP</span>
+          </button>
+          <button id="btnAddTopic" class="toolbar-btn" title="Neues Thema">
+            
+            <span>THEMA</span>
+          </button>
+          <button id="btnAddPoint" class="toolbar-btn toolbar-btn-primary" title="Neuer Protokollpunkt">
+            
+            <span>PKT</span>
+          </button>
+
+          <div class="toolbar-divider-v"></div>
+
+          <!-- Auge + Filter + Refresh -->
+          <div class="chapter-filter-wrap">
+            <button id="btnChapterFilter" class="toolbar-btn-icon" title="Kapitel ein-/ausblenden" aria-label="Kapitel ein-/ausblenden">
+              
+            </button>
+            <div id="chapterFilterPanel" class="chapter-filter-panel hidden">
+              <div class="chapter-filter-header">Kapitel einblenden</div>
+              <div id="chapterFilterList"></div>
             </div>
-            <button id="btnAddChapter" class="tool-btn" title="Neues Kapitel hinzufügen (ab F)">
-              <i data-lucide="circle-plus"></i>
-              <span>KAP</span>
-            </button>
-            <button id="btnAddSubchapter" class="tool-btn" title="Neues Unterkapitel im markierten Kapitel einfügen">
-              <i data-lucide="list-plus"></i>
-              <span>UKAP</span>
-            </button>
-            <button id="btnAddTopic" class="tool-btn" title="Neues Thema im markierten Unterkapitel einfügen (+ erster Punkt)">
-              <i data-lucide="list-plus"></i>
-              <span>THEMA</span>
-            </button>
-            <button id="btnAddPoint" class="tool-btn" title="Neuer Protokollpunkt im markierten Thema / Unterkapitel">
-              <i data-lucide="plus"></i>
-              <span>PKT</span>
-            </button>
-            <div class="toolbar-divider"></div>
-            <div class="point-filter-wrap">
-              <button id="btnPointFilter" class="tool-btn tool-btn-icon" title="Punkte filtern">
-                <i data-lucide="filter"></i>
-              </button>
-              <div id="pointFilterPanel" class="point-filter-panel hidden">
-                <label class="filter-option">
-                  <input type="checkbox" id="filterHideDone" /> Erledigte ausblenden
-                </label>
-                <div class="filter-separator"></div>
-                <label class="filter-option">
-                  <input type="checkbox" id="filterOnlyOverdue" /> Nur überfällige
-                </label>
-                <label class="filter-option">
-                  <input type="checkbox" id="filterOnlyNew" /> Nur neue Punkte
-                </label>
-                <div class="filter-separator"></div>
-                <label class="filter-option">
-                  <input type="checkbox" id="filterOnlyTasks" /> Nur Aufgaben
-                </label>
-                <label class="filter-option">
-                  <input type="checkbox" id="filterOnlyApproval" /> Nur Freigabe erfordl.
-                </label>
-              </div>
-            </div>
-            <button id="btnOpenSearch" class="tool-btn tool-btn-icon" title="Volltextsuche (Ctrl+F)">
-              <i data-lucide="search"></i>
-            </button>
-            <button id="btnReload" class="tool-btn tool-btn-icon" title="Seite neu laden" onclick="location.reload()">
-              <i data-lucide="refresh-cw"></i>
-            </button>
-            <div class="toolbar-divider"></div>
-            <button id="btnExportPdf" class="tool-btn" title="PDF exportieren">
-              <i data-lucide="file-down"></i>
-              <span>PDF</span>
-            </button>
-            <button id="btnExportXlsx" class="tool-btn" title="Excel exportieren (kommt bald)" disabled>
-              <i data-lucide="file-spreadsheet"></i>
-              <span>XLSX</span>
-            </button>
-
-            <!-- Kontext-Anzeige: zeigt welche Zeile gerade aktiv ist -->
-            <span id="selectionHint" class="selection-hint"></span>
-
-            <!-- Platz für weitere Werkzeuge -->
-            <div class="toolbar-reserved" title="Weitere Werkzeuge folgen"></div>
           </div>
+
+          <!-- Filter -->
+          <div class="point-filter-wrap">
+            <button id="btnPointFilter" class="toolbar-btn-icon" title="Punkte filtern">
+              
+            </button>
+            <div id="pointFilterPanel" class="point-filter-panel hidden">
+              <label class="filter-option">
+                <input type="checkbox" id="filterHideDone" /> Erledigte ausblenden
+              </label>
+              <div class="filter-separator"></div>
+              <label class="filter-option">
+                <input type="checkbox" id="filterOnlyOverdue" /> Nur überfällige
+              </label>
+              <label class="filter-option">
+                <input type="checkbox" id="filterOnlyNew" /> Nur neue Punkte
+              </label>
+              <div class="filter-separator"></div>
+              <label class="filter-option">
+                <input type="checkbox" id="filterOnlyTasks" /> Nur Aufgaben
+              </label>
+              <label class="filter-option">
+                <input type="checkbox" id="filterOnlyApproval" /> Nur Freigabe erfordl.
+              </label>
+            </div>
+          </div>
+
+          <!-- Reload -->
+          <button id="btnReload" class="toolbar-btn-icon" title="Seite neu laden">
+            
+          </button>
+
+          <div class="toolbar-search-wrap">
+            
+            <input type="text" id="searchBarInput" class="toolbar-search-input"
+                   placeholder="Suche..." autocomplete="off" />
+            <span id="searchBarCount" class="toolbar-search-count hidden"></span>
+            <button id="searchBarPrev" class="toolbar-search-nav hidden" title="Vorheriger Treffer (Shift+Enter)">
+              
+            </button>
+            <button id="searchBarNext" class="toolbar-search-nav hidden" title="Naechster Treffer (Enter)">
+              
+            </button>
+          </div>
+
+          <div class="toolbar-divider-v"></div>
+
+          <!-- Export -->
+          <button id="btnExportPdf" class="toolbar-btn" title="PDF exportieren">
+            
+            <span>PDF</span>
+          </button>
+          <button id="btnExportXlsx" class="toolbar-btn" title="Excel exportieren (kommt bald)" disabled>
+            
+            <span>XLSX</span>
+          </button>
+
+          <!-- Kontext-Anzeige -->
+          <span id="selectionHint" class="selection-hint"></span>
         </div>
 
-        <div class="toolbar-right">
-          <button id="btnDeleteProtocol" class="btn-danger btn-sm" title="Protokoll löschen">
-            <i data-lucide="shredder"></i>
-            Löschen
+        <!-- Protokoll löschen (rechts) -->
+        <div class="toolbar-danger-group">
+          <button id="btnDeleteProtocol" class="toolbar-btn-icon toolbar-btn-icon-danger" title="Protokoll löschen" aria-label="Protokoll löschen">
+            
           </button>
         </div>
-      </div>
 
-      <!-- ── Suchleiste ───────────────────────────────────────── -->
-      <div id="searchBar" class="search-bar hidden">
-        <div class="search-bar-inner">
-          <i data-lucide="search" class="search-bar-icon"></i>
-          <input type="text" id="searchBarInput" class="search-bar-input" placeholder="Suchen …" autocomplete="off" />
-          <span id="searchBarCount" class="search-bar-count"></span>
-          <button id="searchBarPrev" class="search-bar-nav" title="Vorheriger Treffer (Shift+Enter)">
-            <i data-lucide="chevron-up"></i>
-          </button>
-          <button id="searchBarNext" class="search-bar-nav" title="Nächster Treffer (Enter)">
-            <i data-lucide="chevron-down"></i>
-          </button>
-          <button id="searchBarClose" class="search-bar-close" title="Suche schließen (Escape)">
-            <i data-lucide="x"></i>
-          </button>
-        </div>
-      </div>
+      </div><!-- /workspace-toolbar -->
 
-      <!-- ── Workspace-Inhalt ─────────────────────────────────── -->
+      <!-- WORKSPACE-INHALT -->
       <div class="workspace-content">
 
         <!-- Leerer Zustand -->
         <div id="emptyState" class="empty-state">
           <div class="empty-state-icon">
             <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-              <rect x="12" y="8" width="40" height="48" rx="4" fill="#E5E7EB"/>
-              <rect x="18" y="18" width="28" height="2" rx="1" fill="#9CA3AF"/>
-              <rect x="18" y="24" width="20" height="2" rx="1" fill="#9CA3AF"/>
-              <rect x="18" y="30" width="24" height="2" rx="1" fill="#9CA3AF"/>
-              <rect x="18" y="36" width="16" height="2" rx="1" fill="#9CA3AF"/>
+              <rect x="12" y="8" width="40" height="48" rx="4" fill="var(--border-light)"/>
+              <rect x="18" y="18" width="28" height="2" rx="1" fill="var(--text-tertiary)"/>
+              <rect x="18" y="24" width="20" height="2" rx="1" fill="var(--text-tertiary)"/>
+              <rect x="18" y="30" width="24" height="2" rx="1" fill="var(--text-tertiary)"/>
+              <rect x="18" y="36" width="16" height="2" rx="1" fill="var(--text-tertiary)"/>
             </svg>
           </div>
           <h2 class="empty-state-title">Kein Protokoll geöffnet</h2>
-          <p class="empty-state-text">Wählen Sie ein Projekt und öffnen Sie ein Protokoll<br>oder erstellen Sie ein neues.</p>
+          <p class="empty-state-text">Waehlen Sie ein Projekt und öffnen Sie ein Protokoll<br>oder erstellen Sie ein neues.</p>
         </div>
 
-        <!-- Protokoll-Ansicht -->
+        <!-- -- PROTOKOLL-ANSICHT ---------------------------------- -->
         <div id="protocolView" class="protocol-view hidden">
 
-          <!-- Titelblock -->
-          <section class="section-card" id="sectionHeader">
+          <!-- -- Titelblock ---------------------------------------- -->
+          <div class="proto-card" id="sectionHeader">
             <div class="title-block">
               <div class="title-row">
-                <span id="projectBadge" class="project-badge">—</span>
+                <span id="projectBadge" class="project-badge">-</span>
                 <h1 id="fieldTitle" class="protocol-title editable" contenteditable="true"
-                    data-placeholder="Protokolltitel …"></h1>
-                <span class="protocol-number-display"><span id="fieldNumber">01</span></span>
+                    data-placeholder="Protokolltitel ..."></h1>
+                <span class="protocol-number-display">Nr.&nbsp;<span id="fieldNumber">01</span></span>
               </div>
               <div class="meta-grid">
                 <label class="meta-label">
@@ -306,7 +327,7 @@
                 </label>
                 <label class="meta-label">
                   <span class="meta-key">Uhrzeit</span>
-                  <input type="text" id="fieldTime" class="meta-input" placeholder="z. B. 11:00 – 14:00 Uhr" />
+                  <input type="text" id="fieldTime" class="meta-input" placeholder="z. B. 11:00 - 14:00 Uhr" />
                 </label>
                 <label class="meta-label">
                   <span class="meta-key">Ort</span>
@@ -326,62 +347,71 @@
                 </label>
               </div>
             </div>
-          </section>
+          </div>
 
-          <!-- Teilnehmer -->
-          <section class="section-card" id="sectionParticipants">
-            <h2 class="section-title">Teilnehmer</h2>
-            <div class="table-wrapper">
-              <table class="data-table participants-table">
-                <thead>
-                  <tr>
-                    <th class="col-name">Name</th>
-                    <th class="col-company">Firma / Organisation</th>
-                    <th class="col-abbr">Kürzel</th>
-                    <th class="col-email">E-Mail-Adresse</th>
-                    <th class="col-check">Teilnehmer</th>
-                    <th class="col-check">Verteiler</th>
-                    <th class="col-action"></th>
-                  </tr>
-                </thead>
-                <tbody id="participantsBody"></tbody>
-                <tfoot>
-                  <tr class="add-row">
-                    <td><input type="text"  id="newParticipantName"    class="table-input" placeholder="Name …" /></td>
-                    <td><input type="text"  id="newParticipantCompany" class="table-input" placeholder="Firma …" /></td>
-                    <td><input type="text"  id="newParticipantAbbr"    class="table-input" placeholder="Kürzel" maxlength="4" /></td>
-                    <td><input type="email" id="newParticipantEmail"   class="table-input" placeholder="E-Mail …" /></td>
-                    <td style="text-align:center"><input type="checkbox" id="newParticipantAttended" class="table-checkbox" checked /></td>
-                    <td style="text-align:center"><input type="checkbox" id="newParticipantDistrib"  class="table-checkbox" checked /></td>
-                    <td>
-                      <button id="btnAddParticipant" class="btn-add-row">
-                        <i data-lucide="user-plus"></i>
-                        Hinzufügen
-                      </button>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+          <!-- -- Teilnehmer ---------------------------------------- -->
+          <div class="proto-card" id="sectionParticipants">
+            <div class="proto-card-header">
+              
+              <span>TEILNEHMER</span>
             </div>
-          </section>
+            <div class="proto-card-body">
+              <div class="participants-grid">
+                <!-- Header -->
+                <div class="pg-header">
+                  <div class="pg-col-drag"></div>
+                  <div class="pg-col-name">Name</div>
+                  <div class="pg-col-company">Firma / Organisation</div>
+                  <div class="pg-col-abbr">Kürzel</div>
+                  <div class="pg-col-email">Email-Adresse</div>
+                  <div class="pg-col-check">Teilnehmer</div>
+                  <div class="pg-col-check">Verteiler</div>
+                  <div class="pg-col-action"></div>
+                </div>
+                <!-- Daten-Zeilen (via JS gerendert) -->
+                <div id="participantsBody"></div>
+                <!-- Eingabe-Zeile -->
+                <div class="pg-add-row">
+                  <div class="pg-col-drag"></div>
+                  <div class="pg-col-name"><input type="text"  id="newParticipantName"    class="table-input" placeholder="Name ..." /></div>
+                  <div class="pg-col-company"><input type="text"  id="newParticipantCompany" class="table-input" placeholder="Firma ..." /></div>
+                  <div class="pg-col-abbr"><input type="text"  id="newParticipantAbbr"    class="table-input" placeholder="Kürzel" maxlength="4" /></div>
+                  <div class="pg-col-email"><input type="email" id="newParticipantEmail"   class="table-input" placeholder="E-Mail ..." /></div>
+                  <div class="pg-col-check">
+                    <div id="newParticipantAttended" class="checkbox-cell" data-checked="1">
+                    </div>
+                  </div>
+                  <div class="pg-col-check">
+                    <div id="newParticipantDistrib" class="checkbox-cell" data-checked="1">
+                    </div>
+                  </div>
+                  <div class="pg-col-action">
+                    <button id="btnAddParticipant" class="btn-add-participant" title="Teilnehmer hinzufuegen">
+                      
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          <!-- Protokollpunkte -->
-          <section class="section-card" id="sectionPoints">
-            <div class="points-section-header">
-              <button id="btnCollapseAll" class="collapse-all-btn" title="Alle Kapitel ein-/ausklappen">
-                <i data-lucide="chevrons-down"></i>
+          <!-- -- Protokollpunkte / Inhalte ------------------------- -->
+          <div class="proto-card" id="sectionPoints">
+            <div class="proto-card-header">
+              <button id="btnCollapseAll" class="proto-card-header-collapse" title="Alle Kapitel ein-/ausklappen">
+                
               </button>
-              <h2 class="section-title" style="padding:0;margin:0">Protokollpunkte</h2>
+              <span>INHALTE</span>
             </div>
-            <div class="table-wrapper">
+            <div class="proto-card-body proto-card-body-table">
               <table class="data-table points-table" id="pointsTable">
                 <thead>
                   <tr>
                     <th class="col-collapse"></th>
                     <th class="col-id">ID</th>
-                    <th class="col-content">Inhalt</th>
+                    <th class="col-content">Sachverhalt</th>
                     <th class="col-category">Kategorie</th>
-                    <th class="col-responsible">Zuständig</th>
+                    <th class="col-responsible">Zustaendig</th>
                     <th class="col-deadline">Termin</th>
                     <th class="col-done">Erledigt</th>
                     <th class="col-action"></th>
@@ -390,104 +420,134 @@
                 <tbody id="pointsBody"></tbody>
               </table>
             </div>
-          </section>
+          </div>
 
-          <!-- Anlagen -->
-          <section class="section-card" id="sectionAttachments">
-            <h2 class="section-title">Anlagen</h2>
-            <p id="attachmentsEmpty" class="empty-hint">keine Anlagen</p>
-            <div class="table-wrapper">
+          <!-- -- Anlagen -------------------------------------------- -->
+          <div class="proto-card" id="sectionAttachments">
+            <div class="proto-card-header">
+              
+              <span>ANLAGEN</span>
+            </div>
+            <div class="proto-card-body">
+              <p id="attachmentsEmpty" class="empty-hint">keine Anlagen</p>
               <table class="data-table attachments-table">
+                <colgroup>
+                  <col class="col-attach-nr" />
+                  <col class="col-attach-content" />
+                  <col class="col-attach-file" />
+                  <col class="col-attach-file-actions" />
+                  <col class="col-action" />
+                </colgroup>
                 <thead>
                   <tr>
-                    <th class="col-attach-nr">Nr.</th>
-                    <th>Inhalt / Bezeichnung</th>
-                    <th class="col-attach-file">Datei</th>
+                    <th class="col-attach-nr">Nummer</th>
+                    <th>Inhalt</th>
+                    <th class="col-attach-file">Dateiname</th>
+                    <th class="col-attach-file-actions"></th>
                     <th class="col-action"></th>
                   </tr>
                 </thead>
                 <tbody id="attachmentsBody"></tbody>
               </table>
+              <div id="attachDropZone" class="attach-dropzone">
+                <span>Datei hierher ziehen oder</span>
+                <button type="button" id="btnPickFile" class="attach-pick-btn">Datei auswählen</button>
+              </div>
+              <input type="file" id="filePickerInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tiff,.svg" class="u-hidden" />
             </div>
-            <div id="attachDropZone" class="attach-dropzone">
-              <i data-lucide="paperclip" class="attach-dropzone-icon"></i>
-              <span>Datei hierher ziehen oder</span>
-              <button type="button" id="btnPickFile" class="attach-pick-btn">Datei auswählen</button>
-            </div>
-            <input type="file" id="filePickerInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tiff,.svg" style="display:none" />
-            <button id="btnAddAttachment" class="btn-add-bottom">
-              <i data-lucide="plus"></i>
-              Leere Anlage
-            </button>
-          </section>
+          </div>
 
-          <!-- Aufgestellt -->
-          <section class="section-card" id="sectionAuthor">
-            <h2 class="section-title">Aufgestellt</h2>
-            <div class="author-content">
+          <!-- -- Aufgestellt ---------------------------------------- -->
+          <div class="proto-card" id="sectionAuthor">
+            <div class="proto-card-header">
+              
+              <span>AUFGESTELLT</span>
+            </div>
+            <div class="proto-card-body">
               <div class="author-fields">
-                <label class="author-label">
-                  <span class="meta-key">Vorname</span>
-                  <input type="text" id="fieldAuthorFirstName" class="meta-input" placeholder="Vorname" />
+                <label class="author-label author-label-date">
+                  <span class="meta-key">Datum</span>
+                  <div class="author-date-wrap">
+                    <input type="text" id="fieldAuthorDate" class="meta-input" placeholder="TT.MM.JJJJ" />
+                    <button type="button" id="btnAuthorDatePicker" class="termin-cal-btn" title="Kalender öffnen">
+                      
+                    </button>
+                    <input type="date" id="authorDateHidden" class="author-date-hidden" tabindex="-1" aria-hidden="true" />
+                  </div>
                 </label>
-                <label class="author-label">
+                <label class="author-label author-label-wide">
                   <span class="meta-key">Name</span>
-                  <input type="text" id="fieldAuthorLastName" class="meta-input" placeholder="Name" />
+                  <input type="text" id="fieldAuthorName" class="meta-input" placeholder="Name" />
                 </label>
                 <label class="author-label author-label-wide">
                   <span class="meta-key">Firma</span>
                   <input type="text" id="fieldAuthorCompany" class="meta-input" placeholder="Firma" />
                 </label>
-                <label class="author-label">
-                  <span class="meta-key">Datum</span>
-                  <div class="author-date-wrap">
-                    <input type="text" id="fieldAuthorDate" class="meta-input" placeholder="TT.MM.JJJJ" />
-                    <button type="button" id="btnAuthorDatePicker" class="termin-cal-btn" title="Kalender öffnen">
-                      <i data-lucide="calendar"></i>
-                    </button>
-                    <input type="date" id="authorDateHidden" class="author-date-hidden" tabindex="-1" aria-hidden="true" />
-                  </div>
+                <label class="author-label author-label-seen author-label-nohead">
+                  <input type="text" id="fieldAuthorSeen" class="meta-input" placeholder="" />
                 </label>
               </div>
             </div>
-          </section>
+          </div>
 
-          <!-- Legende -->
-          <section class="section-card section-legend" id="sectionLegend">
-            <h2 class="section-title">Legende</h2>
-            <div class="legend-content">
-              <div class="legend-formatting">
-                <h3 class="legend-subtitle">Formatierungskonventionen</h3>
-                <ul class="legend-list">
-                  <li><strong>Fett:</strong> Neue Punkte (im aktuellen Protokoll erstellt)</li>
-                  <li><span class="text-blue">Blaue Schrift:</span> Ergänzungen und Korrekturen an bestehenden Punkten</li>
-                  <li><span class="text-gray">Hellgraue Schrift:</span> Erledigte Punkte (werden mit dem übernächsten Protokoll entfernt)</li>
-                </ul>
-              </div>
-              <div class="legend-id-syntax">
-                <h3 class="legend-subtitle">ID-Syntax</h3>
-                <p class="legend-syntax-text"><code>#[Protokoll-Nr]|[Kapitel].[Unterkapitel].[lfd. Punkt je Protokoll]</code></p>
-                <p class="legend-syntax-example">Beispiel: <code>#11|B.1.02</code> → Protokoll Nr. 11, Kapitel B, Unterkapitel 1, Punkt 02</p>
-              </div>
-              <div class="legend-disclaimer">
-                <h3 class="legend-subtitle">Hinweis</h3>
-                <p class="legend-disclaimer-text">Der in obenstehendem Text beschriebene Besprechungsinhalt gibt das Verständnis des Verfassers wieder. Die Empfänger des Protokolls werden gebeten eventuell gewünschte Ergänzungen und/oder Korrekturen möglichst innerhalb von drei Tagen nach Zustellung beim Verfasser schriftlich anzumelden. Diese werden dann in der nächsten Besprechung dokumentiert. Ohne Einwände wird von einer ordnungsgemäßen Besprechungswiedergabe ausgegangen. Das Protokoll wird regelmäßig durch Entfall älterer und nur dokumentierender Einträge bewusst gekürzt.</p>
-              </div>
-              <div class="legend-abbrev">
-                <h3 class="legend-subtitle">Abkürzungsverzeichnis</h3>
-                <div id="abbrevList" class="abbrev-list"></div>
+          <!-- -- Legende -------------------------------------------- -->
+          <div class="proto-card proto-card-last" id="sectionLegend">
+            <div class="proto-card-header">
+              
+              <span>LEGENDE</span>
+            </div>
+            <div class="proto-card-body">
+              <div class="legend-content">
+                <div class="legend-formatting">
+                  <h3 class="legend-subtitle">Formatierungskonventionen</h3>
+                  <ul class="legend-list">
+                    <li><strong>Fett:</strong> Neue Punkte (im aktuellen Protokoll erstellt)</li>
+                    <li><span class="text-blue">Blaue Schrift:</span> Ergaenzungen und Korrekturen an bestehenden Punkten</li>
+                    <li><span class="text-gray">Hellgraue Schrift:</span> Erledigte Punkte (werden mit dem übernächsten Protokoll entfernt)</li>
+                  </ul>
+                </div>
+                <div class="legend-id-syntax">
+                  <h3 class="legend-subtitle">ID-Syntax</h3>
+                  <p class="legend-syntax-text"><code>#[Protokoll-Nr]|[Kapitel].[Unterkapitel].[lfd. Punkt je Protokoll]</code></p>
+                  <p class="legend-syntax-example">Beispiel: <code>#11|B.1.02</code> - Protokoll Nr. 11, Kapitel B, Unterkapitel 1, Punkt 02</p>
+                </div>
+                <div class="legend-disclaimer">
+                  <h3 class="legend-subtitle">Hinweis</h3>
+                  <p class="legend-disclaimer-text">Der in obenstehendem Text beschriebene Besprechungsinhalt gibt das Verstaendnis des Verfassers wieder. Die Empfaenger des Protokolls werden gebeten eventuell gewünschte Ergaenzungen und/oder Korrekturen möglichst innerhalb von drei Tagen nach Zustellung beim Verfasser schriftlich anzumelden. Diese werden dann in der nächsten Besprechung dokumentiert. Ohne Einwaende wird von einer ordnungsgemäßen Besprechungswiedergabe ausgegangen. Das Protokoll wird regelmaessig durch Entfall älterer und nur dokumentierender Eintraege bewusst gekuerzt.</p>
+                </div>
+                <div class="legend-abbrev">
+                  <h3 class="legend-subtitle">Abkürzungsverzeichnis</h3>
+                  <div id="abbrevList" class="abbrev-list"></div>
+                </div>
               </div>
             </div>
-          </section>
+          </div>
 
         </div><!-- /protocolView -->
       </div><!-- /workspace-content -->
     </main>
   </div><!-- /app -->
 
-  <!-- ════════════════════════════════════════════════════════
+  <!-- --------------------------------------------------------
        MODALS
-  ════════════════════════════════════════════════════════ -->
+  -------------------------------------------------------- -->
+
+  <!-- Globaler Bestätigungsdialog -->
+  <div id="modalConfirm" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="confirmModalTitle" class="modal-title">Bestätigen</h2>
+        <button id="btnConfirmDialogClose" class="modal-close" type="button" aria-label="Schließen"></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage" class="confirm-message"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="btnConfirmDialogCancel" class="btn-secondary" type="button">Abbrechen</button>
+        <button id="btnConfirmDialogOk" class="btn-primary" type="button">OK</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Neues Projekt -->
   <div id="modalNewProject" class="modal-overlay hidden">
@@ -495,14 +555,14 @@
       <div class="modal-header">
         <h2 class="modal-title">Neues Projekt anlegen</h2>
         <button class="modal-close" data-close="modalNewProject">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label" for="newProjectCode">Projektkürzel <span class="required">*</span></label>
-          <input type="text" id="newProjectCode" class="form-input" placeholder="z. B. MAR" maxlength="4" style="text-transform:uppercase" />
-          <span class="form-hint">2–4 Großbuchstaben, eindeutig</span>
+          <input type="text" id="newProjectCode" class="form-input input-uppercase" placeholder="z. B. MAR" maxlength="4" />
+          <span class="form-hint">2-4 Grossbuchstaben, eindeutig</span>
         </div>
         <div class="form-group">
           <label class="form-label" for="newProjectName">Projektname <span class="required">*</span></label>
@@ -510,7 +570,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="newProjectAddress">Adresse</label>
-          <input type="text" id="newProjectAddress" class="form-input" placeholder="Straße, PLZ Ort" />
+          <input type="text" id="newProjectAddress" class="form-input" placeholder="Strasse, PLZ Ort" />
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -536,7 +596,7 @@
       <div class="modal-header">
         <h2 class="modal-title">Neues Protokoll</h2>
         <button class="modal-close" data-close="modalNewProtocol">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body">
@@ -557,13 +617,13 @@
         <div class="form-group">
           <label class="form-label checkbox-label">
             <input type="checkbox" id="newProtocolContinue" class="form-checkbox" />
-            <span>Vorheriges Protokoll übernehmen und Serie fortführen</span>
+            <span>Vorheriges Protokoll übernehmen und Serie fortfuehren</span>
           </label>
-          <span class="form-hint">Offene Punkte und Teilnehmerliste werden übernommen.</span>
+          <span class="form-hint">Offene Punkte und Teilnehmerliste werden uebernommen.</span>
         </div>
         <div class="form-group hidden" id="continueFromGroup">
-          <label class="form-label">fortgeführt auf Basis von:</label>
-          <div class="continue-from-display" id="continueFromDisplay">—</div>
+          <label class="form-label">fortgefuehrt auf Basis von:</label>
+          <div class="continue-from-display" id="continueFromDisplay">-</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -579,7 +639,7 @@
       <div class="modal-header">
         <h2 class="modal-title">Aktennotiz aus meetjamie importieren</h2>
         <button class="modal-close" data-close="modalJamieImport">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body">
@@ -599,7 +659,7 @@
         <div class="form-group">
           <label class="form-label">Markdown-Datei <span class="required">*</span></label>
           <div class="jamie-file-drop" id="jamieFileDrop">
-            <i data-lucide="upload" style="color:var(--text-tertiary);width:20px;height:20px"></i>
+            
             <span id="jamieFileLabel">Datei hierher ziehen oder <u>auswählen</u></span>
           </div>
           <input type="file" id="jamieImportFile" accept=".md,.txt" class="hidden" />
@@ -618,7 +678,7 @@
       <div class="modal-header">
         <h2 class="modal-title" id="modalSubchapterTitle">Neues Unterkapitel</h2>
         <button class="modal-close" data-close="modalSubchapter">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body">
@@ -640,13 +700,13 @@
       <div class="modal-header">
         <h2 class="modal-title">Neues Thema</h2>
         <button class="modal-close" data-close="modalTopic">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label" for="topicLabel">Thema-Bezeichnung</label>
-          <input type="text" id="topicLabel" class="form-input" placeholder="z. B. Bodentanks, Mieterprüfung" />
+          <input type="text" id="topicLabel" class="form-input" placeholder="z. B. Bodentanks, Mieterpruefung" />
         </div>
       </div>
       <div class="modal-footer">
@@ -662,11 +722,11 @@
       <div class="modal-header">
         <h2 class="modal-title">Neues Kapitel</h2>
         <button class="modal-close" data-close="modalChapter">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body">
-        <p id="chapterKeyHint" style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;"></p>
+        <p id="chapterKeyHint" class="modal-hint"></p>
         <div class="form-group">
           <label class="form-label" for="chapterLabel">Bezeichnung</label>
           <input type="text" id="chapterLabel" class="form-input" placeholder="z. B. Nachhaltigkeit" />
@@ -685,14 +745,14 @@
       <div class="modal-header">
         <h2 class="modal-title">Protokoll duplizieren</h2>
         <button class="modal-close" data-close="modalDuplicate">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label" for="duplicateName">Neuer Protokollname <span class="required">*</span></label>
           <input type="text" id="duplicateName" class="form-input" placeholder="z. B. Sondertermin Mieterausbau" />
-          <span class="form-hint">Das Duplikat ist nicht Teil der ursprünglichen Serie und erhält eine eigene Nummerierung.</span>
+          <span class="form-hint">Das Duplikat ist nicht Teil der urspruenglichen Serie und erhaelt eine eigene Nummerierung.</span>
         </div>
       </div>
       <div class="modal-footer">
@@ -708,14 +768,14 @@
       <div class="modal-header">
         <h2 class="modal-title">Projekt löschen</h2>
         <button class="modal-close" data-close="modalDeleteProject">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body">
         <p class="delete-warning">Das Projekt <strong id="deleteProjectLabel"></strong> wird mit allen Protokollen in den Papierkorb verschoben.</p>
         <div class="delete-export-hint">
           <button id="btnExportBeforeDelete" class="btn-secondary">
-            <i data-lucide="download" style="vertical-align:-2px;margin-right:4px"></i>
+            
             Vorher exportieren (Backup)
           </button>
         </div>
@@ -733,14 +793,14 @@
       <div class="modal-header">
         <h2 class="modal-title">Datenbank schließen</h2>
         <button class="modal-close" data-close="modalCloseDatabase">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body">
-        <p class="delete-warning">Die gesamte Datenbank wird geleert. Alle Projekte und Protokolle werden unwiderruflich gelöscht.</p>
+        <p class="delete-warning">Die gesamte Datenbank wird geleert. Alle Projekte und Protokolle werden unwiderruflich geloescht.</p>
         <div class="delete-export-hint">
           <button id="btnExportBeforeClose" class="btn-secondary">
-            <i data-lucide="download" style="vertical-align:-2px;margin-right:4px"></i>
+            
             Vorher exportieren (Backup)
           </button>
         </div>
@@ -757,7 +817,7 @@
     <div class="modal modal-sm app-info-modal">
       <div class="modal-header app-info-header">
         <button class="modal-close" data-close="modalAppInfo">
-          <i data-lucide="x"></i>
+          
         </button>
       </div>
       <div class="modal-body app-info-body">
@@ -771,23 +831,49 @@
 
   <input type="file" id="fileImportJson" accept=".json" class="hidden" />
   <input type="file" id="fileImportFullDB" accept=".json" class="hidden" />
-  <input type="file" id="fileImportJamieMd" accept=".md,.txt" class="hidden" />
+  <input type="file" id="fileImportJamieMd" accept=".md" class="hidden" />
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- ── Passwort-Gate ─────────────────────────────────────── -->
+  <!-- -- Passwort-Gate --------------------------------------- -->
   <script>
   (function() {
     const HASH = '4823abdc226c2b77aa9a279218efc682a4d973a267d8142ba3a6cb8630e6f579';
+    const EYE_CLOSED_ICON = '<svg class="kadra-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="var(--icon-size,16px)" height="var(--icon-size,16px)" fill="none" stroke="currentColor" stroke-width="var(--icon-stroke,1.5)" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.58 10.58a2 2 0 0 0 2.83 2.83"/><path d="M9.88 5.09A10.94 10.94 0 0 1 12 5c7 0 11 7 11 7a21.86 21.86 0 0 1-2.17 3.19"/><path d="M6.61 6.61A21.74 21.74 0 0 0 1 12s4 7 11 7a10.94 10.94 0 0 0 4.91-1.17"/></svg>';
+    const EYE_OPEN_ICON = '<svg class="kadra-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="var(--icon-size,16px)" height="var(--icon-size,16px)" fill="none" stroke="currentColor" stroke-width="var(--icon-stroke,1.5)" stroke-linecap="round" stroke-linejoin="round"><path d="M2.06 12S5 6 12 6s9.94 6 9.94 6-2.94 6-9.94 6-9.94-6-9.94-6Z"/><circle cx="12" cy="12" r="3"/></svg>';
 
     function unlockApp() {
       document.getElementById('loginGate').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
     }
 
-    // Bereits authentifiziert in dieser Session?
+    function setupPasswordToggle() {
+      const input = document.getElementById('loginPassword');
+      const btn = document.getElementById('btnLoginPasswordToggle');
+      if (!input || !btn) return;
+
+      const render = () => {
+        const visible = input.type === 'text';
+        btn.innerHTML = visible ? EYE_OPEN_ICON : EYE_CLOSED_ICON;
+        btn.setAttribute('aria-pressed', visible ? 'true' : 'false');
+        const label = visible ? 'Passwort verbergen' : 'Passwort anzeigen';
+        btn.setAttribute('aria-label', label);
+        btn.setAttribute('title', label);
+      };
+
+      btn.addEventListener('click', () => {
+        input.type = input.type === 'password' ? 'text' : 'password';
+        render();
+        input.focus();
+      });
+
+      render();
+    }
+
     if (sessionStorage.getItem('kadra_auth') === '1') {
       unlockApp();
     }
+
+    setupPasswordToggle();
 
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -807,13 +893,15 @@
   })();
   </script>
 
-  <script src="js/lib/lucide.min.js"></script>
+  <script src="js/icons.js"></script>
   <script src="js/lib/jspdf.umd.min.js"></script>
   <script src="js/lib/jspdf.plugin.autotable.min.js"></script>
   <script src="js/lib/nunito-sans-fonts.js"></script>
   <script src="js/db.js"></script>
   <script src="js/pdf-export.js"></script>
   <script src="js/app.js"></script>
-  <script>lucide.createIcons();</script>
 </body>
 </html>
+
+
+

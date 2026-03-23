@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Button-Token Vorschau</title>
+  <style>
+    :root {
+      --accent-blue-dark: #0E2D58;
+      --accent-blue-20: #DBE3F0;
+      --accent-red: #CC4933;
+      --accent-red-10: #F5DBD6;
+      --text-primary: #000000;
+      --text-secondary: #6E6E6E;
+      --text-inverted: #FFFFFF;
+      --text-tertiary: #AEAEAE;
+      --border: #D2D2D2;
+      --bg-input: #F2F2F2;
+      --bg-hover: #F5F5F5;
+      --surface: #FFFFFF;
+
+      /* Button-Tokens (aktuelle Abstimmung) */
+      --btn-secondary-hover-bg: #E7E7E7;
+      --btn-secondary-border: #FFFFFF;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: "Nunito Sans", Arial, sans-serif;
+      background: #f7f7f8;
+      color: #111;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    p.note {
+      margin: 0 0 16px;
+      color: #555;
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #666;
+      background: #fafafa;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: #f3f3f3;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .pill {
+      width: 64px;
+      height: 32px;
+      border-radius: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      box-sizing: border-box;
+      border: 1px solid transparent;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Button-Token Vorschlaege</h1>
+  <p class="note">
+    Vorschau je Variable mit exemplarischer Pille (64x32, Radius 32). Text ist nur zur Sichtbarkeit gesetzt.
+  </p>
+
+  <table aria-label="Button Token Vorschau">
+    <thead>
+      <tr>
+        <th>Button-Set</th>
+        <th>Zustand</th>
+        <th>Token-Kombination (Füllung | Rand | Text)</th>
+        <th>Vorschau</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Primary</strong></td>
+        <td>Normal</td>
+        <td><code>#0E2D58 | #0E2D58 | #FFFFFF</code></td>
+        <td><span class="pill" style="background:#0E2D58;color:#FFFFFF;border-color:#0E2D58;">Primary</span></td>
+      </tr>
+      <tr>
+        <td><strong>Primary</strong></td>
+        <td>Hover</td>
+        <td><code>#000000 | #000000 | #FFFFFF</code></td>
+        <td><span class="pill" style="background:#000000;color:#FFFFFF;border-color:#000000;">Hover</span></td>
+      </tr>
+
+      <tr>
+        <td><strong>Secondary</strong></td>
+        <td>Normal</td>
+        <td><code>#F2F2F2 | #FFFFFF | #000000</code></td>
+        <td><span class="pill" style="background:#F2F2F2;color:#000000;border-color:var(--btn-secondary-border);">Sec</span></td>
+      </tr>
+      <tr>
+        <td><strong>Secondary</strong></td>
+        <td>Hover</td>
+        <td><code>#E7E7E7 | #FFFFFF | #000000</code></td>
+        <td><span class="pill" style="background:var(--btn-secondary-hover-bg);color:#000000;border-color:var(--btn-secondary-border);">Hover</span></td>
+      </tr>
+
+      <tr>
+        <td><strong>Danger</strong></td>
+        <td>Normal</td>
+        <td><code>transparent | #CC4933 | #CC4933</code></td>
+        <td><span class="pill" style="background:transparent;color:#CC4933;border-color:#CC4933;">Danger</span></td>
+      </tr>
+      <tr>
+        <td><strong>Danger</strong></td>
+        <td>Hover</td>
+        <td><code>#F5DBD6 | #CC4933 | #CC4933</code></td>
+        <td><span class="pill" style="background:#F5DBD6;color:#CC4933;border-color:#CC4933;">Hover</span></td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

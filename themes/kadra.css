@@ -1,0 +1,147 @@
+/* ============================================================
+   themes/kadra.css — KADRA Applikations-Tokens
+   Aufbauend auf hopro.css Semantic Tokens.
+   Stand: 2026-03-12
+============================================================ */
+
+/* ── CSS Custom Properties (Laufzeit, nicht Tailwind-Compile-Zeit) ── */
+:root {
+  /* ── Typografie ────────────────────────────────────────── */
+  --font:       "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:  ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* ── Transitions ───────────────────────────────────────── */
+  --transition: 140ms ease;
+
+  /* ── Layout Dimensionen ────────────────────────────────── */
+  --sidebar-width:     272px;       /* Startwert, nutzerdefiniert via Drag */
+  --sidebar-min-width: 160px;
+  --sidebar-max-width: 400px;
+  --toolbar-h:         56px;        /* 3.5 × 16px */
+  --content-gap:       16px;        /* Base Grid Unit */
+
+  /* ── Corner Radius System ──────────────────────────────── */
+  /*    Große Container (Cards): 8px                         */
+  /*    Buttons innerhalb von Cards: 16px                    */
+  /*    Toolbar/Pills: 32px                                  */
+  --kadra-radius-card:    8px;
+  --kadra-radius-btn:     16px;
+  --kadra-radius-toolbar: 32px;
+  --kadra-radius-input:   8px;
+
+  /* ── Schatten ──────────────────────────────────────────── */
+  --shadow-sm:      0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:      0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-modal:   0 20px 60px rgba(0,0,0,.20), 0 8px 20px rgba(0,0,0,.10);
+  /* Toolbar: blau-getönter blurry Schatten */
+  --shadow-toolbar: 4px 8px 8px rgba(14, 45, 88, 0.5);
+
+  /* ── KADRA Farbaliase (für Legacy-Kompatibilität) ──────── */
+  --accent-blue:      #154384;
+  --accent-blue-10:   #EDF1F7;
+  --accent-blue-20:   #DBE3F0;
+  --accent-red:       #CC4933;
+  --accent-red-10:    #F5DBD6;
+
+  /* ── Semantische Status-Farben ─────────────────────────── */
+  --warning:          #E0661F;   /* Amber-600 — Warnung / ungültige Eingabe */
+  --danger:           #CC4933;   /* = accent-red */
+  --success:          #94AF83;   /* Grün */
+
+  --bg-app:           #E3E5E8;
+  --bg-surface:       #FFFFFF;
+  --bg-sidebar:       #FFFFFF;
+  --bg-hover:         #F5F5F5;
+  --bg-input:         #F2F2F2;   /* Pill-Hintergrund, Meta-Inputs, Toolbar-Suchfeld */
+
+  /* ── Interaktions-Farben ────────────────────────────────── */
+  --accent-blue-dark:      #0E2D58;              /* Button-Hover */
+  --icon-color:            #999999;              /* Standard-Icon-Farbe (grau) */
+  --overlay-scrim:         rgba(0,0,0,0.45);     /* Modal-Hintergrund */
+  --focus-overlay:         rgba(0,0,0,0.04);     /* Input-Focus-Hintergrund */
+  --row-selected-bg:       rgba(14,45,88,0.06);  /* Ausgewählte Tabellenzeile */
+  --text-inverted-muted:   rgba(255,255,255,0.7);/* Card-Header Icons (gedämpft) */
+  --search-match-bg:       #FCEECF; /* Suche: Treffer (gelb) */
+  --search-match-active-bg:#F6CB6F;  /* Suche: Aktiver Treffer (orange) */
+
+  --text-primary:     #000000;
+  --text-secondary:   #6E6E6E;
+  --text-tertiary:    #AEAEAE;
+  --text-inverted:    #FFFFFF;
+  --text-blue:        #154384;
+  --text-done:        #C0C0C0;
+
+  /* —— Buttons (Pill-System) ——————————————————————————————— */
+  --btn-pill-height:            32px;
+  --btn-pill-radius:            32px;
+  --btn-pill-font-size:         12px;
+  --btn-pill-font-weight:       600;
+  --btn-pill-padding-x:         16px;
+
+  --btn-primary-bg:             #0E2D58;
+  --btn-primary-border:         #0E2D58;
+  --btn-primary-text:           #FFFFFF;
+  --btn-primary-hover-bg:       #000000;
+  --btn-primary-hover-border:   #000000;
+  --btn-primary-hover-text:     #FFFFFF;
+
+  --btn-secondary-bg:           #F2F2F2;
+  --btn-secondary-border:       #FFFFFF;
+  --btn-secondary-text:         #000000;
+  --btn-secondary-hover-bg:     #E7E7E7;
+  --btn-secondary-hover-border: #FFFFFF;
+  --btn-secondary-hover-text:   #000000;
+
+  --btn-danger-bg:              transparent;
+  --btn-danger-border:          #CC4933;
+  --btn-danger-text:            #CC4933;
+  --btn-danger-hover-bg:        #F5DBD6;
+  --btn-danger-hover-border:    #CC4933;
+  --btn-danger-hover-text:      #CC4933;
+
+  --border:           #D2D2D2;
+  --border-light:     #E5E5E5;
+
+  /* ── Protokollstruktur ─────────────────────────────────── */
+  /* Sektion-Header (TEILNEHMER, INHALTE, ANLAGEN etc.) */
+  --kadra-section-bg:       #0E2D58;
+  --kadra-section-text:     #FFFFFF;
+  --kadra-section-radius-t: 8px;       /* oben abgerundet */
+  --kadra-section-radius-b: 0px;       /* unten gerade (Übergang zu Content) */
+
+  /* Kapitel-Header (A, B, C ... innerhalb Inhalte) */
+  --kadra-chapter-bg:       #7C7C7C;   /* Dunkelgrau */
+  --kadra-chapter-text:     #FFFFFF;
+  --kadra-chapter-h:        32px;      /* 2 × 16px Grid */
+
+  /* Unterkapitel-Header (A.1, A.2 ...) */
+  --kadra-subchapter-bg:    #DADADA;
+  --kadra-subchapter-text:  #000000;
+  --kadra-subchapter-h:     32px;
+
+  /* Zeilen */
+  --kadra-row-h-min:        48px;      /* 3 × 16px */
+  --kadra-label-size:       11px;      /* Spalten-Labels, Feld-Labels */
+  --kadra-label-color:      #AEAEAE;
+}
+
+/* ── Tailwind Compile-Zeit Tokens (für utility-class Zugriff) ──── */
+@theme inline {
+  --font-sans: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Radien */
+  --radius-card:    8px;
+  --radius-btn:     16px;
+  --radius-toolbar: 32px;
+  --radius-input:   8px;
+
+  /* KADRA Farben als Tailwind-Klassen nutzbar */
+  --color-kadra-blue:     #154384;
+  --color-kadra-blue-10:  #EDF1F7;
+  --color-kadra-red:      #CC4933;
+  --color-kadra-chapter:  #7C7C7C;
+  --color-kadra-subch:    #DADADA;
+  --color-kadra-app:      #C7CCD1;
+  --color-kadra-surface:  #FFFFFF;
+  --color-kadra-hover:    #F5F5F5;
+}

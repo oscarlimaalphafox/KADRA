@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="de"><head>
+  <meta charset="UTF-8">
+  <title>KADRA Color Tokens</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #F0F0F0; padding: 32px; color: #000000; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    p.meta { color: #6E6E73; font-size: 13px; margin-bottom: 32px; }
+    h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6E6E73; margin: 32px 0 8px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); table-layout: fixed; }
+    col.col-token        { width: 175px; }
+    col.col-farbe        { width: 145px; }
+    col.col-vorschau     { width: 70px; }
+    col.col-usage        { width: 240px; }
+    col.col-userinput    { width: 155px; }
+    col.col-userpreview  { width: 75px; }
+    th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #AEAEB2; padding: 10px 16px; border-bottom: 1px solid #E5E5EA; }
+    td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #F0F0F0; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    td.col-farbe     { font-family: ui-monospace, monospace; font-size: 12px; }
+    td.col-usage     { white-space: normal; }
+    td.col-userinput { padding-top: 7px; padding-bottom: 7px; }
+    td.col-userpreview { }
+    .swatch { width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(0,0,0,.08); display: inline-block; flex-shrink: 0; }
+    .swatch-user { width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(0,0,0,.08); display: inline-block; background: #F0F0F0; }
+    code { font-family: ui-monospace, monospace; font-size: 12px; background: #F2F2F2; padding: 2px 6px; border-radius: 4px; }
+    .usage { color: #6E6E73; font-size: 12px; }
+    input.color-input {
+      font-family: ui-monospace, monospace; font-size: 12px;
+      background: #F2F2F2; border: 1px solid #E5E5EA; border-radius: 5px;
+      padding: 4px 8px; width: 100%; box-sizing: border-box; color: #1D1D1F;
+      outline: none;
+    }
+    input.color-input:focus { border-color: #0F3188; background: #fff; }
+    input.color-input::placeholder { color: #AEAEB2; }
+    .save-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+    .save-bar button {
+      font-family: -apple-system, sans-serif; font-size: 13px; font-weight: 600;
+      background: #0F3188; color: #fff; border: none; border-radius: 6px;
+      padding: 7px 16px; cursor: pointer;
+    }
+    .save-bar button:hover { background: #0E2D58; }
+    .save-status { font-size: 12px; color: #1A7034; font-weight: 600; opacity: 0; transition: opacity .3s; }
+    .save-status.visible { opacity: 1; }
+  </style>
+</head>
+<body style="cursor: default;">
+
+<h1>KADRA Color Tokens</h1>
+<p class="meta">Laufzeitvariablen aus <code>css/style.css</code> · Stand: 2026-03-13</p>
+<div class="save-bar">
+  <button onclick="saveFile()">Eingaben speichern</button>
+  <span class="save-status" id="save-status">Heruntergeladen — alte Datei ersetzen ✓</span>
+</div>
+
+<h2>Primärfarben</h2>
+<table>
+  <colgroup><col class="col-token"><col class="col-farbe"><col class="col-vorschau"><col class="col-usage"><col class="col-userinput"><col class="col-userpreview"></colgroup>
+  <tbody><tr><th>Token</th><th>Farbe</th><th>Vorschau</th><th>Verwendung</th><th>Benutzereingabe</th><th>Vorschau Nutzer-Eingabe</th></tr>
+  <tr><td><code>--accent-blue</code></td><td class="col-farbe">#0F3188</td><td><div class="swatch" style="background:#0F3188"></div></td><td class="usage">Primärfarbe, Buttons, aktive Zustände</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#154384"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(21, 67, 132)"></div></td></tr>
+  <tr><td><code>--accent-blue-10</code></td><td class="col-farbe">rgba(15,49,136,0.08)</td><td><div class="swatch" style="background:rgba(15,49,136,0.08)"></div></td><td class="usage">Hover- und Fokus-Hintergrund (blau)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="EDF1F7"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(237, 241, 247)"></div></td></tr>
+  <tr><td><code>--accent-blue-20</code></td><td class="col-farbe">rgba(15,49,136,0.16)</td><td><div class="swatch" style="background:rgba(15,49,136,0.16)"></div></td><td class="usage">Markierter Hintergrund (blau)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#DBE3F0"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(219, 227, 240)"></div></td></tr>
+  <tr><td><code>--accent-blue-dark</code></td><td class="col-farbe">#0E2D58</td><td><div class="swatch" style="background:#0E2D58"></div></td><td class="usage">Dunkelblau, Section-Header, Print-Modus</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--accent-red</code></td><td class="col-farbe">#FF3300</td><td><div class="swatch" style="background:#FF3300"></div></td><td class="usage">Fristüberschreitung, Pflichtfelder</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#CC4933"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(204, 73, 51)"></div></td></tr>
+  <tr><td><code>--accent-red-10</code></td><td class="col-farbe">rgba(255,51,0,0.10)</td><td><div class="swatch" style="background:rgba(255,51,0,0.10)"></div></td><td class="usage">Leichter roter Hintergrund</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#F5DBD6"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(245, 219, 214)"></div></td></tr>
+</tbody></table>
+
+<h2>Semantische Status-Farben</h2>
+<table>
+  <colgroup><col class="col-token"><col class="col-farbe"><col class="col-vorschau"><col class="col-usage"><col class="col-userinput"><col class="col-userpreview"></colgroup>
+  <tbody><tr><th>Token</th><th>Farbe</th><th>Vorschau</th><th>Verwendung</th><th>Benutzereingabe</th><th>Vorschau Nutzer-Eingabe</th></tr>
+  <tr><td><code>--danger</code></td><td class="col-farbe">#FF3300</td><td><div class="swatch" style="background:#FF3300"></div></td><td class="usage">Toast-Fehler, Destruktive Aktionen</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#CC4933"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(204, 73, 51)"></div></td></tr>
+  <tr><td><code>--warning</code></td><td class="col-farbe">#D97706</td><td><div class="swatch" style="background:#D97706"></div></td><td class="usage">Warnung, ungültige E-Mail</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#E0661F"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(224, 102, 31)"></div></td></tr>
+  <tr><td><code>--success</code></td><td class="col-farbe">#1A7034</td><td><div class="swatch" style="background:#1A7034"></div></td><td class="usage">Toast-Erfolg</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#94AF83"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(148, 175, 131)"></div></td></tr>
+</tbody></table>
+
+<h2>Hintergründe</h2>
+<table>
+  <colgroup><col class="col-token"><col class="col-farbe"><col class="col-vorschau"><col class="col-usage"><col class="col-userinput"><col class="col-userpreview"></colgroup>
+  <tbody><tr><th>Token</th><th>Farbe</th><th>Vorschau</th><th>Verwendung</th><th>Benutzereingabe</th><th>Vorschau Nutzer-Eingabe</th></tr>
+  <tr><td><code>--bg-app</code></td><td class="col-farbe">#F0F0F0</td><td><div class="swatch" style="background:#F0F0F0"></div></td><td class="usage">App-Hintergrund</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="C7CCD1"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(199, 204, 209)"></div></td></tr>
+  <tr><td><code>--bg-surface</code></td><td class="col-farbe">#FFFFFF</td><td><div class="swatch" style="background:#FFFFFF"></div></td><td class="usage">Cards, Modals</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--bg-sidebar</code></td><td class="col-farbe">#FFFFFF</td><td><div class="swatch" style="background:#FFFFFF"></div></td><td class="usage">Sidebar</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--bg-hover</code></td><td class="col-farbe">#F5F5F5</td><td><div class="swatch" style="background:#F5F5F5"></div></td><td class="usage">Hover-Zustand</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--bg-input</code></td><td class="col-farbe">#F2F2F2</td><td><div class="swatch" style="background:#F2F2F2"></div></td><td class="usage">Pill-Zeilen, Meta-Inputs, Toolbar-Suchfeld</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--bg-chapter</code></td><td class="col-farbe">#808080</td><td><div class="swatch" style="background:#808080"></div></td><td class="usage">Kapitel-Header (legacy)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--bg-subchapter</code></td><td class="col-farbe">#DADADA</td><td><div class="swatch" style="background:#DADADA"></div></td><td class="usage">Unterkapitel-Header (legacy)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+</tbody></table>
+
+<h2>Protokollstruktur</h2>
+<table>
+  <colgroup><col class="col-token"><col class="col-farbe"><col class="col-vorschau"><col class="col-usage"><col class="col-userinput"><col class="col-userpreview"></colgroup>
+  <tbody><tr><th>Token</th><th>Farbe</th><th>Vorschau</th><th>Verwendung</th><th>Benutzereingabe</th><th>Vorschau Nutzer-Eingabe</th></tr>
+  <tr><td><code>--kadra-section-bg</code></td><td class="col-farbe">#0E2D58</td><td><div class="swatch" style="background:#0E2D58"></div></td><td class="usage">Card-Header (TEILNEHMER, INHALTE …)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--kadra-section-text</code></td><td class="col-farbe">#FFFFFF</td><td><div class="swatch" style="background:#FFFFFF"></div></td><td class="usage">Text in Card-Headern</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--kadra-chapter-bg</code></td><td class="col-farbe">#7C7C7C</td><td><div class="swatch" style="background:#7C7C7C"></div></td><td class="usage">Kapitel-Zeile (A, B, C …)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--kadra-chapter-text</code></td><td class="col-farbe">#FFFFFF</td><td><div class="swatch" style="background:#FFFFFF"></div></td><td class="usage">Text in Kapitel-Zeilen</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--kadra-subchapter-bg</code></td><td class="col-farbe">#DADADA</td><td><div class="swatch" style="background:#DADADA"></div></td><td class="usage">Unterkapitel-Zeile (A.1, A.2 …)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--kadra-subchapter-text</code></td><td class="col-farbe">#000000</td><td><div class="swatch" style="background:#000000"></div></td><td class="usage">Text in Unterkapitel-Zeilen</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--kadra-label-color</code></td><td class="col-farbe">#AEAEB2</td><td><div class="swatch" style="background:#AEAEB2"></div></td><td class="usage">Labels in der Protokollstruktur</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#AEAEAE"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(174, 174, 174)"></div></td></tr>
+</tbody></table>
+
+<h2>Text</h2>
+<table>
+  <colgroup><col class="col-token"><col class="col-farbe"><col class="col-vorschau"><col class="col-usage"><col class="col-userinput"><col class="col-userpreview"></colgroup>
+  <tbody><tr><th>Token</th><th>Farbe</th><th>Vorschau</th><th>Verwendung</th><th>Benutzereingabe</th><th>Vorschau Nutzer-Eingabe</th></tr>
+  <tr><td><code>--text-primary</code></td><td class="col-farbe">#000000</td><td><div class="swatch" style="background:#000000"></div></td><td class="usage">Haupttext</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--text-secondary</code></td><td class="col-farbe">#6E6E73</td><td><div class="swatch" style="background:#6E6E73"></div></td><td class="usage">Sekundärtext</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#6E6E6E"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(110, 110, 110)"></div></td></tr>
+  <tr><td><code>--text-tertiary</code></td><td class="col-farbe">#AEAEB2</td><td><div class="swatch" style="background:#AEAEB2"></div></td><td class="usage">Labels, Platzhalter, Icons</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#AEAEAE"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(174, 174, 174)"></div></td></tr>
+  <tr><td><code>--text-inverted</code></td><td class="col-farbe">#FFFFFF</td><td><div class="swatch" style="background:#FFFFFF"></div></td><td class="usage">Text auf blauem/dunklem Hintergrund</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--text-inverted-muted</code></td><td class="col-farbe">rgba(255,255,255,0.7)</td><td><div class="swatch" style="background:rgba(255,255,255,0.7)"></div></td><td class="usage">Gedämpfte Icons in Card-Headern</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--text-blue</code></td><td class="col-farbe">#0F3188</td><td><div class="swatch" style="background:#0F3188"></div></td><td class="usage">Links, aktive Items</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#154384"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(21, 67, 132)"></div></td></tr>
+  <tr><td><code>--text-done</code></td><td class="col-farbe">#C0C0C0</td><td><div class="swatch" style="background:#C0C0C0"></div></td><td class="usage">Erledigte Protokollpunkte</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--txt-erledigt</code></td><td class="col-farbe">#989898</td><td><div class="swatch" style="background:#989898"></div></td><td class="usage">Labels, Sidebar-Datumstext (legacy)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--txt-thema</code></td><td class="col-farbe">#666666</td><td><div class="swatch" style="background:#666666"></div></td><td class="usage">Thema-Zeilen (legacy)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+</tbody></table>
+
+<h2>Rahmen</h2>
+<table>
+  <colgroup><col class="col-token"><col class="col-farbe"><col class="col-vorschau"><col class="col-usage"><col class="col-userinput"><col class="col-userpreview"></colgroup>
+  <tbody><tr><th>Token</th><th>Farbe</th><th>Vorschau</th><th>Verwendung</th><th>Benutzereingabe</th><th>Vorschau Nutzer-Eingabe</th></tr>
+  <tr><td><code>--border</code></td><td class="col-farbe">#D2D2D7</td><td><div class="swatch" style="background:#D2D2D7"></div></td><td class="usage">Standard-Rahmen</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#D2D2D2"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(210, 210, 210)"></div></td></tr>
+  <tr><td><code>--border-light</code></td><td class="col-farbe">#E5E5EA</td><td><div class="swatch" style="background:#E5E5EA"></div></td><td class="usage">Leichter Rahmen (Panels, Dropdowns)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#E5E5E5"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(229, 229, 229)"></div></td></tr>
+  <tr><td><code>--line-grey</code></td><td class="col-farbe">#C0C0C0</td><td><div class="swatch" style="background:#C0C0C0"></div></td><td class="usage">Toolbar-Trennlinie, Button-Rahmen</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+</tbody></table>
+
+<h2>Icons &amp; Interaktion</h2>
+<table>
+  <colgroup><col class="col-token"><col class="col-farbe"><col class="col-vorschau"><col class="col-usage"><col class="col-userinput"><col class="col-userpreview"></colgroup>
+  <tbody><tr><th>Token</th><th>Farbe</th><th>Vorschau</th><th>Verwendung</th><th>Benutzereingabe</th><th>Vorschau Nutzer-Eingabe</th></tr>
+  <tr><td><code>--icon-color</code></td><td class="col-farbe">#999999</td><td><div class="swatch" style="background:#999999"></div></td><td class="usage">Standard-Icon-Farbe</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--overlay-scrim</code></td><td class="col-farbe">rgba(0,0,0,0.45)</td><td><div class="swatch" style="background:rgba(0,0,0,0.45)"></div></td><td class="usage">Modal-Hintergrund</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--focus-overlay</code></td><td class="col-farbe">rgba(0,0,0,0.04)</td><td><div class="swatch" style="background:rgba(0,0,0,0.04)"></div></td><td class="usage">Input-Focus-Hintergrund</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--row-selected-bg</code></td><td class="col-farbe">rgba(14,45,88,0.06)</td><td><div class="swatch" style="background:rgba(14,45,88,0.06)"></div></td><td class="usage">Ausgewählte Tabellenzeile</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--search-match-bg</code></td><td class="col-farbe">rgba(255,200,0,0.15)</td><td><div class="swatch" style="background:rgba(255,200,0,0.15)"></div></td><td class="usage">Suche: Treffer (gelb)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#FCEECF"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(252, 238, 207)"></div></td></tr>
+  <tr><td><code>--search-match-active-bg</code></td><td class="col-farbe">rgba(255,140,0,0.2)</td><td><div class="swatch" style="background:rgba(255,140,0,0.2)"></div></td><td class="usage">Suche: Aktiver Treffer (orange)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)" value="#F6CB6F"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(246, 203, 111)"></div></td></tr>
+</tbody></table>
+
+<h2>Schatten</h2>
+<table>
+  <colgroup><col class="col-token"><col class="col-farbe"><col class="col-vorschau"><col class="col-usage"><col class="col-userinput"><col class="col-userpreview"></colgroup>
+  <tbody><tr><th>Token</th><th>Farbe</th><th>Vorschau</th><th>Verwendung</th><th>Benutzereingabe</th><th>Vorschau Nutzer-Eingabe</th></tr>
+  <tr><td><code>--shadow-sm</code></td><td class="col-farbe">—</td><td><div style="width:28px;height:28px;background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04)"></div></td><td class="usage">Sidebar, kleine Elemente</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--shadow-md</code></td><td class="col-farbe">—</td><td><div style="width:28px;height:28px;background:#fff;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04)"></div></td><td class="usage">Dropdowns, Panels</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--shadow-modal</code></td><td class="col-farbe">—</td><td><div style="width:28px;height:28px;background:#fff;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.20),0 8px 20px rgba(0,0,0,.10)"></div></td><td class="usage">Modals, Login-Card</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+  <tr><td><code>--shadow-toolbar</code></td><td class="col-farbe">—</td><td><div style="width:28px;height:28px;background:#fff;border-radius:6px;box-shadow:0 4px 16px rgba(15,49,136,0.15),0 1px 4px rgba(15,49,136,0.08)"></div></td><td class="usage">Toolbar (blau-getönt)</td><td class="col-userinput"><input class="color-input" type="text" placeholder="#000000" oninput="updateSwatch(this)"></td><td class="col-userpreview"><div class="swatch-user" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:rgb(240, 240, 240)"></div></td></tr>
+</tbody></table>
+
+<script>
+  function parseColor(raw) {
+    let val = raw.trim();
+    if (/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(val)) val = '#' + val;
+    const test = new Option().style;
+    test.color = val;
+    return test.color !== '' ? val : null;
+  }
+
+  function updateSwatch(input) {
+    const swatch = input.closest('tr').querySelector('.swatch-user');
+    if (!swatch) return;
+    const color = parseColor(input.value);
+    swatch.style.background = color || '#F0F0F0';
+  }
+
+  // On load: restore swatches for any pre-filled input values
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('input.color-input').forEach(input => {
+      if (input.value) updateSwatch(input);
+    });
+  });
+
+  async function saveFile() {
+    // Write current input values into value="" attributes so they survive a reload
+    document.querySelectorAll('input.color-input').forEach(input => {
+      if (input.value) {
+        input.setAttribute('value', input.value);
+      } else {
+        input.removeAttribute('value');
+      }
+    });
+    // Also persist swatch background colors as inline style
+    document.querySelectorAll('.swatch-user').forEach(swatch => {
+      swatch.setAttribute('style',
+        `width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.08);display:inline-block;background:${swatch.style.background || '#F0F0F0'}`
+      );
+    });
+
+    const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+    if (window.showSaveFilePicker) {
+      // File System Access API — Chrome/Edge: writes directly back to the file
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: 'KADRA_Color_Tokens.html',
+          types: [{ description: 'HTML-Datei', accept: { 'text/html': ['.html'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(html);
+        await writable.close();
+        showStatus('Gespeichert ✓');
+      } catch (e) {
+        if (e.name !== 'AbortError') fallbackDownload(html);
+      }
+    } else {
+      // Firefox-Fallback: Download — einfach die alte Datei überschreiben
+      fallbackDownload(html);
+    }
+  }
+
+  function fallbackDownload(html) {
+    const blob = new Blob([html], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'KADRA_Color_Tokens.html';
+    a.click();
+    showStatus('Heruntergeladen — alte Datei ersetzen ✓');
+  }
+
+  function showStatus(msg) {
+    const el = document.getElementById('save-status');
+    el.textContent = msg;
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 3000);
+  }
+</script>
+
+
+
+<deepl-input-controller translate="no"></deepl-input-controller></body></html>

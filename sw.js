@@ -1,18 +1,17 @@
-/**
- * sw.js — Service Worker der Protokoll-App
+﻿/**
+ * sw.js â€” Service Worker der Protokoll-App
  *
- * Strategie: Cache-first für App-Shell-Assets, Network-first für Daten.
- * Ermöglicht Offline-Nutzung der App.
+ * Strategie: Cache-first fÃ¼r App-Shell-Assets, Network-first fÃ¼r Daten.
+ * ErmÃ¶glicht Offline-Nutzung der App.
  */
 
-const CACHE_NAME    = 'protokoll-app-v2.15';
+const CACHE_NAME    = 'protokoll-app-v2.23';
 const SHELL_ASSETS  = [
   './index.html',
   './css/style.css',
   './js/lib/jspdf.umd.min.js',
   './js/lib/jspdf.plugin.autotable.min.js',
   './js/lib/nunito-sans-fonts.js',
-  './js/lib/lucide.min.js',
   './js/db.js',
   './js/pdf-export.js',
   './js/app.js',
@@ -25,7 +24,7 @@ const SHELL_ASSETS  = [
   './fonts/nunito-sans-v19-latin-600.woff2',
 ];
 
-/* ── Install: App-Shell in Cache legen ─────────────────────── */
+/* â”€â”€ Install: App-Shell in Cache legen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_ASSETS))
@@ -33,7 +32,7 @@ self.addEventListener('install', (e) => {
   self.skipWaiting();
 });
 
-/* ── Activate: Alte Caches entfernen ───────────────────────── */
+/* â”€â”€ Activate: Alte Caches entfernen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -45,7 +44,7 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-/* ── Fetch: Cache-first für App-Shell ──────────────────────── */
+/* â”€â”€ Fetch: Cache-first fÃ¼r App-Shell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 self.addEventListener('fetch', (e) => {
   // Nur GET-Anfragen cachen
   if (e.request.method !== 'GET') return;
@@ -62,10 +61,11 @@ self.addEventListener('fetch', (e) => {
         return response;
       });
     }).catch(() => {
-      // Offline-Fallback: index.html zurückgeben
+      // Offline-Fallback: index.html zurÃ¼ckgeben
       if (e.request.destination === 'document') {
         return caches.match('/index.html');
       }
     })
   );
 });
+

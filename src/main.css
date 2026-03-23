@@ -1,0 +1,16 @@
+﻿/* ============================================================
+   KADRA Â· src/main.css
+   Build: npx @tailwindcss/cli -i src/main.css -o css/style.css
+   Watch: npx @tailwindcss/cli -i src/main.css -o css/style.css --watch
+============================================================ */
+
+/* Tailwind v4 */
+@import "tailwindcss";
+
+/* Theme-Layer (Single Source of Truth fuer Basis-Tokens) */
+@import "../themes/hopro.css";
+@import "../themes/kadra.css";
+
+/* Legacy-Bridge-Layer (nur Kompatibilitaet, schrittweise abbauen) */
+@import "../css/legacy.css";
+

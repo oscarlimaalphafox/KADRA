@@ -1,22 +1,22 @@
-/**
- * app.js v1.1 — Protokoll-App
+﻿/**
+ * [cleanup]
  *
- * Änderungen v1.1:
- *  - Multi-Select für Zuständig
- *  - Kategorie Info/Festlegung → Zuständig deaktiviert
- *  - "Freigabe" → "Freigabe erfordl"
+ * [cleanup]
+ * [cleanup]
+ * [cleanup]
+ * [cleanup]
  *  - Termin-Feld als <input type="date">
- *  - UKAP/THEMA löschbar (mit Warnung)
+ * [cleanup]
  *  - Collapse-All Button
- *  - Protokolltitel + Nr. gleiche Schriftgröße
+ * [cleanup]
  *  - Vertikale Ausrichtung Punktzeilen korrigiert
- *  - Zuständig-Dropdown liest Teilnehmer aktuell beim Öffnen
- *  - Bessere Löschen-Bestätigung
+ * [cleanup]
+ * [cleanup]
  */
 
 const APP_VERSION = '2.3';
 
-/* ── App-State ─────────────────────────────────────────────── */
+/* [cleanup] */
 const App = {
   currentProjectId:  null,
   currentProtocolId: null,
@@ -28,7 +28,7 @@ const App = {
   _pendingChapter:    null,
   _pendingSubchapter: null,
   // v1.3: Serien & Seitenleiste
-  selectedSeriesId:    null,   // Welche Serie ist für Fortführung ausgewählt
+  selectedSeriesId:    null,   // Welche Serie ist fÃ¼r Fortfuehrung ausgewaehlt
   collapsedSeriesIds:  new Set(),
   sidebarAllCollapsed: false,
   _duplicatingProtocolId: null,
@@ -41,7 +41,7 @@ const App = {
   hiddenChapters: new Set(),
   // Drag & Drop
   _dragGroup: null,        // Aktive Drag-Gruppe (z.B. "A|A.1")
-  _dragType:  null,        // 'point' | 'topic' — was wird gerade gezogen
+  _dragType:  null,        // 'point' | 'topic' - was wird gerade gezogen
   // Quick-Save (File System Access API)
   _saveFileHandle: null,   // FileSystemFileHandle (Chrome/Edge) oder null
   _saveFileName:   null,   // Letzter Dateiname
@@ -51,6 +51,7 @@ const App = {
    INIT
 ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
+  initStaticIcons();
   await DB.openDB();
   bindGlobalEvents();
   await loadProjects();
@@ -59,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedFileName = localStorage.getItem('kadra_saveFileName');
   if (savedFileName) _updateQuickSaveLabel(savedFileName);
 
-  // Klick außerhalb → offene Zuständig-Panels committen und schließen
+  // [cleanup]
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.resp-select')) {
       document.querySelectorAll('.resp-panel:not(.hidden)').forEach(panel => {
@@ -69,14 +70,100 @@ document.addEventListener('DOMContentLoaded', async () => {
           .map(cb => cb.value);
         const joined  = vals.join('/');
         if (wrap)    wrap.dataset.value = joined;
-        if (trigger) trigger.querySelector('.resp-display').textContent = vals.length ? joined : '—';
+        if (trigger) trigger.querySelector('.resp-display').textContent = vals.length ? joined : '-';
         panel.classList.add('hidden');
         if (trigger) trigger.classList.remove('open');
       });
       saveCurrentProtocol();
     }
+    if (!e.target.closest('.cat-select')) {
+      document.querySelectorAll('.cat-panel:not(.hidden)').forEach(panel => {
+        panel.classList.add('hidden');
+        panel.previousElementSibling?.classList.remove('open');
+      });
+    }
   });
 });
+
+function initStaticIcons() {
+  const setLeadingIcon = (selector, iconFn) => {
+    const el = document.querySelector(selector);
+    if (!el || typeof iconFn !== 'function') return;
+    const directSvgs = Array.from(el.children).filter(c => c.tagName === 'svg');
+    const html = iconFn();
+    if (directSvgs.length) directSvgs[0].outerHTML = html;
+    else el.insertAdjacentHTML('afterbegin', html);
+  };
+  const setOnlyIcon = (selector, iconFn) => {
+    const el = document.querySelector(selector);
+    if (!el || typeof iconFn !== 'function') return;
+    el.innerHTML = iconFn();
+  };
+  const ensureAppendedIcon = (selector, iconHtml) => {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    el.insertAdjacentHTML('beforeend', iconHtml);
+  };
+  const setAllOnlyIcons = (selector, iconFn) => {
+    if (typeof iconFn !== 'function') return;
+    document.querySelectorAll(selector).forEach(el => { el.innerHTML = iconFn(); });
+  };
+
+  // Sidebar / project menu
+  setOnlyIcon('#btnProjectMenu', iconMenu);
+  setLeadingIcon('#btnImportFullDB', iconFileInput);
+  setLeadingIcon('#btnExportFullDB', iconSave);
+  setLeadingIcon('#btnCloseDatabase', iconCircleX);
+  setLeadingIcon('#btnNewProjectMenu', iconFolderPlus);
+  setLeadingIcon('#btnImportProject', iconFolderOpen);
+  setLeadingIcon('#btnExportProject', iconFolderDown);
+  setLeadingIcon('#btnDeleteProject', iconTrash);
+  setLeadingIcon('#btnQuickSave', iconSave);
+  setLeadingIcon('#btnSettings', iconSettings);
+  setLeadingIcon('#btnAppInfo', iconInfo);
+  setLeadingIcon('#btnLogout', iconLogOut);
+  setOnlyIcon('#btnToggleSidebar', iconPanelLeftClose);
+  setLeadingIcon('#btnNewProject', iconFolderPlus);
+  setLeadingIcon('#btnImportProjectSelector', iconFolderOpen);
+  ensureAppendedIcon('#btnProjectSelector', iconChevronDown('selector-chevron'));
+  setLeadingIcon('#btnNewProtocol', iconFilePlus2);
+  setLeadingIcon('#btnImportJamieSidebar', iconFileInput);
+  setLeadingIcon('.sidebar-search', iconFileSearch2);
+  setLeadingIcon('#btnSeriesToggle', iconLayers);
+  setOnlyIcon('#btnSidebarSearchClear', iconX);
+  setOnlyIcon('#btnCloseTrash', iconX);
+  setLeadingIcon('#btnTrash', iconTrash);
+
+  // Toolbar
+  setLeadingIcon('#btnAddChapter', iconCirclePlus);
+  setLeadingIcon('#btnAddSubchapter', iconCirclePlus);
+  setLeadingIcon('#btnAddTopic', iconCirclePlus);
+  setLeadingIcon('#btnAddPoint', iconListPlus);
+  setOnlyIcon('#btnChapterFilter', iconEye);
+  setOnlyIcon('#btnPointFilter', iconFilter);
+  setOnlyIcon('#btnReload', iconRefreshCw);
+  setLeadingIcon('#btnExportPdf', iconFileText);
+  setLeadingIcon('#btnExportXlsx', iconFileSpreadsheet);
+  setOnlyIcon('#btnDeleteProtocol', iconShredder);
+  setLeadingIcon('.toolbar-search-wrap', iconSearch);
+  setOnlyIcon('#searchBarPrev', iconChevronUp);
+  setOnlyIcon('#searchBarNext', iconChevronDown);
+
+  // Section headers / controls
+  setLeadingIcon('#sectionParticipants .proto-card-header', iconUsers);
+  setLeadingIcon('#sectionAttachments .proto-card-header', iconPaperclip);
+  setLeadingIcon('#sectionAuthor .proto-card-header', iconPenLine);
+  setLeadingIcon('#sectionLegend .proto-card-header', iconBookOpen);
+  setOnlyIcon('#btnAddParticipant', iconUserPlus);
+  setOnlyIcon('#btnCollapseAll', iconChevronsDown);
+  setOnlyIcon('#btnAuthorDatePicker', iconCalendar);
+
+  // Modals / dialog controls
+  setAllOnlyIcons('.modal-close', iconX);
+  setLeadingIcon('#btnExportBeforeDelete', iconDownload);
+  setLeadingIcon('#btnExportBeforeClose', iconDownload);
+  setLeadingIcon('#jamieFileDrop', iconDownload);
+}
 
 /* ============================================================
    PROJEKTE
@@ -91,15 +178,28 @@ async function loadProjects() {
 }
 
 function renderProjectSelect() {
-  const sel = document.getElementById('projectSelect');
-  while (sel.options.length > 1) sel.remove(1);
+  // Neues UI: Projekt-Selector Dropdown mit Buttons
+  const list = document.getElementById('projectSelectorList');
+  if (!list) return;
+  list.innerHTML = '';
   App.projects.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value       = p.id;
-    opt.textContent = p.code || p.name || p.id;
-    sel.appendChild(opt);
+    const btn = document.createElement('button');
+    btn.className   = 'project-selector-item';
+    btn.dataset.id  = p.id;
+    btn.textContent = (p.code ? p.code + ' - ' : '') + (p.name || p.id);
+    if (p.id === App.currentProjectId) btn.style.fontWeight = '700';
+    btn.addEventListener('click', async () => {
+      document.getElementById('projectSelectorPanel').classList.add('hidden');
+      await selectProject(p.id);
+    });
+    list.appendChild(btn);
   });
-  if (App.currentProjectId) sel.value = App.currentProjectId;
+}
+
+function _projectCodeLabel(project) {
+  const raw = String(project?.code || '').toUpperCase();
+  const normalized = raw.replace(/[^A-Z]/g, '').slice(0, 4);
+  return normalized || 'Projekt w\u00e4hlen...';
 }
 
 async function selectProject(projectId) {
@@ -107,7 +207,9 @@ async function selectProject(projectId) {
   localStorage.setItem('lastProjectId', projectId);
   const project = App.projects.find(p => p.id === projectId);
   if (project) {
-    document.getElementById('projectSelect').value = projectId;
+    // Neues UI: Label im Projekt-Selector aktualisieren
+    const label = document.getElementById('projectSelectorLabel');
+    if (label) label.textContent = _projectCodeLabel(project);
   }
   document.getElementById('btnNewProtocol').disabled = false;
   document.getElementById('btnImportJamieSidebar').disabled = false;
@@ -129,15 +231,17 @@ function renderProtocolList() {
   container.innerHTML = '';
 
   if (!App.currentProjectId) {
-    container.innerHTML = '<div class="empty-state-sidebar"><p>Kein Projekt ausgewählt.</p></div>';
+    container.innerHTML = '<div class="empty-state-sidebar"><p>Kein Projekt ausgewaehlt.</p></div>';
+    _syncSeriesToggleButton(false);
     return;
   }
   if (App.protocols.length === 0) {
     container.innerHTML = '<div class="empty-state-sidebar"><p>Noch keine Protokolle vorhanden.</p></div>';
+    _syncSeriesToggleButton(false);
     return;
   }
 
-  // Aufteilen: Aktennotiz → immer Einzeldokument; Rest nach seriesId gruppieren
+  // [cleanup]
   const seriesMap = {};
   const singleDocs = [];
   App.protocols.forEach(p => {
@@ -147,7 +251,7 @@ function renderProtocolList() {
     seriesMap[key].push(p);
   });
 
-  // Gruppen mit >1 Protokoll → TERMINSERIEN; Einzelner → EINZELDOKUMENTE
+  // [cleanup]
   const terminMap = {};
   Object.entries(seriesMap).forEach(([key, protos]) => {
     if (protos.length > 1) terminMap[key] = protos;
@@ -159,32 +263,14 @@ function renderProtocolList() {
   const terminList = Object.entries(terminMap).sort(([, a], [, b]) =>
     (b[0].date||'') > (a[0].date||'') ? 1 : -1);
 
-  const chevronSvg = `<i data-lucide="chevron-down"></i>`;
+  const chevronSvg = iconChevronDown();
 
-  /* ── TERMINSERIEN ───────────────────────────────────────── */
-  if (terminList.length > 0) {
+  _syncSeriesToggleButton(terminList.length > 0);
+
+  /* [cleanup] */
+  if (terminList.length > 0 && !App.collapsedSeriesSectionAll) {
     const tsSection = document.createElement('div');
     tsSection.className = 'sidebar-section';
-
-    const tsHdr = document.createElement('div');
-    tsHdr.className = 'sidebar-section-header';
-    const tsColBtn = document.createElement('button');
-    tsColBtn.type = 'button';
-    tsColBtn.className = 'sidebar-icon-btn' + (App.collapsedSeriesSectionAll ? ' all-series-collapsed' : '');
-    tsColBtn.title = 'Alle Serien ein-/ausklappen';
-    tsColBtn.innerHTML = chevronSvg;
-    tsColBtn.addEventListener('click', () => {
-      App.collapsedSeriesSectionAll = !App.collapsedSeriesSectionAll;
-      tsColBtn.classList.toggle('all-series-collapsed', App.collapsedSeriesSectionAll);
-      tsSection.querySelectorAll('.series-group').forEach(grp => {
-        const k = grp.dataset.seriesKey;
-        if (App.collapsedSeriesSectionAll) { App.collapsedSeriesIds.add(k); grp.classList.add('is-collapsed'); }
-        else { App.collapsedSeriesIds.delete(k); grp.classList.remove('is-collapsed'); }
-      });
-    });
-    tsHdr.innerHTML = `<span class="sidebar-section-label">Terminserien</span>`;
-    tsHdr.appendChild(tsColBtn);
-    tsSection.appendChild(tsHdr);
 
     terminList.forEach(([seriesKey, protos]) => {
       const sName = protos[0].seriesName || protos[0].title || protos[0].type;
@@ -197,20 +283,33 @@ function renderProtocolList() {
 
       const hdr = document.createElement('div');
       hdr.className = 'series-header' + (isSelected ? ' selected' : '');
+      hdr.setAttribute('role', 'button');
+      hdr.tabIndex = 0;
+      hdr.setAttribute('aria-label', `Serie ${sName} auswÃ¤hlen`);
       hdr.innerHTML = `
-        <button class="series-collapse-btn" title="Ein-/Ausklappen">${chevronSvg}</button>
-        <span class="series-label" title="${esc(sName)}">${esc(sName)}</span>`;
+        <span class="series-label" title="${esc(sName)}">${esc(sName)}</span>
+        <button class="series-collapse-btn" title="Ein-/Ausklappen" aria-label="Serie ein- oder ausklappen" aria-expanded="${!isCollapsed}">${chevronSvg}</button>`;
+      const toggleSeriesBody = () => {
+        App.collapsedSeriesIds.has(seriesKey)
+          ? App.collapsedSeriesIds.delete(seriesKey)
+          : App.collapsedSeriesIds.add(seriesKey);
+        const collapsed = App.collapsedSeriesIds.has(seriesKey);
+        group.classList.toggle('is-collapsed', collapsed);
+        const collapseBtn = hdr.querySelector('.series-collapse-btn');
+        if (collapseBtn) collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+      };
       hdr.addEventListener('click', (e) => {
-        if (e.target.closest('.series-collapse-btn')) {
-          App.collapsedSeriesIds.has(seriesKey)
-            ? App.collapsedSeriesIds.delete(seriesKey)
-            : App.collapsedSeriesIds.add(seriesKey);
-          group.classList.toggle('is-collapsed', App.collapsedSeriesIds.has(seriesKey));
-          return;
-        }
+        e.preventDefault();
+        toggleSeriesBody();
         App.selectedSeriesId = seriesKey;
         document.querySelectorAll('.series-header').forEach(h => h.classList.remove('selected'));
         hdr.classList.add('selected');
+      });
+      hdr.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          hdr.click();
+        }
       });
       group.appendChild(hdr);
 
@@ -223,34 +322,44 @@ function renderProtocolList() {
     container.appendChild(tsSection);
   }
 
-  /* ── EINZELDOKUMENTE ────────────────────────────────────── */
+  /* [cleanup] */
   if (singleDocs.length > 0) {
     const sdSection = document.createElement('div');
-    sdSection.className = 'sidebar-section' + (App.singleDocSectionCollapsed ? ' is-collapsed' : '');
+    sdSection.className = 'sidebar-section sidebar-single-docs';
 
-    const sdHdr = document.createElement('div');
-    sdHdr.className = 'sidebar-section-header';
-    const sdColBtn = document.createElement('button');
-    sdColBtn.type = 'button';
-    sdColBtn.className = 'sidebar-icon-btn' + (App.singleDocSectionCollapsed ? ' all-series-collapsed' : '');
-    sdColBtn.title = 'Einzeldokumente ein-/ausklappen';
-    sdColBtn.innerHTML = chevronSvg;
-    sdColBtn.addEventListener('click', () => {
+    const sdToggle = document.createElement('button');
+    sdToggle.type = 'button';
+    sdToggle.className = 'btn-sidebar-action btn-series-toggle btn-list-section-toggle';
+    sdToggle.setAttribute('aria-expanded', String(!App.singleDocSectionCollapsed));
+    sdToggle.innerHTML = `
+      ${iconStickyNote()}
+      <span class="series-toggle-label">Einzeldokumente</span>
+      <span class="series-toggle-chevron-wrap" aria-hidden="true">${iconChevronDown('series-toggle-chevron' + (App.singleDocSectionCollapsed ? ' is-collapsed' : ''))}</span>
+    `;
+    sdToggle.addEventListener('click', () => {
       App.singleDocSectionCollapsed = !App.singleDocSectionCollapsed;
-      sdColBtn.classList.toggle('all-series-collapsed', App.singleDocSectionCollapsed);
-      sdSection.classList.toggle('is-collapsed', App.singleDocSectionCollapsed);
+      renderProtocolList();
     });
-    sdHdr.innerHTML = `<span class="sidebar-section-label">Einzeldokumente</span>`;
-    sdHdr.appendChild(sdColBtn);
-    sdSection.appendChild(sdHdr);
+    sdSection.appendChild(sdToggle);
 
-    const sdBody = document.createElement('div');
-    sdBody.className = 'sidebar-section-body';
-    singleDocs.forEach(p => sdBody.appendChild(_buildProtocolItem(p)));
-    sdSection.appendChild(sdBody);
+    if (!App.singleDocSectionCollapsed) {
+      const sdBody = document.createElement('div');
+      sdBody.className = 'sidebar-section-body';
+      singleDocs.forEach(p => sdBody.appendChild(_buildProtocolItem(p)));
+      sdSection.appendChild(sdBody);
+    }
     container.appendChild(sdSection);
   }
-  lucide.createIcons();
+}
+
+function _syncSeriesToggleButton(hasSeries) {
+  const btn = document.getElementById('btnSeriesToggle');
+  const chevron = document.getElementById('seriesToggleChevron');
+  if (!btn || !chevron) return;
+
+  btn.classList.toggle('hidden', !hasSeries);
+  btn.setAttribute('aria-expanded', String(!App.collapsedSeriesSectionAll));
+  chevron.innerHTML = iconChevronDown('series-toggle-chevron' + (App.collapsedSeriesSectionAll ? ' is-collapsed' : ''));
 }
 
 function _buildProtocolItem(proto) {
@@ -260,9 +369,9 @@ function _buildProtocolItem(proto) {
 
   const dateStr = proto.date
     ? new Date(proto.date + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' })
-    : '–';
+    : '-';
   const hasFiles = (proto.attachments||[]).some(a => a.fileName);
-  const clipHtml = hasFiles ? `<span class="protocol-item-clip" title="Enthält Datei-Anlagen"><i data-lucide="paperclip"></i></span>` : '';
+  const clipHtml = hasFiles ? `<span class="protocol-item-clip" title="Enthaelt Datei-Anlagen">${iconPaperclip()}</span>` : '';
 
   const sName = esc(proto.seriesName || proto.title || proto.type);
   const label = proto.type === 'Aktennotiz'
@@ -271,6 +380,9 @@ function _buildProtocolItem(proto) {
 
   const main = document.createElement('div');
   main.className = 'protocol-item-main';
+  main.setAttribute('role', 'button');
+  main.tabIndex = 0;
+  main.setAttribute('aria-label', `Protokoll ${proto.seriesName || proto.title || proto.type} Ã¶ffnen`);
   main.innerHTML = `
     <div class="protocol-item-title">${label}</div>
     <div class="protocol-item-date-row">
@@ -283,12 +395,18 @@ function _buildProtocolItem(proto) {
     document.querySelectorAll('.series-header').forEach(h => h.classList.remove('selected'));
     openProtocol(proto.id);
   });
+  main.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      main.click();
+    }
+  });
 
   const actionsDiv = main.querySelector('.protocol-item-actions');
 
   const dupBtn = document.createElement('button');
   dupBtn.type = 'button'; dupBtn.className = 'protocol-item-dup-btn'; dupBtn.title = 'Duplizieren';
-  dupBtn.innerHTML = `<i data-lucide="copy"></i>`;
+  dupBtn.innerHTML = iconCopy();
   dupBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     App._duplicatingProtocolId = proto.id;
@@ -305,7 +423,11 @@ function _buildProtocolItem(proto) {
     const lbl = proto.type === 'Aktennotiz'
       ? (proto.seriesName || proto.title || 'Aktennotiz')
       : `${proto.seriesName||proto.title||proto.type} Nr. ${String(proto.number||1).padStart(2,'0')}`;
-    if (!confirm(`Obacht!\n\n"${lbl}" in den Papierkorb verschieben?\n\nAlle Punkte bleiben gespeichert.`)) return;
+    if (!(await appConfirm(`Obacht!\n\n"${lbl}" in den Papierkorb verschieben?\n\nAlle Punkte bleiben gespeichert.`, {
+      title: 'In Papierkorb verschieben',
+      confirmLabel: 'Verschieben',
+      danger: true,
+    }))) return;
     await DB.Protocols.trash(proto.id);
     if (App.currentProtocolId === proto.id) {
       App.currentProtocolId = null;
@@ -325,7 +447,7 @@ function _buildProtocolItem(proto) {
 }
 
 /* ============================================================
-   PROTOKOLL ÖFFNEN
+   PROTOKOLL OEFFNEN
 ============================================================ */
 async function openProtocol(protocolId) {
   if (Search.active) closeSearch();
@@ -334,7 +456,7 @@ async function openProtocol(protocolId) {
   App.collapsedSections = new Set();
   App.allCollapsed = false;
   localStorage.setItem('lastProtocolId', protocolId);
-  // Ausgewählte Serie synchronisieren
+  // [cleanup]
   const proto = App.protocols.find(p => p.id === protocolId);
   if (proto) App.selectedSeriesId = proto.seriesId || ('type:' + proto.type);
 
@@ -348,10 +470,8 @@ async function openProtocol(protocolId) {
   const protocol = await DB.Protocols.get(protocolId);
   if (protocol) renderProtocol(protocol);
   updateSelectionHint();
+  syncCollapseAllButtonState();
 
-  // Collapse-All Button zurücksetzen
-  const cab = document.getElementById('btnCollapseAll');
-  if (cab) cab.classList.remove('all-collapsed');
 }
 
 function renderProtocol(protocol) {
@@ -365,14 +485,14 @@ function renderProtocol(protocol) {
   }
   const fieldTitle = document.getElementById('fieldTitle');
   fieldTitle.textContent  = protocol.seriesName || protocol.title || '';
-  fieldTitle.dataset.placeholder = isAk ? 'Betreff …' : 'Protokolltitel …';
+  fieldTitle.dataset.placeholder = isAk ? 'Betreff ...' : 'Protokolltitel ...';
   // Serientitel sperren bei Folgeprotokollen (number > 1)
   const isFollowup = !isAk && protocol.number > 1;
   fieldTitle.contentEditable = isFollowup ? 'false' : 'true';
   fieldTitle.classList.toggle('field-locked', isFollowup);
   fieldTitle.title = isFollowup ? 'Serienname wird im ersten Protokoll festgelegt' : '';
   document.getElementById('fieldNumber').textContent = protocol.type === 'Aktennotiz'
-    ? '–' : String(protocol.number || 1).padStart(2,'0');
+    ? '-' : String(protocol.number || 1).padStart(2,'0');
   document.getElementById('fieldDate').value         = protocol.date       || '';
   document.getElementById('fieldTime').value         = protocol.time       || '';
   document.getElementById('fieldLocation').value     = protocol.location   || '';
@@ -381,20 +501,22 @@ function renderProtocol(protocol) {
 
   // Aufgestellt-Block
   const author = protocol.author || {};
-  document.getElementById('fieldAuthorFirstName').value = author.firstName ?? 'Olaf';
-  document.getElementById('fieldAuthorLastName').value  = author.lastName  ?? 'Schüler';
+  const fallbackName = [author.firstName || 'Olaf', author.lastName || 'Schueler'].join(' ').trim();
+  document.getElementById('fieldAuthorName').value      = author.name      ?? fallbackName;
   document.getElementById('fieldAuthorCompany').value   = author.company   ?? 'Hopro GmbH & Co. KG';
   document.getElementById('fieldAuthorDate').value      = author.date      ?? '';
+  document.getElementById('fieldAuthorSeen').value      = author.seen      ?? '';
 
-  // Abschnittstitel: "Inhalte" für Aktennotiz, "Protokollpunkte" für JFx
-  const pointsTitle = document.querySelector('#sectionPoints .section-title');
-  if (pointsTitle) pointsTitle.textContent = isAk ? 'Inhalte' : 'Protokollpunkte';
+  // [cleanup]
+  // Altes UI hatte .section-title, neues UI hat .proto-card-header span
+  const pointsTitle = document.querySelector('#sectionPoints .section-title') ||
+                      document.querySelector('#sectionPoints .proto-card-header span:last-child');
+  if (pointsTitle) pointsTitle.textContent = 'INHALTE';
 
   renderParticipants(protocol.participants || []);
   renderPoints(protocol);
   renderAttachments(protocol.attachments || [], protocol.number);
   renderAbbrevList(protocol.participants || [], protocol.customAbbreviations || []);
-  lucide.createIcons();
 }
 
 /* ============================================================
@@ -407,41 +529,47 @@ function renderParticipants(participants) {
   // Cleanup document-Listener vom vorherigen Render
   if (renderParticipants._ac) renderParticipants._ac.abort();
   const ac = renderParticipants._ac = new AbortController();
-  document.addEventListener('mouseup',  () => tbody.querySelectorAll('tr').forEach(r => r.draggable = false), { signal: ac.signal });
-  document.addEventListener('touchend', () => tbody.querySelectorAll('tr').forEach(r => r.draggable = false), { signal: ac.signal });
+  document.addEventListener('mouseup',  () => tbody.querySelectorAll('.pg-row').forEach(r => r.draggable = false), { signal: ac.signal });
+  document.addEventListener('touchend', () => tbody.querySelectorAll('.pg-row').forEach(r => r.draggable = false), { signal: ac.signal });
 
   participants.forEach((p, idx) => {
-    const tr = document.createElement('tr');
+    const tr = document.createElement('div');
+    tr.className = 'pg-row' + (idx % 2 === 0 ? ' pg-row-odd' : '');
     tr.dataset.idx = idx;
     tr.draggable = false;
     tr.innerHTML = `
-      <td><input class="table-input" value="${esc(p.name)}"    data-field="name" /></td>
-      <td><input class="table-input" value="${esc(p.company)}" data-field="company" /></td>
-      <td><input class="table-input" value="${esc(p.abbr)}"    data-field="abbr" maxlength="4" style="text-transform:uppercase"/></td>
-      <td><input class="table-input" type="email" value="${esc(p.email)}" data-field="email"/></td>
-      <td style="text-align:center"><input type="checkbox" class="table-checkbox" data-field="attended"  ${p.attended  ?'checked':''}/></td>
-      <td style="text-align:center"><input type="checkbox" class="table-checkbox" data-field="inDistrib" ${p.inDistrib ?'checked':''}/></td>
-      <td>
-        <div class="participant-actions">
-          <span class="drag-handle" title="Teilnehmer verschieben"><i data-lucide="grip-vertical"></i></span>
-          <button class="btn-delete-row" data-action="deleteParticipant" data-idx="${idx}" title="Entfernen">${iconTrash()}</button>
-        </div>
-      </td>
+      <div class="pg-col-drag" title="Verschieben">${iconGrip()}</div>
+      <div class="pg-col-name"><input class="table-input" value="${esc(p.name)}" data-field="name" /></div>
+      <div class="pg-col-company"><input class="table-input" value="${esc(p.company)}" data-field="company" /></div>
+      <div class="pg-col-abbr"><input class="table-input input-uppercase" value="${esc(p.abbr)}"    data-field="abbr" maxlength="4"/></div>
+      <div class="pg-col-email"><input class="table-input" type="email" value="${esc(p.email)}" data-field="email"/></div>
+      <div class="pg-col-check pg-check-btn" data-field="attended"  data-checked="${p.attended  ?'1':''}">${p.attended  ? iconSquareCheckBig() : iconSquare()}</div>
+      <div class="pg-col-check pg-check-btn" data-field="inDistrib" data-checked="${p.inDistrib ?'1':''}">${p.inDistrib ? iconSquareCheckBig() : iconSquare()}</div>
+      <div class="pg-col-action"><button class="btn-delete-row" data-action="deleteParticipant" data-idx="${idx}" title="Entfernen">${iconTrash()}</button></div>
     `;
     tr.querySelectorAll('input').forEach(el => el.addEventListener('change', saveCurrentProtocol));
+    tr.querySelectorAll('.pg-check-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const checked = btn.dataset.checked === '1';
+        btn.dataset.checked = checked ? '' : '1';
+        btn.innerHTML = checked ? iconSquare() : iconSquareCheckBig();
+        saveCurrentProtocol();
+      });
+    });
     // Soft email validation
     const emailInput = tr.querySelector('[data-field="email"]');
     if (emailInput) {
       const checkEmail = () => {
         const v = emailInput.value.trim();
-        emailInput.classList.toggle('email-warn', v.length > 0 && !v.includes('@'));
+        const valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+        emailInput.classList.toggle('email-warn', v.length > 0 && !valid);
       };
       emailInput.addEventListener('input', checkEmail);
       checkEmail();
     }
 
-    // ── Drag & Drop (nur über Handle) ──
-    const handle = tr.querySelector('.drag-handle');
+    // [cleanup]
+    const handle = tr.querySelector('.pg-col-drag');
     handle.addEventListener('mousedown',  () => { tr.draggable = true; App._dragType = 'participant'; });
     handle.addEventListener('touchstart', () => { tr.draggable = true; App._dragType = 'participant'; }, { passive: true });
 
@@ -475,25 +603,32 @@ function renderParticipants(participants) {
       const targetIdx  = idx;
       if (draggedIdx === targetIdx || isNaN(draggedIdx)) return;
 
-      await saveCurrentProtocol();
+      // [cleanup]
+      // [cleanup]
+      const currentParticipants = getParticipantsFromDOM();
+
       const protocol = await DB.Protocols.get(App.currentProtocolId);
-      if (!protocol?.participants) return;
+      if (!protocol) return;
 
-      const [moved] = protocol.participants.splice(draggedIdx, 1);
-      let insertIdx = targetIdx > draggedIdx ? targetIdx - 1 : targetIdx;
+      // Neue Reihenfolge berechnen
+      const reordered = [...currentParticipants];
+      const [moved] = reordered.splice(draggedIdx, 1);
       const rect = tr.getBoundingClientRect();
+      let insertIdx = targetIdx > draggedIdx ? targetIdx - 1 : targetIdx;
       if (e.clientY >= rect.top + rect.height / 2) insertIdx++;
-      protocol.participants.splice(insertIdx, 0, moved);
+      reordered.splice(insertIdx, 0, moved);
 
+      protocol.participants = reordered;
       await DB.Protocols.save(protocol);
       renderParticipants(protocol.participants);
+      renderAbbrevList(protocol.participants, protocol.customAbbreviations || []);
       showToast('Teilnehmer verschoben.', 'success');
     });
 
     tr.addEventListener('dragend', () => {
       tr.classList.remove('drag-active');
       App._dragType = null;
-      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+      tbody.querySelectorAll('.pg-row').forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
     });
 
     tbody.appendChild(tr);
@@ -501,38 +636,38 @@ function renderParticipants(participants) {
 }
 
 function getParticipantsFromDOM() {
-  return Array.from(document.querySelectorAll('#participantsBody tr')).map(tr => ({
-    name:      tr.querySelector('[data-field="name"]')?.value    || '',
-    company:   tr.querySelector('[data-field="company"]')?.value || '',
-    abbr:      (tr.querySelector('[data-field="abbr"]')?.value   || '').toUpperCase(),
-    email:     tr.querySelector('[data-field="email"]')?.value   || '',
-    attended:  tr.querySelector('[data-field="attended"]')?.checked  ?? true,
-    inDistrib: tr.querySelector('[data-field="inDistrib"]')?.checked ?? true,
+  return Array.from(document.querySelectorAll('#participantsBody .pg-row')).map(row => ({
+    name:      row.querySelector('[data-field="name"]')?.value    || '',
+    company:   row.querySelector('[data-field="company"]')?.value || '',
+    abbr:      (row.querySelector('[data-field="abbr"]')?.value   || '').toUpperCase(),
+    email:     row.querySelector('[data-field="email"]')?.value   || '',
+    attended:  (row.querySelector('[data-field="attended"]')?.dataset.checked  === '1') ?? true,
+    inDistrib: (row.querySelector('[data-field="inDistrib"]')?.dataset.checked === '1') ?? true,
   }));
 }
 
 /**
- * Aktualisiert die Zuständig-Dropdowns aller Punktzeilen
+ * [cleanup]
  * mit den aktuell vorhandenen Teilnehmern.
- * Wird aufgerufen nach dem Hinzufügen/Löschen von Teilnehmern.
+ * [cleanup]
  */
 function updateResponsibleDropdowns() {
-  // Die Multi-Select-Panels lesen Teilnehmer beim Öffnen frisch aus dem DOM —
-  // daher ist hier kein explizites Rebuild nötig.
-  // Wir aktualisieren nur die Abkürzungs-Legende.
+  // [cleanup]
+  // [cleanup]
+  // [cleanup]
   const p = getParticipantsFromDOM();
   const customs = getCustomAbbreviationsFromDOM();
   renderAbbrevList(p, customs);
 }
 
 /* ============================================================
-   MULTI-SELECT ZUSTÄNDIG
+   MULTI-SELECT ZUSTAENDIG
 ============================================================ */
 
 /**
- * Erstellt den Multi-Select-DOM für "Zuständig".
- * Die Optionsliste wird beim Öffnen live aus dem Teilnehmer-DOM gelesen,
- * sodass neu hinzugefügte Teilnehmer immer erscheinen.
+ * [cleanup]
+ * [cleanup]
+ * [cleanup]
  */
 function createResponsibleSelect(currentValue, disabled) {
   const wrap = document.createElement('div');
@@ -540,7 +675,7 @@ function createResponsibleSelect(currentValue, disabled) {
   wrap.dataset.field = 'responsible';
   wrap.dataset.value = currentValue || '';
 
-  const display = currentValue ? currentValue : '—';
+  const display = currentValue ? currentValue : '-';
 
   const trigger = document.createElement('button');
   trigger.type      = 'button';
@@ -548,7 +683,7 @@ function createResponsibleSelect(currentValue, disabled) {
   trigger.disabled  = !!disabled;
   trigger.innerHTML = `
     <span class="resp-display">${esc(display)}</span>
-    <i data-lucide="chevron-down" class="resp-chevron"></i>`;
+    ${iconChevronDown('resp-chevron')}`;
 
   const panel = document.createElement('div');
   panel.className = 'resp-panel hidden';
@@ -559,11 +694,8 @@ function createResponsibleSelect(currentValue, disabled) {
   const footer = document.createElement('div');
   footer.className = 'resp-footer';
 
-  const clearBtn = document.createElement('button');
-  clearBtn.type = 'button'; clearBtn.className = 'resp-clear-btn'; clearBtn.textContent = 'Leeren';
   const okBtn   = document.createElement('button');
   okBtn.type = 'button';   okBtn.className = 'resp-ok-btn';   okBtn.textContent = 'OK';
-  footer.appendChild(clearBtn);
   footer.appendChild(okBtn);
 
   panel.appendChild(optsDiv);
@@ -571,10 +703,10 @@ function createResponsibleSelect(currentValue, disabled) {
   wrap.appendChild(trigger);
   wrap.appendChild(panel);
 
-  // ── Öffnen / Schließen ────────────────────────────────────
+  // [cleanup]
   trigger.addEventListener('click', (e) => {
     e.stopPropagation();
-    // Alle anderen Panels schließen
+    // [cleanup]
     document.querySelectorAll('.resp-panel:not(.hidden)').forEach(p => {
       if (p !== panel) { p.classList.add('hidden'); p.previousElementSibling?.classList.remove('open'); }
     });
@@ -584,7 +716,7 @@ function createResponsibleSelect(currentValue, disabled) {
     trigger.classList.toggle('open', opening);
 
     if (opening) {
-      // Teilnehmer live aus DOM lesen: Aktennotiz → Firma, JFx → Kürzel
+      // [cleanup]
       const isAk = document.getElementById('workspace').classList.contains('is-aktennotiz');
       const abbrevList = [...new Set(
         getParticipantsFromDOM().map(p => isAk ? p.company : p.abbr).filter(Boolean)
@@ -593,14 +725,21 @@ function createResponsibleSelect(currentValue, disabled) {
 
       optsDiv.innerHTML = '';
       if (abbrevList.length === 0) {
-        optsDiv.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:var(--text-tertiary)">Keine Teilnehmer erfasst.</div>';
+        optsDiv.innerHTML = '<div class="resp-empty-note">Keine Teilnehmer erfasst.</div>';
       } else {
         abbrevList.forEach(abbr => {
           const lbl = document.createElement('label');
           lbl.className = 'resp-option';
           const cb = document.createElement('input');
           cb.type = 'checkbox'; cb.value = abbr; cb.checked = selected.includes(abbr);
+          const check = document.createElement('span');
+          check.className = 'resp-option-check';
+          check.innerHTML = cb.checked ? iconSquareCheckBig() : iconSquare();
+          cb.addEventListener('change', () => {
+            check.innerHTML = cb.checked ? iconSquareCheckBig() : iconSquare();
+          });
           lbl.appendChild(cb);
+          lbl.appendChild(check);
           lbl.appendChild(document.createTextNode(' ' + abbr));
           optsDiv.appendChild(lbl);
         });
@@ -620,29 +759,80 @@ function createResponsibleSelect(currentValue, disabled) {
     }
   });
 
-  // ── Commit (OK-Button) ────────────────────────────────────
+  // [cleanup]
   function commit() {
     const vals = Array.from(panel.querySelectorAll('input[type="checkbox"]:checked'))
       .map(cb => cb.value);
     const joined = vals.join('/');
     wrap.dataset.value = joined;
-    trigger.querySelector('.resp-display').textContent = vals.length ? joined : '—';
+    trigger.querySelector('.resp-display').textContent = vals.length ? joined : '-';
     panel.classList.add('hidden');
     trigger.classList.remove('open');
     saveCurrentProtocol();
   }
 
   okBtn.addEventListener('click',    (e) => { e.stopPropagation(); commit(); });
-  clearBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-    commit();
-  });
 
   return wrap;
 }
 
-/* ── Zuständig aktivieren/deaktivieren ────────────────────── */
+function createCategorySelect(currentValue) {
+  const wrap = document.createElement('div');
+  wrap.className = 'cat-select';
+
+  const hidden = document.createElement('input');
+  hidden.type = 'hidden';
+  hidden.dataset.field = 'category';
+  hidden.value = currentValue || 'Aufgabe';
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'cat-trigger';
+  trigger.innerHTML = `
+    <span class="cat-display">${esc(hidden.value)}</span>
+    ${iconChevronDown('cat-chevron')}`;
+
+  const panel = document.createElement('div');
+  panel.className = 'cat-panel hidden';
+  const options = ['Aufgabe', 'Info', 'Festlegung', 'Freigabe erfordl'];
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cat-option';
+    btn.textContent = opt;
+    if (opt === hidden.value) btn.classList.add('is-active');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hidden.value = opt;
+      trigger.querySelector('.cat-display').textContent = opt;
+      panel.querySelectorAll('.cat-option').forEach(b => b.classList.toggle('is-active', b.textContent === opt));
+      panel.classList.add('hidden');
+      trigger.classList.remove('open');
+      hidden.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    panel.appendChild(btn);
+  });
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.cat-panel:not(.hidden)').forEach(p => {
+      if (p !== panel) {
+        p.classList.add('hidden');
+        p.previousElementSibling?.classList.remove('open');
+      }
+    });
+    const opening = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !opening);
+    trigger.classList.toggle('open', opening);
+  });
+
+  wrap.appendChild(hidden);
+  wrap.appendChild(trigger);
+  wrap.appendChild(panel);
+  return wrap;
+}
+
+/* [cleanup] */
 function setResponsibleDisabled(tr, disabled) {
   const wrap = tr.querySelector('.resp-select');
   if (!wrap) return;
@@ -652,8 +842,8 @@ function setResponsibleDisabled(tr, disabled) {
     if (trigger) trigger.disabled = true;
     wrap.dataset.value = '';
     const disp = wrap.querySelector('.resp-display');
-    if (disp) disp.textContent = '—';
-    // Panel schließen falls offen
+    if (disp) disp.textContent = '-';
+    // [cleanup]
     wrap.querySelector('.resp-panel')?.classList.add('hidden');
   } else {
     wrap.classList.remove('resp-disabled');
@@ -661,7 +851,7 @@ function setResponsibleDisabled(tr, disabled) {
   }
 }
 
-/* ── Termin-Feld sperren/entsperren ───────────────────────── */
+/* [cleanup] */
 function setTerminDisabled(tr, disabled) {
   const terminInput = tr.querySelector('.termin-input');
   const calBtn      = tr.querySelector('.termin-cal-btn');
@@ -669,7 +859,7 @@ function setTerminDisabled(tr, disabled) {
   if (calBtn)      calBtn.disabled      = disabled;
 }
 
-/* ── Kategorie-Listener (deaktiviert Zuständig + Termin bei Info/Festlegung) */
+/* [cleanup] */
 function setupCategoryDisable(tr) {
   const catSel = tr.querySelector('[data-field="category"]');
   if (!catSel) return;
@@ -684,24 +874,27 @@ function setupCategoryDisable(tr) {
 }
 
 /* ============================================================
-   PROTOKOLLPUNKTE — RENDERING
+   PROTOKOLLPUNKTE - RENDERING
 ============================================================ */
 function renderPoints(protocol) {
   const tbody = document.getElementById('pointsBody');
   tbody.innerHTML = '';
+  // Cleanup document-Listener vom vorherigen Render (verhindert Listener-Leaks)
+  if (renderPoints._ac) renderPoints._ac.abort();
+  const ac = renderPoints._ac = new AbortController();
 
   const structure  = protocol.structure || DB.getDefaultStructure(protocol.type);
   const points     = protocol.points    || [];
 
   const isAk = protocol.type === 'Aktennotiz';
-  // Für Aktennotiz: Abschnitt-Nummerierung (nur A-Abschnitte, nicht P/N)
+  // [cleanup]
   let akSectionNum = 0;
 
   Object.entries(structure).forEach(([chKey, chapter]) => {
     const chCollId    = 'chapter-' + chKey;
     const chCollapsed = App.collapsedSections.has(chCollId);
 
-    // ── Kapitel-Zeile ─────────────────────────────────────
+    // [cleanup]
     const chRow = document.createElement('tr');
     chRow.className = 'row-chapter';
     chRow.dataset.type       = 'chapter';
@@ -726,21 +919,21 @@ function renderPoints(protocol) {
       }
 
       chDelBtn = canDelete
-        ? `<button class="btn-delete-structure btn-delete-chapter" data-action="deleteChapter"
-            data-chapter="${chKey}" title="Abschnitt löschen">${iconTrash()}</button>`
+        ? `<button class="btn-delete-row btn-delete-chapter" data-action="deleteChapter"
+            data-chapter="${chKey}" title="Abschnitt lÃ¶schen">${iconTrash()}</button>`
         : '';
     } else {
-      // JFx: Standardanzeige — Nutzer-Kapitel (ab F) editierbar
+      // [cleanup]
       const isUserChapter = !DEFAULT_CHAPTERS.includes(chKey);
       if (isUserChapter) {
-        chLabelHtml = `<span class="structure-label-group"><span>${chKey} — </span><span class="editable-label" contenteditable="true"
+        chLabelHtml = `<span class="structure-label-group"><span>${chKey} - </span><span class="editable-label" contenteditable="true"
           data-chapter="${chKey}" data-field="chapterLabel">${esc(chapter.label)}</span></span>`;
       } else {
-        chLabelHtml = `<span>${chKey} — ${esc(chapter.label)}</span>`;
+        chLabelHtml = `<span>${chKey} - ${esc(chapter.label)}</span>`;
       }
       chDelBtn = isUserChapter
-        ? `<button class="btn-delete-structure btn-delete-chapter" data-action="deleteChapter"
-            data-chapter="${chKey}" title="Kapitel löschen">${iconTrash()}</button>`
+        ? `<button class="btn-delete-row btn-delete-chapter" data-action="deleteChapter"
+            data-chapter="${chKey}" title="Kapitel lÃ¶schen">${iconTrash()}</button>`
         : '';
     }
 
@@ -748,7 +941,7 @@ function renderPoints(protocol) {
       <td>
         <button class="collapse-btn${chCollapsed?' is-collapsed':''}"
                 data-collapse-id="${chCollId}" title="Ein-/Ausklappen">
-          ${iconChevron()}
+          ${iconChevronDown()}
         </button>
       </td>
       <td colspan="7">
@@ -759,7 +952,7 @@ function renderPoints(protocol) {
       </td>
     `;
 
-    // Aktennotiz: Abschnitt-Label editierbar — blur speichert
+    // [cleanup]
     if (isAk) {
       const labelSpan = chRow.querySelector('.ak-section-label');
       if (labelSpan) {
@@ -779,7 +972,7 @@ function renderPoints(protocol) {
       }
     }
 
-    // JFx: Nutzer-Kapitel-Label editierbar — blur speichert
+    // [cleanup]
     if (!isAk) {
       const editLabel = chRow.querySelector('.editable-label[data-field="chapterLabel"]');
       if (editLabel) {
@@ -805,7 +998,7 @@ function renderPoints(protocol) {
     // Direkte Punkte ohne Unterkapitel
     let akPointSeq = 0;
     points.filter(pt => pt.chapter === chKey && !pt.subchapter).forEach(pt => {
-      const row = createPointRow(pt, protocol.number, chKey, null, null);
+      const row = createPointRow(pt, protocol.number, chKey, null, null, ac.signal);
       // Aktennotiz: Anzeige-ID dynamisch berechnen
       if (isAk) {
         akPointSeq++;
@@ -818,7 +1011,7 @@ function renderPoints(protocol) {
       tbody.appendChild(row);
     });
 
-    // ── Unterkapitel ──────────────────────────────────────
+    // [cleanup]
     (chapter.subchapters || []).forEach(sub => {
       const subCollId   = 'subchapter-' + sub.id;
       const subCollapsed = App.collapsedSections.has(subCollId);
@@ -833,16 +1026,16 @@ function renderPoints(protocol) {
       subRow.draggable = false;
       if (hideRow) subRow.classList.add('row-hidden');
 
-      // Lösch-Button für Unterkapitel
-      const delBtn = `<button class="btn-delete-structure" data-action="deleteSubchapter"
+      // [cleanup]
+      const delBtn = `<button class="btn-delete-row" data-action="deleteSubchapter"
         data-chapter="${chKey}" data-subchapter="${esc(sub.id)}"
-        title="Unterkapitel löschen">${iconTrash()}</button>`;
+        title="Unterkapitel lÃ¶schen">${iconTrash()}</button>`;
 
       subRow.innerHTML = `
         <td>
           <button class="collapse-btn${subCollapsed?' is-collapsed':''}"
                   data-collapse-id="${subCollId}" title="Ein-/Ausklappen">
-            ${iconChevron()}
+            ${iconChevronDown()}
           </button>
         </td>
         <td colspan="7">
@@ -852,12 +1045,12 @@ function renderPoints(protocol) {
               data-field="subchapterLabel">${esc(sub.label)}</span></span>
             <span class="structure-actions">
               ${delBtn}
-              <span class="drag-handle sub-drag-handle" title="Unterkapitel verschieben"><i data-lucide="grip-vertical"></i></span>
+              <span class="drag-handle sub-drag-handle" title="Unterkapitel verschieben">${iconGrip()}</span>
             </span>
           </div>
         </td>
       `;
-      // UKAP-Label editierbar — blur speichert
+      // [cleanup]
       const subLabel = subRow.querySelector('.editable-label[data-field="subchapterLabel"]');
       if (subLabel) {
         subLabel.addEventListener('blur', async () => {
@@ -874,14 +1067,14 @@ function renderPoints(protocol) {
         });
       }
 
-      // ── UKAP Drag & Drop (nur über Handle starten) ──
+      // [cleanup]
       const subHandle = subRow.querySelector('.drag-handle');
       let subHandleDown = false;
 
       subHandle.addEventListener('mousedown',  () => { subHandleDown = true; subRow.draggable = true; });
       subHandle.addEventListener('touchstart', () => { subHandleDown = true; subRow.draggable = true; }, { passive: true });
-      document.addEventListener('mouseup',  () => { subHandleDown = false; subRow.draggable = false; });
-      document.addEventListener('touchend', () => { subHandleDown = false; subRow.draggable = false; });
+      document.addEventListener('mouseup',  () => { subHandleDown = false; subRow.draggable = false; }, { signal: ac.signal });
+      document.addEventListener('touchend', () => { subHandleDown = false; subRow.draggable = false; }, { signal: ac.signal });
 
       subRow.addEventListener('dragstart', e => {
         if (!subHandleDown) { e.preventDefault(); return; }
@@ -891,7 +1084,7 @@ function renderPoints(protocol) {
         subRow.classList.add('drag-active');
         App._dragGroup = chKey;
         App._dragType  = 'subchapter';
-        // Kind-Zeilen (Topics + Punkte) während Drag ausblenden
+        // [cleanup]
         let sib = subRow.nextElementSibling;
         while (sib && sib.dataset.type !== 'subchapter' && sib.dataset.type !== 'chapter') {
           if (sib.dataset.chapter === chKey && sib.dataset.subchapter === sub.id) {
@@ -978,13 +1171,13 @@ function renderPoints(protocol) {
         topicRow.draggable = false;
         if (hideChildren) topicRow.classList.add('row-hidden');
 
-        const topicDelBtn = `<button class="btn-delete-structure" data-action="deleteTopic"
+        const topicDelBtn = `<button class="btn-delete-row" data-action="deleteTopic"
           data-chapter="${chKey}" data-subchapter="${esc(sub.id)}" data-topic="${esc(topic.id)}"
           data-topic-label="${esc(topic.label)}"
-          title="Thema löschen">${iconTrash()}</button>`;
+          title="Thema lÃ¶schen">${iconTrash()}</button>`;
 
         topicRow.innerHTML = `
-          <td><span class="drag-handle" title="Thema verschieben"><i data-lucide="grip-vertical"></i></span></td>
+          <td><span class="drag-handle" title="Thema verschieben">${iconGrip()}</span></td>
           <td colspan="7">
             <div class="structure-label-cell">
               <span class="topic-label editable-label" contenteditable="true"
@@ -994,7 +1187,7 @@ function renderPoints(protocol) {
             </div>
           </td>
         `;
-        // Thema-Label editierbar — blur speichert
+        // [cleanup]
         const topicLabel = topicRow.querySelector('.editable-label[data-field="topicLabel"]');
         if (topicLabel) {
           topicLabel.addEventListener('blur', async () => {
@@ -1012,14 +1205,14 @@ function renderPoints(protocol) {
           });
         }
 
-        // ── Thema Drag & Drop (nur über Handle starten) ──
+        // [cleanup]
         const topicHandle = topicRow.querySelector('.drag-handle');
         let topicHandleDown = false;
 
         topicHandle.addEventListener('mousedown',  () => { topicHandleDown = true; topicRow.draggable = true; });
         topicHandle.addEventListener('touchstart', () => { topicHandleDown = true; topicRow.draggable = true; }, { passive: true });
-        document.addEventListener('mouseup',  () => { topicHandleDown = false; topicRow.draggable = false; });
-        document.addEventListener('touchend', () => { topicHandleDown = false; topicRow.draggable = false; });
+        document.addEventListener('mouseup',  () => { topicHandleDown = false; topicRow.draggable = false; }, { signal: ac.signal });
+        document.addEventListener('touchend', () => { topicHandleDown = false; topicRow.draggable = false; }, { signal: ac.signal });
 
         topicRow.addEventListener('dragstart', e => {
           if (!topicHandleDown) { e.preventDefault(); return; }
@@ -1031,7 +1224,7 @@ function renderPoints(protocol) {
           topicRow.classList.add('drag-active');
           App._dragGroup = group;
           App._dragType  = 'topic';
-          // Kind-Punkte während Drag ausblenden
+          // [cleanup]
           let sib = topicRow.nextElementSibling;
           while (sib && sib.dataset.type === 'point' && sib.dataset.topic === topic.id) {
             sib.classList.add('drag-child-hidden');
@@ -1109,7 +1302,7 @@ function renderPoints(protocol) {
         points
           .filter(pt => pt.chapter===chKey && pt.subchapter===sub.id && pt.topic===topic.id)
           .forEach(pt => {
-            const row = createPointRow(pt, protocol.number, chKey, sub.id, topic.id);
+            const row = createPointRow(pt, protocol.number, chKey, sub.id, topic.id, ac.signal);
             if (hideChildren) row.classList.add('row-hidden');
             tbody.appendChild(row);
           });
@@ -1119,7 +1312,7 @@ function renderPoints(protocol) {
       points
         .filter(pt => pt.chapter===chKey && pt.subchapter===sub.id && !pt.topic)
         .forEach(pt => {
-          const row = createPointRow(pt, protocol.number, chKey, sub.id, null);
+          const row = createPointRow(pt, protocol.number, chKey, sub.id, null, ac.signal);
           if (hideChildren) row.classList.add('row-hidden');
           tbody.appendChild(row);
         });
@@ -1129,10 +1322,12 @@ function renderPoints(protocol) {
   autoResizeAll();
   applyPointFilters();
   applyChapterFilter();
+  syncSelectionAfterRender();
+  syncCollapseAllButtonState();
 }
 
-/* ── Einzelne Punkt-Zeile ─────────────────────────────────── */
-function createPointRow(point, currentNum, chKey, subId, topicId) {
+/* [cleanup] */
+function createPointRow(point, currentNum, chKey, subId, topicId, renderSignal) {
   const tr = document.createElement('tr');
   tr.className = 'row-point';
   tr.dataset.pointId  = point.id;
@@ -1144,14 +1339,14 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
   if (point.done)  tr.classList.add('point-done');
   if (point.isNew) tr.classList.add('point-new');
 
-  // Kategorie "Freigabe" → rückwärtskompatibel auf "Freigabe erfordl" mappen
+  // [cleanup]
   const catVal = point.category === 'Freigabe' ? 'Freigabe erfordl' : (point.category || 'Aufgabe');
 
-  // Zuständig deaktiviert bei Info / Festlegung
+  // [cleanup]
   const respDisabled = catVal === 'Info' || catVal === 'Festlegung';
   const respSelect   = createResponsibleSelect(point.responsible || '', respDisabled);
 
-  // Amendments: Inhalt oder Termin im Vgl. zum Snapshot geändert?
+  // [cleanup]
   const snap = point.snapshot || null;
   const contentAmended  = snap && (point.content  || '') !== snap.content;
   const deadlineAmended = snap && (point.deadline || '') !== snap.deadline;
@@ -1160,42 +1355,37 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
   tr.draggable = false;
 
   tr.innerHTML = `
-    <td><span class="drag-handle" title="Punkt verschieben"><i data-lucide="grip-vertical"></i></span></td>
+    <td><span class="drag-handle" title="Punkt verschieben">${iconGrip()}</span></td>
     <td><span class="point-id">${esc(point.id)}</span></td>
     <td class="content-cell${contentAmended ? ' content-amended' : ''}">
-      <textarea class="table-textarea" data-field="content"
-        placeholder="Inhalt …">${esc(point.content || '')}</textarea>
+      <textarea class="table-textarea" data-field="content" rows="1"
+        placeholder="Inhalt ...">${esc(point.content || '')}</textarea>
     </td>
-    <td class="col-category">
-      <select class="table-select" data-field="category">
-        <option value="Aufgabe"          ${catVal==='Aufgabe'          ?'selected':''}>Aufgabe</option>
-        <option value="Info"             ${catVal==='Info'             ?'selected':''}>Info</option>
-        <option value="Festlegung"       ${catVal==='Festlegung'       ?'selected':''}>Festlegung</option>
-        <option value="Freigabe erfordl" ${catVal==='Freigabe erfordl'?'selected':''}>Freigabe erfordl</option>
-      </select>
-    </td>
+    <td class="col-category category-cell"></td>
     <td class="resp-cell"></td>
     <td class="deadline-cell${deadlineAmended ? ' deadline-amended' : ''}">
       <div class="termin-wrap">
         <input type="text" class="table-input termin-input" data-field="deadline"
-          value="${esc(point.deadline || '')}" placeholder="—" />
-        <button type="button" class="termin-cal-btn" title="Kalender öffnen">
-          <i data-lucide="calendar"></i>
+          value="${esc(point.deadline || '')}" placeholder="-" />
+        <button type="button" class="termin-cal-btn" title="Kalender Ã¶ffnen">
+          ${iconCalendar()}
         </button>
         <input type="date" class="termin-date-hidden" tabindex="-1" aria-hidden="true" />
       </div>
     </td>
-    <td class="col-done" style="text-align:center">
-      <input type="checkbox" class="table-checkbox" data-field="done"
-        ${point.done?'checked':''} />
+    <td class="col-done col-center">
+      <div class="point-check-btn" data-field="done" data-checked="${point.done ? '1' : ''}">
+        ${point.done ? iconSquareCheckBig() : iconSquare()}
+      </div>
     </td>
     <td>
       <button class="btn-delete-row" data-action="deletePoint"
-        data-point-id="${point.id}" title="Punkt löschen">${iconTrash()}</button>
+        data-point-id="${point.id}" title="Punkt lÃ¶schen">${iconTrash()}</button>
     </td>
   `;
 
-  // Multi-Select in die Zelle einhängen
+  tr.querySelector('.category-cell').appendChild(createCategorySelect(catVal));
+  // [cleanup]
   tr.querySelector('.resp-cell').appendChild(respSelect);
 
   // Zeilenauswahl per Fokus
@@ -1209,17 +1399,22 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
   });
 
   // Erledigt-Checkbox: sofort ausgrauen
-  const doneCheckbox = tr.querySelector('[data-field="done"]');
-  if (doneCheckbox) {
-    doneCheckbox.addEventListener('change', () => {
-      tr.classList.toggle('point-done', doneCheckbox.checked);
+  const doneBtn = tr.querySelector('.point-check-btn[data-field="done"]');
+  if (doneBtn) {
+    doneBtn.addEventListener('click', () => {
+      const checked = doneBtn.dataset.checked === '1';
+      doneBtn.dataset.checked = checked ? '' : '1';
+      doneBtn.innerHTML = checked ? iconSquare() : iconSquareCheckBig();
+      tr.classList.toggle('point-done', !checked);
+      selectRow(rowCtx, tr);
+      saveCurrentProtocol();
     });
   }
 
-  // Kategorie → Zuständig Disable-Logik
+  // [cleanup]
   setupCategoryDisable(tr);
 
-  // Textarea Auto-Höhe + Bullet-Point-Formatierung + Amendment-Erkennung (Inhalt)
+  // [cleanup]
   const ta = tr.querySelector('textarea');
   const contentCell = tr.querySelector('.content-cell');
   if (ta) {
@@ -1233,7 +1428,7 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
     setupBulletPoints(ta);
   }
 
-  // Termin: Kalender-Button → hidden date input → Text-Input befüllen
+  // [cleanup]
   const terminInput = tr.querySelector('.termin-input');
   const calBtn      = tr.querySelector('.termin-cal-btn');
   const hiddenDate  = tr.querySelector('.termin-date-hidden');
@@ -1247,6 +1442,8 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
 
   if (terminInput && calBtn && hiddenDate) {
     calBtn.addEventListener('click', () => {
+      const iso = toIsoDate((terminInput.value || '').trim());
+      if (iso) hiddenDate.value = iso;
       hiddenDate.showPicker?.() || hiddenDate.click();
     });
 
@@ -1266,18 +1463,18 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
     });
     terminInput.addEventListener('change', saveCurrentProtocol);
 
-    // Initial: Überfälligkeit prüfen
+    // [cleanup]
     requestAnimationFrame(applyOverdue);
   }
 
-  // ── Drag & Drop (nur über Handle starten) ──
+  // [cleanup]
   const handle = tr.querySelector('.drag-handle');
   let handleMouseDown = false;
 
   handle.addEventListener('mousedown',  () => { handleMouseDown = true; tr.draggable = true; });
   handle.addEventListener('touchstart', () => { handleMouseDown = true; tr.draggable = true; }, { passive: true });
-  document.addEventListener('mouseup',  () => { handleMouseDown = false; tr.draggable = false; });
-  document.addEventListener('touchend', () => { handleMouseDown = false; tr.draggable = false; });
+  document.addEventListener('mouseup',  () => { handleMouseDown = false; tr.draggable = false; }, renderSignal ? { signal: renderSignal } : undefined);
+  document.addEventListener('touchend', () => { handleMouseDown = false; tr.draggable = false; }, renderSignal ? { signal: renderSignal } : undefined);
 
   tr.addEventListener('dragstart', e => {
     if (!handleMouseDown) { e.preventDefault(); return; }
@@ -1306,7 +1503,7 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
     if (myGroup !== App._dragGroup) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    // Obere oder untere Hälfte → Indikator
+    // [cleanup]
     const rect = tr.getBoundingClientRect();
     const mid  = rect.top + rect.height / 2;
     tr.classList.toggle('drag-over-top',    e.clientY < mid);
@@ -1337,15 +1534,15 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
     // Element entfernen
     const [moved] = protocol.points.splice(dragAllIdx, 1);
 
-    // Zielindex im (jetzt verkürzten) Array neu bestimmen
+    // [cleanup]
     let insertIdx = protocol.points.findIndex(p => p.id === targetId);
     if (insertIdx === -1) insertIdx = protocol.points.length;
 
-    // Untere Hälfte → nach dem Ziel einfügen
+    // [cleanup]
     const rect = tr.getBoundingClientRect();
     if (e.clientY >= rect.top + rect.height / 2) insertIdx++;
 
-    // Topic des Ziel-Punktes übernehmen (Punkt wandert ggf. in anderes Thema)
+    // [cleanup]
     moved.topic = point.topic || null;
 
     protocol.points.splice(insertIdx, 0, moved);
@@ -1358,7 +1555,7 @@ function createPointRow(point, currentNum, chKey, subId, topicId) {
   return tr;
 }
 
-/* ── Hilfsfunktion: Datum-String → ISO (YYYY-MM-DD) ────────── */
+/* [cleanup] */
 function toIsoDate(str) {
   if (!str) return '';
   // Bereits ISO
@@ -1369,10 +1566,10 @@ function toIsoDate(str) {
     const y = m[3].length === 2 ? '20' + m[3] : m[3];
     return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
   }
-  return ''; // KW-Notation etc. → leer (nicht darstellbar als date-Input)
+  return ''; // KW-Notation etc. -> leer (nicht darstellbar als date-Input)
 }
 
-/* ── Textarea Auto-Größe ──────────────────────────────────── */
+/* [cleanup] */
 function autoResize(ta) {
   ta.style.height = 'auto';
   ta.style.height = ta.scrollHeight + 'px';
@@ -1382,15 +1579,15 @@ function autoResizeAll() {
   document.querySelectorAll('.table-textarea').forEach(autoResize);
 }
 
-/* ── Bullet-Point Auto-Formatierung ──────────────────────── */
+/* [cleanup] */
 /**
- * Erkennt Zeilen, die mit "- " oder "• " beginnen (ggf. mit Einrückung).
- * "- " am Zeilenanfang (ohne Einrückung) wird automatisch zu "     - " konvertiert.
- * Enter: nächste Zeile bekommt "     - " (5 Leerzeichen Einrückung).
+ * [cleanup]
+ * [cleanup]
+ * [cleanup]
  * Enter auf einer leeren Bullet-Zeile: beendet den Listen-Modus.
  */
 function setupBulletPoints(ta) {
-  // Auto-Konvertierung: "- " am Zeilenanfang → "     - "
+  // [cleanup]
   ta.addEventListener('input', () => {
     const val   = ta.value;
     const pos   = ta.selectionStart;
@@ -1415,8 +1612,8 @@ function setupBulletPoints(ta) {
     const lineStart = val.lastIndexOf('\n', start - 1) + 1;
     const line      = val.slice(lineStart, start);
 
-    // Bullet-Zeichen erkennen: "- " oder "• " (mit beliebiger Einrückung)
-    const bulletMatch = line.match(/^(\s*)([-•])\s/);
+    // [cleanup]
+    const bulletMatch = line.match(/^(\s*)([-*])\s/);
     if (!bulletMatch) return;
 
     e.preventDefault();
@@ -1424,12 +1621,12 @@ function setupBulletPoints(ta) {
     const lineContent = line.slice(bulletMatch[0].length);
 
     if (lineContent.trim() === '') {
-      // Leere Bullet-Zeile → Listen-Modus beenden
+      // [cleanup]
       const newVal = val.slice(0, lineStart) + val.slice(start);
       ta.value = newVal;
       ta.selectionStart = ta.selectionEnd = lineStart;
     } else {
-      // Nächste Zeile: immer 5 Leerzeichen + "- "
+      // [cleanup]
       const insert = '\n     - ';
       const newVal = val.slice(0, start) + insert + val.slice(start);
       ta.value = newVal;
@@ -1441,11 +1638,11 @@ function setupBulletPoints(ta) {
   });
 }
 
-/* ── Zeile auswählen ──────────────────────────────────────── */
+/* [cleanup] */
 function addRowClick(row, ctx) {
   row.addEventListener('click', (e) => {
-    if (e.target.closest('.collapse-btn') || e.target.closest('.btn-delete-structure')) return;
-    // Formularelemente + editierbare Labels nicht abfangen — Cursor/Fokus soll normal funktionieren
+    if (e.target.closest('.collapse-btn') || e.target.closest('.btn-delete-row') || e.target.closest('.btn-delete-structure')) return;
+    // [cleanup]
     if (e.target.closest('textarea') || e.target.closest('input') || e.target.closest('select')) return;
     if (e.target.closest('[contenteditable="true"]')) return;
     selectRow(ctx, row);
@@ -1465,10 +1662,47 @@ function updateSelectionHint() {
   hint.textContent = App.selectedRow?.label || '';
 }
 
+function syncSelectionAfterRender() {
+  document.querySelectorAll('.row-selected').forEach(r => r.classList.remove('row-selected'));
+  const sel = App.selectedRow;
+  if (!sel) { updateSelectionHint(); return; }
+
+  let row = null;
+  if (sel.type === 'point' && sel.pointId) {
+    row = document.querySelector('#pointsBody tr.row-point[data-point-id="' + sel.pointId + '"]');
+  } else if (sel.type === 'topic' && sel.topicId) {
+    row = document.querySelector('#pointsBody tr.row-topic[data-topic="' + sel.topicId + '"]');
+  } else if (sel.type === 'subchapter' && sel.subchapterId) {
+    row = document.querySelector('#pointsBody tr.row-subchapter[data-subchapter="' + sel.subchapterId + '"]');
+  } else if (sel.type === 'chapter' && sel.chapterKey) {
+    row = document.querySelector('#pointsBody tr.row-chapter[data-chapter="' + sel.chapterKey + '"]');
+  }
+
+  if (row) {
+    row.classList.add('row-selected');
+  } else {
+    App.selectedRow = null;
+  }
+  updateSelectionHint();
+}
+
+
+function syncCollapseAllButtonState() {
+  const cab = document.getElementById('btnCollapseAll');
+  if (!cab) return;
+  const sectionIds = Array.from(document.querySelectorAll('#pointsBody tr[data-collapse-id]'))
+    .map(tr => tr.dataset.collapseId)
+    .filter(Boolean);
+  const allCollapsed = sectionIds.length > 0 && sectionIds.every(id => App.collapsedSections.has(id));
+  App.allCollapsed = allCollapsed;
+  cab.classList.toggle('all-collapsed', allCollapsed);
+  const cabIcon = cab.querySelector('.kadra-icon');
+  if (cabIcon) cabIcon.outerHTML = allCollapsed ? iconChevronsRight() : iconChevronsDown();
+}
 /* ============================================================
    COLLAPSE / EXPAND
 ============================================================ */
-/* ── Zeilen für eine Section ermitteln ───────────────────── */
+/* [cleanup] */
 function getRowsForSection(sectionId) {
   const rows = [];
   if (sectionId.startsWith('chapter-')) {
@@ -1489,14 +1723,19 @@ function getRowsForSection(sectionId) {
 function toggleCollapse(sectionId) {
   const rowEl = document.querySelector(`tr[data-collapse-id="${sectionId}"]`);
   const btn   = rowEl?.querySelector('.collapse-btn');
+  if (!rowEl) {
+    App.collapsedSections.delete(sectionId);
+    syncCollapseAllButtonState();
+    return;
+  }
 
   if (App.collapsedSections.has(sectionId)) {
-    // ── Aufklappen ────────────────────────────────────────
+    // [cleanup]
     App.collapsedSections.delete(sectionId);
     btn?.classList.remove('is-collapsed');
     const rows = getRowsForSection(sectionId);
     rows.forEach(tr => {
-      // Nur anzeigen, wenn nicht durch übergeordnetes Kapitel versteckt
+      // [cleanup]
       const chKey = tr.dataset.chapter;
       if (chKey && App.collapsedSections.has('chapter-' + chKey)) return;
       // Nur anzeigen, wenn nicht durch eingeklapptes UKAP versteckt
@@ -1511,8 +1750,10 @@ function toggleCollapse(sectionId) {
       });
       setTimeout(() => { tr.style.transition = ''; tr.style.opacity = ''; }, 160);
     });
+  setTimeout(refreshSearchIfActive, 170);
+    syncCollapseAllButtonState();
   } else {
-    // ── Einklappen ────────────────────────────────────────
+    // [cleanup]
     const rows = getRowsForSection(sectionId);
     rows.forEach(tr => {
       if (tr.classList.contains('row-hidden')) return; // bereits versteckt
@@ -1527,6 +1768,8 @@ function toggleCollapse(sectionId) {
         tr.style.transition = '';
         tr.style.opacity    = '';
       });
+      syncCollapseAllButtonState();
+      refreshSearchIfActive();
     }, 150);
   }
 }
@@ -1563,8 +1806,14 @@ function toggleCollapseAll() {
     allSectionIds.push(tr.dataset.collapseId);
   });
 
+  if (allSectionIds.length === 0) {
+    App.allCollapsed = false;
+    syncCollapseAllButtonState();
+    return;
+  }
+
   if (!App.allCollapsed) {
-    // ── Alle einklappen ───────────────────────────────────
+    // [cleanup]
     const rowsToHide = [];
     allSectionIds.forEach(sid => {
       getRowsForSection(sid).forEach(tr => {
@@ -1579,11 +1828,6 @@ function toggleCollapseAll() {
     });
     setTimeout(() => {
       allSectionIds.forEach(s => App.collapsedSections.add(s));
-      App.allCollapsed = true;
-      const cabEl = document.getElementById('btnCollapseAll');
-      cabEl?.classList.add('all-collapsed');
-      const cabIcon = cabEl?.querySelector('[data-lucide]');
-      if (cabIcon) { cabIcon.setAttribute('data-lucide', 'chevrons-up'); lucide.createIcons({ nodes: [cabIcon] }); }
       rowsToHide.forEach(tr => {
         tr.classList.add('row-hidden');
         tr.style.transition = ''; tr.style.opacity = '';
@@ -1591,16 +1835,13 @@ function toggleCollapseAll() {
       // Pfeile aktualisieren
       document.querySelectorAll('.collapse-btn').forEach(b =>
         b.classList.add('is-collapsed'));
+      syncCollapseAllButtonState();
+      refreshSearchIfActive();
     }, 150);
 
   } else {
-    // ── Alle aufklappen ───────────────────────────────────
+    // [cleanup]
     App.collapsedSections.clear();
-    App.allCollapsed = false;
-    const cabEl2 = document.getElementById('btnCollapseAll');
-    cabEl2?.classList.remove('all-collapsed');
-    const cabIcon2 = cabEl2?.querySelector('[data-lucide]');
-    if (cabIcon2) { cabIcon2.setAttribute('data-lucide', 'chevrons-down'); lucide.createIcons({ nodes: [cabIcon2] }); }
     document.querySelectorAll('.collapse-btn').forEach(b => b.classList.remove('is-collapsed'));
 
     const rowsToShow = document.querySelectorAll('#pointsBody tr.row-hidden');
@@ -1614,6 +1855,8 @@ function toggleCollapseAll() {
       });
       setTimeout(() => { tr.style.transition = ''; tr.style.opacity = ''; }, 160);
     });
+    syncCollapseAllButtonState();
+    setTimeout(refreshSearchIfActive, 170);
   }
 }
 
@@ -1645,6 +1888,7 @@ function applyPointFilters() {
   // Button-Indikator
   const btn = document.getElementById('btnPointFilter');
   btn.classList.toggle('has-filter', f.hideDone || f.onlyOverdue || f.onlyNew || f.onlyTasks || f.onlyApproval);
+  refreshSearchIfActive();
 }
 
 function setupPointFilter() {
@@ -1655,6 +1899,20 @@ function setupPointFilter() {
   const cbNew      = document.getElementById('filterOnlyNew');
   const cbTasks    = document.getElementById('filterOnlyTasks');
   const cbApproval = document.getElementById('filterOnlyApproval');
+  const allCbs = [cbDone, cbOverdue, cbNew, cbTasks, cbApproval];
+
+  const syncPointFilterIconChecks = () => {
+    allCbs.forEach(cb => {
+      let icon = cb.nextElementSibling;
+      if (!icon || !icon.classList.contains('point-filter-check')) {
+        icon = document.createElement('span');
+        icon.className = 'point-filter-check';
+        cb.insertAdjacentElement('afterend', icon);
+      }
+      icon.innerHTML = cb.checked ? iconSquareCheckBig() : iconSquare();
+    });
+  };
+  syncPointFilterIconChecks();
 
   btn.addEventListener('click', e => {
     e.stopPropagation();
@@ -1663,6 +1921,7 @@ function setupPointFilter() {
 
   cbDone.addEventListener('change', () => {
     App.pointFilters.hideDone = cbDone.checked;
+    syncPointFilterIconChecks();
     applyPointFilters();
   });
 
@@ -1672,6 +1931,7 @@ function setupPointFilter() {
       App.pointFilters.onlyNew = false;
     }
     App.pointFilters.onlyOverdue = cbOverdue.checked;
+    syncPointFilterIconChecks();
     applyPointFilters();
   });
 
@@ -1681,6 +1941,7 @@ function setupPointFilter() {
       App.pointFilters.onlyOverdue = false;
     }
     App.pointFilters.onlyNew = cbNew.checked;
+    syncPointFilterIconChecks();
     applyPointFilters();
   });
 
@@ -1690,6 +1951,7 @@ function setupPointFilter() {
       App.pointFilters.onlyApproval = false;
     }
     App.pointFilters.onlyTasks = cbTasks.checked;
+    syncPointFilterIconChecks();
     applyPointFilters();
   });
 
@@ -1699,10 +1961,11 @@ function setupPointFilter() {
       App.pointFilters.onlyTasks = false;
     }
     App.pointFilters.onlyApproval = cbApproval.checked;
+    syncPointFilterIconChecks();
     applyPointFilters();
   });
 
-  // Klick außerhalb → Panel schließen
+  // [cleanup]
   document.addEventListener('click', e => {
     if (!panel.classList.contains('hidden') && !panel.contains(e.target) && e.target !== btn) {
       panel.classList.add('hidden');
@@ -1739,12 +2002,18 @@ async function populateChapterFilter() {
     cb.disabled = hasContent;
     cb.dataset.chapter = chKey;
 
+    const checkIcon = document.createElement('span');
+    checkIcon.className = 'chapter-filter-check' + (hasContent ? ' is-disabled' : '');
+    checkIcon.innerHTML = cb.checked ? iconSquareCheckBig() : iconSquare();
+
     cb.addEventListener('change', () => {
+      if (cb.disabled) return;
       if (cb.checked) {
         App.hiddenChapters.delete(chKey);
       } else {
         App.hiddenChapters.add(chKey);
       }
+      checkIcon.innerHTML = cb.checked ? iconSquareCheckBig() : iconSquare();
       applyChapterFilter();
     });
 
@@ -1754,10 +2023,11 @@ async function populateChapterFilter() {
       if (!isFixed) akNum++;
       span.textContent = isFixed ? chapter.label : `${akNum}. ${chapter.label}`;
     } else {
-      span.textContent = `${chKey} — ${chapter.label}`;
+      span.textContent = `${chKey} - ${chapter.label}`;
     }
 
     label.appendChild(cb);
+    label.appendChild(checkIcon);
     label.appendChild(span);
     list.appendChild(label);
   });
@@ -1770,6 +2040,14 @@ function applyChapterFilter() {
   });
   const btn = document.getElementById('btnChapterFilter');
   btn.classList.toggle('has-filter', App.hiddenChapters.size > 0);
+  refreshSearchIfActive();
+}
+
+function refreshSearchIfActive() {
+  if (!Search.active) return;
+  const input = document.getElementById('searchBarInput');
+  const q = input ? input.value : (Search.query || '');
+  executeSearch(q);
 }
 
 function setupChapterFilter() {
@@ -1790,7 +2068,7 @@ function setupChapterFilter() {
   });
 }
 
-/* Aktennotiz: Abschnitt-Nummer für einen chapter-Key ermitteln */
+/* [cleanup] */
 function _getAkSectionNum(protocol, chKey) {
   if (chKey === 'P' || chKey === 'N') return undefined; // P/N behalten Buchstaben
   let num = 0;
@@ -1808,12 +2086,12 @@ function _getAkSectionNum(protocol, chKey) {
 
 const DEFAULT_CHAPTERS = ['A','B','C','D','E'];
 
-/* Nächsten freien Buchstaben ermitteln */
+/* [cleanup] */
 function getNextChapterKey(protocol) {
   const existing = Object.keys(protocol.structure);
   const isAk = protocol.type === 'Aktennotiz';
-  // Aktennotiz: B–M (A ist erster Abschnitt, N+P reserviert)
-  // JFx: F–Z (A–E sind Default)
+  // [cleanup]
+  // [cleanup]
   const startCode = isAk ? 66 : 70;   // B=66, F=70
   const endCode   = isAk ? 77 : 90;   // M=77, Z=90
   for (let code = startCode; code <= endCode; code++) {
@@ -1823,45 +2101,51 @@ function getNextChapterKey(protocol) {
   return null;
 }
 
-/* KAP – Modal öffnen */
+/* KAP - Modal Ã¶ffnen */
 async function startAddChapter() {
   const protocol = await DB.Protocols.get(App.currentProtocolId);
-  if (!protocol) { showToast('Kein Protokoll geöffnet.', 'error'); return; }
+  if (!protocol) { showToast('Kein Protokoll geÃ¶ffnet.', 'error'); return; }
+
   const isAk = protocol.type === 'Aktennotiz';
   const nextKey = getNextChapterKey(protocol);
-  if (!nextKey) { showToast(isAk ? 'Maximale Abschnittanzahl erreicht.' : 'Maximale Kapitelanzahl erreicht (A–Z).', 'error'); return; }
+  if (!nextKey) {
+    showToast(isAk ? 'Maximale Abschnittanzahl erreicht.' : 'Maximale Kapitelanzahl erreicht (A-Z).', 'error');
+    return;
+  }
+
   const sectionCount = isAk ? Object.keys(protocol.structure).filter(k => k !== 'P' && k !== 'N').length + 1 : 0;
   document.getElementById('chapterKeyHint').textContent = isAk
     ? `Wird als Abschnitt ${sectionCount} angelegt`
     : `Wird als Kapitel ${nextKey} angelegt`;
+
   document.getElementById('chapterLabel').value = '';
   openModal('modalChapter');
   setTimeout(() => document.getElementById('chapterLabel').focus(), 80);
 }
 
-/* KAP – Speichern */
+/* KAP - Speichern */
 async function saveChapter() {
   if (App._busy) return;
+
   const label = document.getElementById('chapterLabel').value.trim();
   if (!label) { showToast('Bitte Bezeichnung eingeben.', 'error'); return; }
+
   App._busy = true;
   try {
     const protocol = await DB.Protocols.get(App.currentProtocolId);
     if (!protocol) return;
+
     const isAk = protocol.type === 'Aktennotiz';
     const nextKey = getNextChapterKey(protocol);
     if (!nextKey) { showToast('Maximale Anzahl erreicht.', 'error'); return; }
 
     if (isAk) {
-      // Neuen Abschnitt VOR N einfügen: structure neu aufbauen
+      // Neuen Abschnitt VOR N einfuegen: structure neu aufbauen
       const newStructure = {};
       for (const [k, v] of Object.entries(protocol.structure)) {
-        if (k === 'N') {
-          newStructure[nextKey] = { label, subchapters: [] };
-        }
+        if (k === 'N') newStructure[nextKey] = { label, subchapters: [] };
         newStructure[k] = v;
       }
-      // Falls N nicht existiert (Fallback)
       if (!newStructure[nextKey]) newStructure[nextKey] = { label, subchapters: [] };
       protocol.structure = newStructure;
     } else {
@@ -1872,66 +2156,74 @@ async function saveChapter() {
     closeModal('modalChapter');
     renderPoints(protocol);
     showToast(isAk ? `Abschnitt "${label}" angelegt.` : `Kapitel ${nextKey} angelegt.`, 'success');
-  } finally { App._busy = false; }
+  } finally {
+    App._busy = false;
+  }
 }
 
-/* KAP – Löschen */
+/* KAP - Loeschen */
 async function deleteChapter(chKey) {
   await saveCurrentProtocol();
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) return;
+
   const chapter = protocol.structure[chKey];
-  if (!chapter) return;
+  if (!chapter) { showToast('Kapitel nicht gefunden.', 'error'); return; }
 
   const isAk = protocol.type === 'Aktennotiz';
-
   if (isAk) {
-    // Aktennotiz: P und N sind fix
     if (chKey === 'P' || chKey === 'N') {
-      showToast('Präambel und Nächste Schritte können nicht gelöscht werden.', 'error');
+      showToast('Praeambel und Naechste Schritte koennen nicht geloescht werden.', 'error');
       return;
     }
-    // Mindestens ein Abschnitt muss bleiben
     const sectionKeys = Object.keys(protocol.structure).filter(k => k !== 'P' && k !== 'N');
     if (sectionKeys.length <= 1) {
       showToast('Mindestens ein Abschnitt muss vorhanden sein.', 'error');
       return;
     }
-  } else {
-    // JFx: Vordefinierte Kapitel A–E nicht löschbar
-    if (DEFAULT_CHAPTERS.includes(chKey)) {
-      showToast('Vordefinierte Kapitel (A–E) können nicht gelöscht werden.', 'error');
-      return;
-    }
+  } else if (DEFAULT_CHAPTERS.includes(chKey)) {
+    showToast('Vordefinierte Kapitel (A-E) koennen nicht geloescht werden.', 'error');
+    return;
   }
 
-  // Prüfe ob Themen in Unterkapiteln existieren
   const hasTopics = (chapter.subchapters || []).some(s => (s.topics || []).length > 0);
   if (hasTopics) {
-    showToast('Kapitel enthält Themen — bitte zuerst Themen löschen.', 'error');
+    showToast('Kapitel enthÃ¤lt Themen - bitte zuerst Themen lÃ¶schen.', 'error');
     return;
   }
 
-  // Prüfe ob Punkte existieren
   const pointCount = (protocol.points || []).filter(pt => pt.chapter === chKey).length;
   if (pointCount > 0) {
-    showToast(`Kapitel enthält ${pointCount} Punkt(e) — bitte zuerst Punkte löschen.`, 'error');
+    showToast(`Kapitel enthÃ¤lt ${pointCount} Punkt(e) - bitte zuerst Punkte lÃ¶schen.`, 'error');
     return;
   }
 
-  const displayLabel = isAk ? chapter.label : `${chKey} — ${chapter.label}`;
-  if (!confirm(`"${displayLabel}" löschen?`)) return;
+  const displayLabel = isAk ? chapter.label : `${chKey} - ${chapter.label}`;
+  if (!(await appConfirm(`"${displayLabel}" löschen?`, {
+    title: 'Kapitel löschen',
+    confirmLabel: 'Löschen',
+    danger: true,
+  }))) return;
 
   delete protocol.structure[chKey];
+  App.hiddenChapters.delete(chKey);
+  App.collapsedSections.delete('chapter-' + chKey);
+  (chapter.subchapters || []).forEach(s => App.collapsedSections.delete('subchapter-' + s.id));
+
+  if (App.selectedRow?.chapterKey === chKey) {
+    App.selectedRow = null;
+    updateSelectionHint();
+  }
+
   await DB.Protocols.save(protocol);
   renderPoints(protocol);
-  showToast(isAk ? `Abschnitt "${chapter.label}" gelöscht.` : `Kapitel ${chKey} gelöscht.`, '');
+  showToast(isAk ? `Abschnitt "${chapter.label}" geloescht.` : `Kapitel ${chKey} geloescht.`, '');
 }
 
 /* UKAP */
 function startAddSubchapter() {
   const chKey = App.selectedRow?.chapterKey;
-  if (!chKey) { showToast('Bitte zuerst eine Zeile auswählen.', 'error'); return; }
+  if (!chKey) { showToast('Bitte zuerst eine Zeile auswÃ¤hlen.', 'error'); return; }
   App._pendingChapter = chKey;
   document.getElementById('modalSubchapterTitle').textContent = `Neues Unterkapitel in Kapitel ${chKey}`;
   document.getElementById('subchapterLabel').value = '';
@@ -1945,25 +2237,39 @@ async function saveSubchapter() {
   if (!label) { showToast('Bitte Bezeichnung eingeben.', 'error'); return; }
   App._busy = true;
   try {
-    await saveCurrentProtocol();  // DOM-Inhalte sichern bevor DB gelesen wird
-    const protocol = await DB.Protocols.get(App.currentProtocolId);
+    const protocolId = App.currentProtocolId;
+    await saveCurrentProtocol(); // DOM-Inhalte sichern bevor DB gelesen wird
+    if (App.currentProtocolId !== protocolId) return;
+
+    const protocol = await DB.Protocols.get(protocolId);
     if (!protocol) return;
-    const chKey   = App._pendingChapter;
+
+    const chKey = App._pendingChapter;
     const chapter = protocol.structure[chKey];
-    if (!chapter) return;
-    const maxNum = (chapter.subchapters || []).reduce((m, s) => Math.max(m, parseInt(s.id.split('.')[1])||0), 0);
-    chapter.subchapters = [...(chapter.subchapters||[]), { id:`${chKey}.${maxNum+1}`, label, topics:[] }];
+    if (!chapter) { showToast('Kapitel nicht gefunden.', 'error'); return; }
+
+    const normalizedLabel = label.toLowerCase();
+    const duplicate = (chapter.subchapters || []).some(s => String(s.label || '').trim().toLowerCase() === normalizedLabel);
+    if (duplicate) { showToast('Unterkapitel existiert bereits.', 'error'); return; }
+
+    const maxNum = (chapter.subchapters || []).reduce((m, s) => Math.max(m, parseInt(String(s.id || '').split('.')[1], 10) || 0), 0);
+    let nextNum = maxNum + 1;
+    while ((chapter.subchapters || []).some(s => s.id === `${chKey}.${nextNum}`)) nextNum++;
+
+    chapter.subchapters = [...(chapter.subchapters || []), { id: `${chKey}.${nextNum}`, label, topics: [] }];
     await DB.Protocols.save(protocol);
     closeModal('modalSubchapter');
     renderPoints(protocol);
-    showToast(`Unterkapitel ${chKey}.${maxNum+1} angelegt.`, 'success');
-  } finally { App._busy = false; }
+    showToast(`Unterkapitel ${chKey}.${nextNum} angelegt.`, 'success');
+  } finally {
+    App._busy = false;
+  }
 }
 
 /* THEMA */
 function startAddTopic() {
   const subId = App.selectedRow?.subchapterId;
-  if (!subId) { showToast('Bitte zuerst ein Unterkapitel oder eine Zeile darin auswählen.', 'error'); return; }
+  if (!subId) { showToast('Bitte zuerst ein Unterkapitel oder eine Zeile darin auswÃ¤hlen.', 'error'); return; }
   App._pendingSubchapter = subId;
   document.getElementById('topicLabel').value = '';
   openModal('modalTopic');
@@ -1976,187 +2282,344 @@ async function saveTopic() {
   if (!label) { showToast('Bitte Thema-Bezeichnung eingeben.', 'error'); return; }
   App._busy = true;
   try {
-    await saveCurrentProtocol();  // DOM-Inhalte sichern bevor DB gelesen wird
-    const protocol   = await DB.Protocols.get(App.currentProtocolId);
+    const protocolId = App.currentProtocolId;
+    await saveCurrentProtocol(); // DOM-Inhalte sichern bevor DB gelesen wird
+    if (App.currentProtocolId !== protocolId) return;
+
+    const protocol = await DB.Protocols.get(protocolId);
     if (!protocol) return;
-    const subId   = App._pendingSubchapter;
-    const chKey   = subId.split('.')[0];
+
+    const subId = App._pendingSubchapter;
+    if (!subId) { showToast('Unterkapitel nicht gefunden.', 'error'); return; }
+
+    const chKey = subId.split('.')[0];
     const chapter = protocol.structure[chKey];
-    const sub     = (chapter?.subchapters||[]).find(s => s.id === subId);
+    const sub = (chapter?.subchapters || []).find(s => s.id === subId);
     if (!sub) { showToast('Unterkapitel nicht gefunden.', 'error'); return; }
+
+    const normalizedLabel = label.toLowerCase();
+    const duplicate = (sub.topics || []).some(t => String(t.label || '').trim().toLowerCase() === normalizedLabel);
+    if (duplicate) { showToast('Thema existiert bereits.', 'error'); return; }
+
     const topicId = DB.uuid();
-    sub.topics    = [...(sub.topics||[]), { id:topicId, label }];
-    const subNum  = subId.split('.')[1] || null;
-    const seq     = getNextPointSeq(protocol, chKey, subId);
-    const akNum   = protocol.type === 'Aktennotiz' ? _getAkSectionNum(protocol, chKey) : undefined;
+    sub.topics = [...(sub.topics || []), { id: topicId, label }];
+
+    const subNum = subId.split('.')[1] || null;
+    const seq = getNextPointSeq(protocol, chKey, subId);
+    const akNum = protocol.type === 'Aktennotiz' ? _getAkSectionNum(protocol, chKey) : undefined;
+
     const newPoint = {
       id: DB.generatePointId(protocol.number, chKey, subNum, seq, akNum),
-      chapter:chKey, subchapter:subId, topic:topicId,
-      content:'', category:'Aufgabe', responsible:'', deadline:'',
-      done:false, isNew:true, doneLastProtocol:false, createdInProtocol:protocol.number,
+      chapter: chKey,
+      subchapter: subId,
+      topic: topicId,
+      content: '',
+      category: 'Aufgabe',
+      responsible: '',
+      deadline: '',
+      done: false,
+      isNew: true,
+      doneLastProtocol: false,
+      createdInProtocol: protocol.number,
     };
-    protocol.points = [...(protocol.points||[]), newPoint];
+
+    protocol.points = [...(protocol.points || []), newPoint];
     await DB.Protocols.save(protocol);
     closeModal('modalTopic');
     renderPoints(protocol);
+
     setTimeout(() => {
       const row = document.querySelector(`tr[data-point-id="${newPoint.id}"]`);
-      if (row) { row.scrollIntoView({behavior:'smooth',block:'nearest'}); row.querySelector('textarea')?.focus(); }
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        row.querySelector('textarea')?.focus();
+      }
     }, 60);
+
     showToast(`Thema "${label}" + erster Punkt angelegt.`, 'success');
-  } finally { App._busy = false; }
+  } finally {
+    App._busy = false;
+  }
 }
 
 /* PKT */
 async function addPoint() {
   if (App._busy) return;
   if (!App.currentProtocolId) return;
+
   const sel = App.selectedRow;
-  if (!sel) { showToast('Bitte zuerst eine Zeile auswählen.', 'error'); return; }
+  if (!sel) { showToast('Bitte zuerst eine Zeile auswÃ¤hlen.', 'error'); return; }
+
   App._busy = true;
   try {
-    await saveCurrentProtocol();  // DOM-Inhalte sichern bevor DB gelesen wird
+    await saveCurrentProtocol(); // DOM-Inhalte sichern bevor DB gelesen wird
     const protocol = await DB.Protocols.get(App.currentProtocolId);
     if (!protocol) return;
-    const chKey  = sel.chapterKey;
-    const subId  = sel.subchapterId || null;
-    const topId  = sel.topicId      || null;
+
+    const chKey = sel.chapterKey;
+    const subId = sel.subchapterId || null;
+    const topId = sel.topicId || null;
+
     const chapter = protocol.structure[chKey];
-    if (!subId && chapter && (chapter.subchapters||[]).length > 0) {
-      showToast('Bitte Unterkapitel auswählen.', 'error'); return;
+    if (!chapter) {
+      App.selectedRow = null;
+      updateSelectionHint();
+      showToast('Kapitel nicht gefunden. Bitte Zeile neu auswÃ¤hlen.', 'error');
+      return;
     }
-    const subNum   = subId ? subId.split('.')[1] : null;
-    const seq      = getNextPointSeq(protocol, chKey, subId);
-    const akNum    = protocol.type === 'Aktennotiz' ? _getAkSectionNum(protocol, chKey) : undefined;
+
+    let sub = null;
+    if (subId) {
+      sub = (chapter.subchapters || []).find(s => s.id === subId);
+      if (!sub) {
+        App.selectedRow = null;
+        updateSelectionHint();
+        showToast('Unterkapitel nicht gefunden. Bitte Zeile neu auswÃ¤hlen.', 'error');
+        return;
+      }
+    }
+
+    if (!subId && (chapter.subchapters || []).length > 0) {
+      showToast('Bitte Unterkapitel auswÃ¤hlen.', 'error');
+      return;
+    }
+
+    if (topId) {
+      const topic = (sub?.topics || []).find(t => t.id === topId);
+      if (!topic) {
+        App.selectedRow = null;
+        updateSelectionHint();
+        showToast('Thema nicht gefunden. Bitte Zeile neu auswÃ¤hlen.', 'error');
+        return;
+      }
+    }
+
+    const subNum = subId ? subId.split('.')[1] : null;
+    const seq = getNextPointSeq(protocol, chKey, subId);
+    const akNum = protocol.type === 'Aktennotiz' ? _getAkSectionNum(protocol, chKey) : undefined;
+
     const newPoint = {
       id: DB.generatePointId(protocol.number, chKey, subNum, seq, akNum),
-      chapter:chKey, subchapter:subId, topic:topId,
-      content:'', category:'Aufgabe', responsible:'', deadline:'',
-      done:false, isNew:true, doneLastProtocol:false, createdInProtocol:protocol.number,
+      chapter: chKey,
+      subchapter: subId,
+      topic: topId,
+      content: '',
+      category: 'Aufgabe',
+      responsible: '',
+      deadline: '',
+      done: false,
+      isNew: true,
+      doneLastProtocol: false,
+      createdInProtocol: protocol.number,
     };
-    protocol.points = [...(protocol.points||[]), newPoint];
+
+    protocol.points = [...(protocol.points || []), newPoint];
     await DB.Protocols.save(protocol);
     renderPoints(protocol);
+
     setTimeout(() => {
       const row = document.querySelector(`tr[data-point-id="${newPoint.id}"]`);
-      if (row) { row.scrollIntoView({behavior:'smooth',block:'nearest'}); row.querySelector('textarea')?.focus(); }
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        row.querySelector('textarea')?.focus();
+      }
     }, 60);
-  } finally { App._busy = false; }
+  } finally {
+    App._busy = false;
+  }
 }
 
 function getNextPointSeq(protocol, chKey, subId) {
-  return (protocol.points||[]).filter(
-    pt => pt.createdInProtocol === protocol.number &&
-          pt.chapter           === chKey &&
-          pt.subchapter        === (subId||null)
-  ).length + 1;
+  const subchapter = subId || null;
+  const isAk = protocol.type === 'Aktennotiz';
+  const numStr = String(protocol.number ?? '').padStart(2, '0');
+  const expectedPrefix = `#${numStr}|`;
+
+  let maxSeq = 0;
+  (protocol.points || []).forEach(pt => {
+    if (pt.chapter !== chKey) return;
+    if ((pt.subchapter || null) !== subchapter) return;
+
+    // Bei nummerierten Protokollen nur Punkte dieser Protokollnummer betrachten.
+    if (!isAk) {
+      const id = String(pt.id || '');
+      if (!id.startsWith(expectedPrefix)) return;
+    }
+
+    const m = String(pt.id || '').match(/.([0-9]+)$/);
+    const seq = m ? parseInt(m[1], 10) : 0;
+    if (Number.isFinite(seq)) maxSeq = Math.max(maxSeq, seq);
+  });
+
+  return maxSeq + 1;
 }
 
 /* ============================================================
-   STRUKTUR LÖSCHEN (UKAP / THEMA)
+   STRUKTUR LOESCHEN (UKAP / THEMA)
 ============================================================ */
 async function deleteSubchapter(chKey, subId) {
-  await saveCurrentProtocol();  // DOM-Inhalte sichern bevor DB gelesen wird
+  await saveCurrentProtocol(); // DOM-Inhalte sichern bevor DB gelesen wird
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) return;
-  const chapter = protocol.structure[chKey];
-  const sub     = (chapter?.subchapters||[]).find(s => s.id === subId);
-  if (!sub) return;
 
-  const pointCount = (protocol.points||[]).filter(
+  const chapter = protocol.structure[chKey];
+  const sub = (chapter?.subchapters || []).find(s => s.id === subId);
+  if (!sub) { showToast('Unterkapitel nicht gefunden.', 'error'); return; }
+
+  const pointCount = (protocol.points || []).filter(
     pt => pt.chapter === chKey && pt.subchapter === subId
   ).length;
 
   const msg = `Obacht! Unterkapitel "${subId} ${sub.label}" und alle ${pointCount ? pointCount + ' darin enthaltenen Punkte' : 'zugehörigen Punkte'} werden unwiderruflich gelöscht. Bist du sicher?`;
-  if (!confirm(msg)) return;
+  if (!(await appConfirm(msg, {
+    title: 'Unterkapitel löschen',
+    confirmLabel: 'Löschen',
+    danger: true,
+  }))) return;
 
-  chapter.subchapters = (chapter.subchapters||[]).filter(s => s.id !== subId);
-  protocol.points     = (protocol.points||[]).filter(
+  chapter.subchapters = (chapter.subchapters || []).filter(s => s.id !== subId);
+  protocol.points = (protocol.points || []).filter(
     pt => !(pt.chapter === chKey && pt.subchapter === subId)
   );
+
+  if (App.selectedRow?.subchapterId === subId) {
+    App.selectedRow = null;
+    updateSelectionHint();
+  }
+
+  App.collapsedSections.delete('subchapter-' + subId);
   await DB.Protocols.save(protocol);
   renderPoints(protocol);
-  showToast(`Unterkapitel ${subId} gelöscht.`, '');
+  showToast(`Unterkapitel ${subId} geloescht.`, '');
 }
 
 async function deleteTopic(chKey, subId, topicId, topicLabel) {
-  await saveCurrentProtocol();  // DOM-Inhalte sichern bevor DB gelesen wird
+  await saveCurrentProtocol(); // DOM-Inhalte sichern bevor DB gelesen wird
   const protocol = await DB.Protocols.get(App.currentProtocolId);
   if (!protocol) return;
-  const chapter = protocol.structure[chKey];
-  const sub     = (chapter?.subchapters||[]).find(s => s.id === subId);
-  if (!sub) return;
 
-  const pointCount = (protocol.points||[]).filter(
+  const chapter = protocol.structure[chKey];
+  const sub = (chapter?.subchapters || []).find(s => s.id === subId);
+  if (!sub) { showToast('Unterkapitel nicht gefunden.', 'error'); return; }
+
+  const pointCount = (protocol.points || []).filter(
     pt => pt.chapter === chKey && pt.subchapter === subId && pt.topic === topicId
   ).length;
 
   const msg = `Obacht! Thema "${topicLabel}" und alle ${pointCount ? pointCount + ' darin enthaltenen Punkte' : 'zugehörigen Punkte'} werden unwiderruflich gelöscht. Bist du sicher?`;
-  if (!confirm(msg)) return;
+  if (!(await appConfirm(msg, {
+    title: 'Thema löschen',
+    confirmLabel: 'Löschen',
+    danger: true,
+  }))) return;
 
-  sub.topics      = (sub.topics||[]).filter(t => t.id !== topicId);
-  protocol.points = (protocol.points||[]).filter(
+  sub.topics = (sub.topics || []).filter(t => t.id !== topicId);
+  protocol.points = (protocol.points || []).filter(
     pt => !(pt.chapter === chKey && pt.subchapter === subId && pt.topic === topicId)
   );
+
+  if (App.selectedRow?.topicId === topicId) {
+    App.selectedRow = null;
+    updateSelectionHint();
+  }
+
   await DB.Protocols.save(protocol);
   renderPoints(protocol);
-  showToast(`Thema "${topicLabel}" gelöscht.`, '');
+  showToast(`Thema "${topicLabel}" geloescht.`, '');
 }
 
 /* ============================================================
    SPEICHERN
 ============================================================ */
 async function saveCurrentProtocol() {
-  if (!App.currentProtocolId) return;
-  const protocol = await DB.Protocols.get(App.currentProtocolId);
-  if (!protocol) return;
+  const protocolId = App.currentProtocolId;
+  if (!protocolId) return;
 
-  const titleText = document.getElementById('fieldTitle').textContent.trim();
-  protocol.title      = titleText;
-  protocol.seriesName = titleText; // Titelfeld gilt als Serienname
-  protocol.date     = document.getElementById('fieldDate').value;
-  protocol.time     = document.getElementById('fieldTime').value;
-  protocol.location = document.getElementById('fieldLocation').value;
-  protocol.tenant   = document.getElementById('fieldTenant').value;
-  protocol.landlord = document.getElementById('fieldLandlord').value;
-  protocol.participants = getParticipantsFromDOM();
+  // B-002 Stabilisierung: Saves serialisieren, damit schnelle UI-Events
+  // keine konkurrierenden DOM->DB Schreibvorgaenge ausloesen.
+  if (!App._saveQueue) App._saveQueue = Promise.resolve();
 
-  document.querySelectorAll('#pointsBody tr[data-point-id]').forEach(tr => {
-    const id = tr.dataset.pointId;
-    const pt = (protocol.points||[]).find(p => p.id === id);
-    if (!pt) return;
-    pt.content     = tr.querySelector('[data-field="content"]')?.value     || '';
-    pt.category    = tr.querySelector('[data-field="category"]')?.value    || 'Aufgabe';
-    pt.responsible = tr.querySelector('.resp-select')?.dataset.value       || '';
-    // Termin: Freitext-Feld (nicht mehr type="date")
-    pt.deadline    = tr.querySelector('.termin-input')?.value              ||
-                     tr.querySelector('[data-field="deadline"]')?.value    || '';
-    pt.done        = tr.querySelector('[data-field="done"]')?.checked      ?? false;
-    // snapshot bleibt unberührt (nicht überschreiben)
-  });
+  const task = async () => {
+    // Wenn zwischenzeitlich auf ein anderes Protokoll gewechselt wurde,
+    // diesen Save-Durchlauf verwerfen.
+    if (App.currentProtocolId !== protocolId) return;
 
-  document.querySelectorAll('#attachmentsBody tr[data-idx]').forEach((tr, i) => {
-    if (protocol.attachments?.[i]) {
-      protocol.attachments[i].content = tr.querySelector('[data-field="content"]')?.value || '';
-      // fileData, fileName, fileType werden separat gespeichert (via handleFileSelected)
-      // → hier nicht überschreiben
+    const protocol = await DB.Protocols.get(protocolId);
+    if (!protocol) return;
+
+    const titleText = document.getElementById('fieldTitle').textContent.trim();
+    protocol.title      = titleText;
+    protocol.seriesName = titleText; // Titelfeld gilt als Serienname
+    protocol.date     = document.getElementById('fieldDate').value;
+    protocol.time     = document.getElementById('fieldTime').value;
+    protocol.location = document.getElementById('fieldLocation').value;
+    protocol.tenant   = document.getElementById('fieldTenant').value;
+    protocol.landlord = document.getElementById('fieldLandlord').value;
+    protocol.participants = getParticipantsFromDOM();
+
+    // Robuste Zuordnung: IDs koennen historisch doppelt vorkommen.
+    // Deshalb pro ID eine Queue bilden statt immer nur den ersten Treffer zu nehmen.
+    const pointBuckets = new Map();
+    (protocol.points || []).forEach(pt => {
+      const key = String(pt.id);
+      if (!pointBuckets.has(key)) pointBuckets.set(key, []);
+      pointBuckets.get(key).push(pt);
+    });
+
+    document.querySelectorAll('#pointsBody tr[data-point-id]').forEach(tr => {
+      const id = tr.dataset.pointId;
+      const bucket = pointBuckets.get(String(id));
+      const pt = bucket?.shift();
+      if (!pt) return;
+      pt.content     = tr.querySelector('[data-field="content"]')?.value     || '';
+      pt.category    = tr.querySelector('[data-field="category"]')?.value    || 'Aufgabe';
+      pt.responsible = tr.querySelector('.resp-select')?.dataset.value       || '';
+      // Termin: Freitext-Feld (nicht mehr type="date")
+      pt.deadline    = tr.querySelector('.termin-input')?.value              ||
+                       tr.querySelector('[data-field="deadline"]')?.value    || '';
+      const doneEl   = tr.querySelector('[data-field="done"]');
+      pt.done        = doneEl
+        ? ((doneEl.dataset?.checked === '1') || (doneEl.checked === true))
+        : false;
+      // snapshot bleibt unberuehrt (nicht Ã¼berschreiben)
+    });
+
+    document.querySelectorAll('#attachmentsBody tr[data-idx]').forEach((tr, i) => {
+      if (protocol.attachments?.[i]) {
+        protocol.attachments[i].content = tr.querySelector('[data-field="content"]')?.value || '';
+        // fileData, fileName, fileType werden separat gespeichert (via handleFileSelected)
+        // -> hier nicht Ã¼berschreiben
+      }
+    });
+
+    // Aufgestellt-Block
+    const fullName = document.getElementById('fieldAuthorName').value.trim();
+    const nameParts = fullName ? fullName.split(/\s+/) : [];
+    const firstName = nameParts.length ? nameParts[0] : '';
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+    protocol.author = {
+      name:      fullName,
+      firstName,
+      lastName,
+      company:   document.getElementById('fieldAuthorCompany').value,
+      date:      document.getElementById('fieldAuthorDate').value,
+      seen:      document.getElementById('fieldAuthorSeen').value,
+    };
+
+    // Manuelle Abkuerzungen aus DOM lesen
+    protocol.customAbbreviations = getCustomAbbreviationsFromDOM();
+
+    await DB.Protocols.save(protocol);
+    renderProtocolList();
+    const isEditingAbbrev = !!document.activeElement?.closest('#abbrevList .abbrev-custom');
+    if (!isEditingAbbrev) {
+      renderAbbrevList(protocol.participants, protocol.customAbbreviations || []);
     }
-  });
-
-  // Aufgestellt-Block
-  protocol.author = {
-    firstName: document.getElementById('fieldAuthorFirstName').value,
-    lastName:  document.getElementById('fieldAuthorLastName').value,
-    company:   document.getElementById('fieldAuthorCompany').value,
-    date:      document.getElementById('fieldAuthorDate').value,
   };
 
-  // Manuelle Abkürzungen aus DOM lesen
-  protocol.customAbbreviations = getCustomAbbreviationsFromDOM();
-
-  await DB.Protocols.save(protocol);
-  renderProtocolList();
-  renderAbbrevList(protocol.participants, protocol.customAbbreviations || []);
+  // Fehler nicht schlucken: await-Aufrufer koennen reagieren.
+  App._saveQueue = App._saveQueue.then(task, task);
+  return App._saveQueue;
 }
 
 /* ============================================================
@@ -2171,7 +2634,7 @@ async function createProtocol(type, continueFromPrevious, seriesName, sourceSeri
   let points       = [];
   let structure    = DB.getDefaultStructure(type);
   let resolvedSeriesName = seriesName || '';
-  let seriesId     = DB.uuid(); // neue, eigenständige Serie
+  let seriesId     = DB.uuid(); // neue, eigenstaendige Serie
 
   if (continueFromPrevious && sourceSeriesKey) {
     // Protokolle dieser Serie, nach Nummer sortiert
@@ -2191,13 +2654,13 @@ async function createProtocol(type, continueFromPrevious, seriesName, sourceSeri
           ...pt, isNew: false, doneLastProtocol: pt.done,
           snapshot: { content: pt.content || '', deadline: pt.deadline || '' },
         }));
-      type = prevProto.type; // gleicher Typ wie Vorgänger
+      type = prevProto.type; // gleicher Typ wie Vorgaenger
     }
   }
 
   const isAktennotiz = type === 'Aktennotiz';
 
-  // Nächste Nummer: immer max+1 in der Serie; Aktennotiz erhält keine Nummer
+  // [cleanup]
   let number = null;
   if (!isAktennotiz) {
     const allOfSeries = App.protocols.filter(p =>
@@ -2211,7 +2674,7 @@ async function createProtocol(type, continueFromPrevious, seriesName, sourceSeri
       : 1;
   }
 
-  // customAbbreviations bei Fortschreibung übernehmen
+  // [cleanup]
   let customAbbreviations = [];
   if (continueFromPrevious && sourceSeriesKey) {
     const allOfSer = App.protocols
@@ -2232,7 +2695,7 @@ async function createProtocol(type, continueFromPrevious, seriesName, sourceSeri
     tenant:   project.tenant || '',
     landlord: project.owner  || '',
     participants, structure, points, attachments:[], deletedAt:null,
-    author: { firstName:'Olaf', lastName:'Schüler', company:'Hopro GmbH & Co. KG', date:'' },
+    author: { name:'Olaf Schueler', firstName:'Olaf', lastName:'Schueler', company:'Hopro GmbH & Co. KG', date:'', seen:'' },
     customAbbreviations,
   };
 
@@ -2254,27 +2717,111 @@ async function createProtocol(type, continueFromPrevious, seriesName, sourceSeri
 function renderAttachments(attachments, protocolNumber) {
   const tbody = document.getElementById('attachmentsBody');
   tbody.innerHTML = '';
+  if (renderAttachments._ac) renderAttachments._ac.abort();
+  const ac = renderAttachments._ac = new AbortController();
+  document.addEventListener('mouseup',  () => tbody.querySelectorAll('.attach-row').forEach(r => r.draggable = false), { signal: ac.signal });
+  document.addEventListener('touchend', () => tbody.querySelectorAll('.attach-row').forEach(r => r.draggable = false), { signal: ac.signal });
   // Leerhinweis
   const emptyMsg = document.getElementById('attachmentsEmpty');
   if (emptyMsg) emptyMsg.style.display = attachments.length ? 'none' : '';
   attachments.forEach((att, idx) => {
     const tr = document.createElement('tr');
+    tr.className = 'attach-row' + (idx % 2 === 0 ? ' attach-row-odd' : '');
     tr.dataset.idx = idx;
+    tr.draggable = false;
     tr.innerHTML = `
-      <td><span class="point-id">${esc(att.id)}</span></td>
+      <td><span class="attach-row-grip" title="Verschieben">${iconGrip()}</span><span class="point-id">${esc(att.id)}</span></td>
       <td><input class="table-input" value="${esc(att.content)}" data-field="content" /></td>
       <td class="attach-file-cell"></td>
+      <td class="attach-file-actions-cell"></td>
       <td><button class="btn-delete-row" data-action="deleteAttachment" data-idx="${idx}" title="Anlage entfernen">${iconTrash()}</button></td>
     `;
     tr.querySelector('input').addEventListener('change', saveCurrentProtocol);
     // Datei-Zelle aufbauen
     const fileCell = tr.querySelector('.attach-file-cell');
     fileCell.appendChild(buildFileCellContent(att, idx));
+    const fileActionsCell = tr.querySelector('.attach-file-actions-cell');
+    fileActionsCell.appendChild(buildAttachmentFileActions(att, idx));
+
+    const handle = tr.querySelector('.attach-row-grip');
+    handle.addEventListener('mousedown',  () => { tr.draggable = true; App._dragType = 'attachment'; });
+    handle.addEventListener('touchstart', () => { tr.draggable = true; App._dragType = 'attachment'; }, { passive: true });
+
+    tr.addEventListener('dragstart', e => {
+      if (App._dragType !== 'attachment') { e.preventDefault(); return; }
+      e.dataTransfer.setData('text/plain', String(idx));
+      e.dataTransfer.setData('application/x-attachment', '1');
+      e.dataTransfer.effectAllowed = 'move';
+      tr.classList.add('drag-active');
+    });
+
+    tr.addEventListener('dragover', e => {
+      if (App._dragType !== 'attachment') return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = tr.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      tr.classList.toggle('drag-over-top', e.clientY < mid);
+      tr.classList.toggle('drag-over-bottom', e.clientY >= mid);
+    });
+
+    tr.addEventListener('dragleave', () => {
+      tr.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+
+    tr.addEventListener('drop', async e => {
+      e.preventDefault();
+      tr.classList.remove('drag-over-top', 'drag-over-bottom');
+      if (App._dragType !== 'attachment') return;
+      const draggedIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const targetIdx = idx;
+      if (draggedIdx === targetIdx || isNaN(draggedIdx)) return;
+
+      const protocol = await DB.Protocols.get(App.currentProtocolId);
+      if (!protocol) return;
+      const currentAttachments = getAttachmentsFromDOM(protocol.attachments || []);
+      if (!currentAttachments.length) return;
+
+      const reordered = [...currentAttachments];
+      const [moved] = reordered.splice(draggedIdx, 1);
+      const rect = tr.getBoundingClientRect();
+      let insertIdx = targetIdx > draggedIdx ? targetIdx - 1 : targetIdx;
+      if (e.clientY >= rect.top + rect.height / 2) insertIdx++;
+      reordered.splice(insertIdx, 0, moved);
+
+      protocol.attachments = reordered.map((item, i) => ({
+        ...item,
+        id: DB.generateAttachmentId(protocol.number, i + 1),
+      }));
+      await DB.Protocols.save(protocol);
+      renderAttachments(protocol.attachments, protocol.number);
+      renderProtocolList();
+      showToast('Anlage verschoben.', 'success');
+    });
+
+    tr.addEventListener('dragend', () => {
+      tr.classList.remove('drag-active');
+      App._dragType = null;
+      tbody.querySelectorAll('.attach-row').forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+    });
+
     tbody.appendChild(tr);
   });
 }
 
-/** Datei-Zellen-Inhalt für eine Anlage */
+function getAttachmentsFromDOM(baseAttachments) {
+  const rows = Array.from(document.querySelectorAll('#attachmentsBody tr.attach-row'));
+  return rows.map(row => {
+    const sourceIdx = parseInt(row.dataset.idx || '-1', 10);
+    const original = Number.isInteger(sourceIdx) && sourceIdx >= 0 ? (baseAttachments[sourceIdx] || {}) : {};
+    return {
+      ...original,
+      content: row.querySelector('[data-field="content"]')?.value || '',
+    };
+  });
+}
+
+/* [cleanup] */
 function buildFileCellContent(att, idx) {
   const wrap = document.createElement('div');
   wrap.className = 'file-cell-wrap';
@@ -2284,34 +2831,47 @@ function buildFileCellContent(att, idx) {
     label.className = 'file-name-label';
     label.title     = att.fileName;
     label.textContent = att.fileName;
-    // Download-Button
+    wrap.appendChild(label);
+  } else {
+    const noFile = document.createElement('span');
+    noFile.className = 'file-name-label no-file';
+    noFile.textContent = '';
+    wrap.appendChild(noFile);
+  }
+  return wrap;
+}
+
+function buildAttachmentFileActions(att, idx) {
+  const wrap = document.createElement('div');
+  wrap.className = 'attach-file-actions-wrap';
+
+  if (att.fileName) {
     const dlBtn = document.createElement('button');
     dlBtn.type = 'button';
-    dlBtn.className = 'btn-download-file';
+    dlBtn.className = 'btn-file-action';
     dlBtn.title = 'Datei herunterladen';
-    dlBtn.innerHTML = `<i data-lucide="download"></i>`;
+    dlBtn.innerHTML = iconDownload();
     dlBtn.addEventListener('click', () => downloadAttachmentFile(idx));
+
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
-    removeBtn.className = 'btn-remove-file';
+    removeBtn.className = 'btn-file-action';
     removeBtn.title = 'Datei entfernen';
-    removeBtn.innerHTML = `<i data-lucide="x"></i>`;
+    removeBtn.innerHTML = iconX();
     removeBtn.addEventListener('click', () => removeAttachmentFile(idx));
-    wrap.appendChild(label);
+
     wrap.appendChild(dlBtn);
     wrap.appendChild(removeBtn);
   } else {
     const uploadBtn = document.createElement('button');
     uploadBtn.type = 'button';
-    uploadBtn.className = 'btn-upload-file';
-    uploadBtn.innerHTML = `<i data-lucide="paperclip"></i> Datei wählen`;
+    uploadBtn.className = 'btn-file-action btn-file-action-upload';
+    uploadBtn.title = 'Datei wÃ¤hlen';
+    uploadBtn.innerHTML = iconPaperclip();
     uploadBtn.addEventListener('click', () => openFilePicker(idx));
-    const noFile = document.createElement('span');
-    noFile.className = 'file-name-label no-file';
-    noFile.textContent = 'Keine Datei';
-    wrap.appendChild(noFile);
     wrap.appendChild(uploadBtn);
   }
+
   return wrap;
 }
 
@@ -2326,19 +2886,29 @@ async function addNewAttachment(fileName, fileType, fileData) {
     content:  fileName || '',
     fileName: fileName || null,
     fileType: fileType || null,
-    fileData: fileData || null,   // ArrayBuffer — IndexedDB speichert Binärdaten nativ
+    fileData: fileData || null,   // ArrayBuffer - IndexedDB speichert Binaerdaten nativ
   };
   protocol.attachments = [...(protocol.attachments||[]), newAtt];
   await DB.Protocols.save(protocol);
   renderAttachments(protocol.attachments, protocol.number);
-  renderProtocolList(); // Büroklammer-Icon aktualisieren
+  renderProtocolList(); // Bueroklammer-Icon aktualisieren
 }
 
-/* Datei per Picker anhängen */
-let _pendingFileIdx = null; // Index der Anlage, für die gerade eine Datei gewählt wird
+/* [cleanup] */
+let _pendingFileIdx = null;          // Index der bestehenden Anlage, fÃ¼r die gerade eine Datei gewaehlt wird
+let _pendingNewAttachment = false;   // true: Picker stammt aus 'Datei auswÃ¤hlen' (neue Anlage)
 
 function openFilePicker(attachIdx) {
+  _pendingNewAttachment = false;
   _pendingFileIdx = attachIdx;
+  const input = document.getElementById('filePickerInput');
+  input.value = '';
+  input.click();
+}
+
+function openNewAttachmentFilePicker() {
+  _pendingNewAttachment = true;
+  _pendingFileIdx = null;
   const input = document.getElementById('filePickerInput');
   input.value = '';
   input.click();
@@ -2349,7 +2919,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 async function handleFileSelected(file, attachIdx) {
   if (!file) return;
   if (file.size > MAX_FILE_SIZE) {
-    showToast(`Datei zu groß (${(file.size/1024/1024).toFixed(1)} MB). Maximum: 5 MB.`, 'error');
+    showToast('Datei zu gross (' + (file.size/1024/1024).toFixed(1) + ' MB). Maximum: 5 MB.', 'error');
     return;
   }
   await saveCurrentProtocol();
@@ -2362,7 +2932,7 @@ async function handleFileSelected(file, attachIdx) {
   att.fileName = file.name;
   att.fileType = file.type;
   att.fileData = buffer;
-  if (!att.content) att.content = file.name; // Beschriftung vorausfüllen
+  if (!att.content) att.content = file.name; // Beschriftung vorausfuellen
 
   await DB.Protocols.save(protocol);
   renderAttachments(protocol.attachments, protocol.number);
@@ -2402,34 +2972,44 @@ function renderAbbrevList(participants, customAbbrevs) {
   container.innerHTML = '';
   const customs = customAbbrevs || [];
 
-  // Teilnehmer-Abkürzungen (read-only) — 3-spaltig
+  // [cleanup]
   const seen = new Map();
   participants.forEach(p => { if (p.abbr && !seen.has(p.abbr)) seen.set(p.abbr, p.company||''); });
-  if (seen.size) {
-    const grid = document.createElement('div');
-    grid.className = 'abbrev-grid';
-    seen.forEach((company, abbr) => {
-      const div = document.createElement('div');
-      div.className = 'abbrev-item';
-      div.innerHTML = `<span class="abbrev-code">${esc(abbr)}</span><span class="abbrev-name">${esc(company)}</span>`;
-      grid.appendChild(div);
-    });
-    container.appendChild(grid);
-  }
 
-  // Manuelle Abkürzungen (editierbar) — 3-spaltig
   const customGrid = document.createElement('div');
   customGrid.className = 'abbrev-custom-grid';
+
+  // Automatisch aus Teilnehmern erzeugte Abkuerzungen
+  seen.forEach((company, abbr) => {
+    const div = document.createElement('div');
+    div.className = 'abbrev-custom abbrev-custom-auto';
+    div.innerHTML = `
+      <span class="abbrev-pill abbrev-pill-code">${esc(abbr)}</span>
+      <span class="abbrev-pill abbrev-pill-name">${esc(company)}</span>`;
+    customGrid.appendChild(div);
+  });
+
+  // Manuelle Abkuerzungen
   customs.forEach((item, idx) => {
     const div = document.createElement('div');
     div.className = 'abbrev-custom';
     div.dataset.idx = idx;
     div.innerHTML = `
-      <input class="abbrev-input abbrev-input-code" value="${esc(item.abbr)}" data-field="abbr" placeholder="Kürzel" maxlength="6" />
+      <input class="abbrev-input abbrev-input-code" value="${esc(item.abbr)}" data-field="abbr" placeholder="Kuerzel" maxlength="6" />
       <input class="abbrev-input abbrev-input-name" value="${esc(item.name)}" data-field="name" placeholder="Bezeichnung" />
-      <button class="btn-delete-abbrev" data-action="deleteCustomAbbrev" data-idx="${idx}" title="Entfernen">${iconTrash()}</button>`;
-    div.querySelectorAll('input').forEach(inp => inp.addEventListener('change', saveCurrentProtocol));
-    div.querySelector('.btn-delete-abbrev').addEventListener('click', async () => {
+      <button type="button" class="btn-delete-abbrev" data-action="deleteCustomAbbrev" data-idx="${idx}" title="Entfernen">${iconTrash()}</button>`;
+    div.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('change', saveCurrentProtocol);
+      inp.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        e.stopPropagation();
+        inp.blur(); // bestaetigen + Pille verlassen
+      });
+    });
+    div.querySelector('.btn-delete-abbrev').addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const protocol = await DB.Protocols.get(App.currentProtocolId);
       if (!protocol) return;
       protocol.customAbbreviations = (protocol.customAbbreviations||[]).filter((_,i) => i !== idx);
@@ -2440,42 +3020,50 @@ function renderAbbrevList(participants, customAbbrevs) {
   });
   container.appendChild(customGrid);
 
-  // "+"-Button zum Hinzufügen
+  // [cleanup]
+  const addRow = document.createElement('div');
+  addRow.className = 'abbrev-add-row';
+
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'btn-add-abbrev';
-  addBtn.innerHTML = `<i data-lucide="plus"></i> Abkürzung hinzufügen`;
-  addBtn.addEventListener('click', async () => {
+  addBtn.innerHTML = `${iconPlus()} Abkuerzung hinzufuegen`;
+  addBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!App.currentProtocolId) return;
     const protocol = await DB.Protocols.get(App.currentProtocolId);
     if (!protocol) return;
-    protocol.customAbbreviations = [...(protocol.customAbbreviations||[]), { abbr:'', name:'' }];
+    const currentCustoms = getCustomAbbreviationsFromDOM();
+    protocol.customAbbreviations = [...currentCustoms, { abbr:'', name:'' }];
     await DB.Protocols.save(protocol);
-    renderAbbrevList(protocol.participants, protocol.customAbbreviations);
-    // Fokus auf das neue Kürzel-Feld
+    renderAbbrevList(protocol.participants || [], protocol.customAbbreviations || []);
+    // [cleanup]
     setTimeout(() => {
       const lastInput = container.querySelector('.abbrev-custom:last-child .abbrev-input-code');
       if (lastInput) lastInput.focus();
     }, 50);
   });
-  container.appendChild(addBtn);
+  addRow.appendChild(addBtn);
+  container.appendChild(addRow);
 
   if (seen.size === 0 && customs.length === 0) {
     const hint = document.createElement('span');
     hint.style.cssText = 'color:var(--text-tertiary);font-size:12px';
-    hint.textContent = 'Keine Abkürzungen erfasst.';
-    container.insertBefore(hint, addBtn);
+    hint.textContent = 'Keine Abkuerzungen erfasst.';
+    container.insertBefore(hint, addRow);
   }
 }
 
 function getCustomAbbreviationsFromDOM() {
-  return Array.from(document.querySelectorAll('#abbrevList .abbrev-custom')).map(div => ({
+  return Array.from(document.querySelectorAll('#abbrevList .abbrev-custom:not(.abbrev-custom-auto)')).map(div => ({
     abbr: div.querySelector('[data-field="abbr"]')?.value || '',
     name: div.querySelector('[data-field="name"]')?.value || '',
   }));
 }
 
 /* ============================================================
-   LÖSCHEN
+   LOESCHEN
 ============================================================ */
 async function deleteParticipant(idx) {
   const protocol = await DB.Protocols.get(App.currentProtocolId);
@@ -2503,7 +3091,7 @@ async function deleteAttachment(idx) {
   protocol.attachments.forEach((att, i) => { att.id = DB.generateAttachmentId(protocol.number, i+1); });
   await DB.Protocols.save(protocol);
   renderAttachments(protocol.attachments, protocol.number);
-  renderProtocolList(); // Büroklammer-Icon aktualisieren
+  renderProtocolList(); // Bueroklammer-Icon aktualisieren
 }
 
 /* ============================================================
@@ -2511,10 +3099,25 @@ async function deleteAttachment(idx) {
 ============================================================ */
 function bindGlobalEvents() {
 
-  document.getElementById('projectSelect').addEventListener('change', async (e) => {
-    if (e.target.value) await selectProject(e.target.value);
+  // SVG-Checkboxen in der Eingabe-Zeile initialisieren
+  function syncNewParticipantCheckbox(el) {
+    if (!el) return;
+    const checked = el.dataset.checked === '1';
+    el.innerHTML = checked ? iconSquareCheckBig() : iconSquare();
+  }
+
+  ['newParticipantAttended','newParticipantDistrib'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    syncNewParticipantCheckbox(el);
+    el.addEventListener('click', () => {
+      el.dataset.checked = el.dataset.checked === '1' ? '' : '1';
+      syncNewParticipantCheckbox(el);
+    });
   });
 
+  const btnReload = document.getElementById('btnReload');
+  if (btnReload) btnReload.addEventListener('click', () => { forceFreshReload(); });
   // Neues Projekt
   document.getElementById('btnNewProject').addEventListener('click', () => openModal('modalNewProject'));
   document.getElementById('btnSaveNewProject').addEventListener('click', async () => {
@@ -2523,8 +3126,8 @@ function bindGlobalEvents() {
     const address = document.getElementById('newProjectAddress').value.trim();
     const owner   = document.getElementById('newProjectOwner').value.trim();
     const tenant  = document.getElementById('newProjectTenant').value.trim();
-    if (!code || !name)              { showToast('Projektkürzel und Projektname sind Pflichtfelder.', 'error'); return; }
-    if (!/^[A-Z]{2,4}$/.test(code)) { showToast('Projektkürzel: 2–4 Großbuchstaben.', 'error'); return; }
+    if (!code || !name)              { showToast('ProjektkÃ¼rzel und Projektname sind Pflichtfelder.', 'error'); return; }
+    if (!/^[A-Z]{2,4}$/.test(code)) { showToast('ProjektkÃ¼rzel: 2-4 Grossbuchstaben.', 'error'); return; }
     const saved = await DB.Projects.save({ code, name, address, owner, tenant });
     App.projects.push(saved);
     renderProjectSelect();
@@ -2534,7 +3137,7 @@ function bindGlobalEvents() {
     showToast(`Projekt "${code}" angelegt.`, 'success');
   });
 
-  // Neues Protokoll — Modal kontextabhängig befüllen
+  // [cleanup]
   document.getElementById('btnNewProtocol').addEventListener('click', () => {
     const seriesGroup      = document.getElementById('seriesNameGroup');
     const continueFromGroup = document.getElementById('continueFromGroup');
@@ -2551,10 +3154,10 @@ function bindGlobalEvents() {
         continueChk.checked = true;
         const sName = latest.seriesName || latest.title || latest.type;
         document.getElementById('continueFromDisplay').textContent =
-          `${sName} – Nr. ${String(latest.number).padStart(2,'0')}`;
+          `${sName} - Nr. ${String(latest.number).padStart(2,'0')}`;
         continueFromGroup.classList.remove('hidden');
         seriesGroup.classList.add('hidden');
-        // Typ aus Serie übernehmen und sperren
+        // [cleanup]
         typeSelect.value = latest.type;
         typeSelect.disabled = true;
       } else {
@@ -2577,7 +3180,7 @@ function bindGlobalEvents() {
     if (e.target.checked && App.selectedSeriesId) {
       seriesGroup.classList.add('hidden');
       continueFromGroup.classList.remove('hidden');
-      // Typ aus Serie übernehmen und sperren
+      // [cleanup]
       const seriesProtos = App.protocols
         .filter(p => (p.seriesId || ('type:' + p.type)) === App.selectedSeriesId)
         .sort((a, b) => b.number - a.number);
@@ -2602,8 +3205,8 @@ function bindGlobalEvents() {
     await createProtocol(type, cont, seriesName, sourceKey);
   });
 
-  // Typ-Wechsel: Serienname leeren + Aktennotiz → Fortführen sperren
-  // (Nur aktiv wenn Typ-Select nicht gesperrt ist — bei Serienfortführung ist er disabled)
+  // [cleanup]
+  // [cleanup]
   document.getElementById('newProtocolType').addEventListener('change', () => {
     document.getElementById('newProtocolSeriesName').value = '';
     const type = document.getElementById('newProtocolType').value;
@@ -2638,24 +3241,25 @@ function bindGlobalEvents() {
   document.getElementById('btnSaveTopic').addEventListener('click', saveTopic);
   document.getElementById('topicLabel').addEventListener('keydown', (e) => { if (e.key==='Enter') saveTopic(); });
 
-  // Soft email validation für "Neuer Teilnehmer"-Feld
+  // [cleanup]
   const newEmailInput = document.getElementById('newParticipantEmail');
   if (newEmailInput) {
     newEmailInput.addEventListener('input', () => {
       const v = newEmailInput.value.trim();
-      newEmailInput.classList.toggle('email-warn', v.length > 0 && !v.includes('@'));
+      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+      newEmailInput.classList.toggle('email-warn', v.length > 0 && !valid);
     });
   }
 
-  // Teilnehmer hinzufügen
+  // [cleanup]
   document.getElementById('btnAddParticipant').addEventListener('click', async () => {
     const name     = document.getElementById('newParticipantName').value.trim();
     const company  = document.getElementById('newParticipantCompany').value.trim();
     const abbr     = document.getElementById('newParticipantAbbr').value.trim().toUpperCase();
     const email    = document.getElementById('newParticipantEmail').value.trim();
-    const attended = document.getElementById('newParticipantAttended').checked;
-    const inDistrib= document.getElementById('newParticipantDistrib').checked;
-    if (!name) { showToast('Bitte Name eintragen.', 'error'); return; }
+    const attended = document.getElementById('newParticipantAttended').dataset.checked === '1';
+    const inDistrib= document.getElementById('newParticipantDistrib').dataset.checked === '1';
+    if (!name) { showToast('Bitte Name eintragen.', 'warning'); return; }
     const protocol = await DB.Protocols.get(App.currentProtocolId);
     if (!protocol) return;
     protocol.participants = [...(protocol.participants||[]),
@@ -2666,32 +3270,50 @@ function bindGlobalEvents() {
     updateResponsibleDropdowns();
     ['newParticipantName','newParticipantCompany','newParticipantAbbr','newParticipantEmail']
       .forEach(id => { document.getElementById(id).value = ''; });
+    // [cleanup]
+    ['newParticipantAttended','newParticipantDistrib'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.dataset.checked = '1'; el.innerHTML = iconSquareCheckBig(); }
+    });
   });
   document.getElementById('newParticipantEmail').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('btnAddParticipant').click();
   });
 
   // Anlage: Leere Zeile
-  document.getElementById('btnAddAttachment').addEventListener('click', () => addNewAttachment());
+  const btnAddAttachment = document.getElementById('btnAddAttachment');
+  if (btnAddAttachment) btnAddAttachment.addEventListener('click', () => addNewAttachment());
 
   // Anlage: Datei-Picker
   document.getElementById('btnPickFile').addEventListener('click', async () => {
-    // Neue leere Anlage anlegen, dann Picker für diese öffnen
+    // [cleanup]
     if (!App.currentProtocolId) return;
     const protocol = await DB.Protocols.get(App.currentProtocolId);
     if (!protocol) return;
-    const newIdx = (protocol.attachments||[]).length;
-    // addNewAttachment ruft intern saveCurrentProtocol() auf
-    await addNewAttachment();
-    openFilePicker(newIdx);
+    openNewAttachmentFilePicker();
   });
 
   document.getElementById('filePickerInput').addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
-    if (file && _pendingFileIdx !== null) {
-      await handleFileSelected(file, _pendingFileIdx);
+    if (!file) return;
+
+    if (_pendingNewAttachment) {
+      if (file.size > MAX_FILE_SIZE) {
+        showToast('Datei zu gross (' + (file.size/1024/1024).toFixed(1) + ' MB). Maximum: 5 MB.', 'error');
+      } else {
+        const buffer = await file.arrayBuffer();
+        await addNewAttachment(file.name, file.type, buffer);
+      }
+      _pendingNewAttachment = false;
       _pendingFileIdx = null;
+      return;
     }
+
+    if (_pendingFileIdx !== null) {
+      await handleFileSelected(file, _pendingFileIdx);
+    }
+    _pendingFileIdx = null;
+    _pendingNewAttachment = false;
   });
 
   // Drag & Drop auf die Drop-Zone
@@ -2707,7 +3329,7 @@ function bindGlobalEvents() {
     const file = e.dataTransfer?.files?.[0];
     if (!file || !App.currentProtocolId) return;
     if (file.size > MAX_FILE_SIZE) {
-      showToast(`Datei zu groß (${(file.size/1024/1024).toFixed(1)} MB). Maximum: 5 MB.`, 'error');
+      showToast('Datei zu gross (' + (file.size/1024/1024).toFixed(1) + ' MB). Maximum: 5 MB.', 'error');
       return;
     }
     // Neue Anlage mit Datei anlegen
@@ -2715,13 +3337,14 @@ function bindGlobalEvents() {
     await addNewAttachment(file.name, file.type, buffer);
   });
 
-  // Protokoll löschen — mit klarem Hinweis
+  // [cleanup]
   document.getElementById('btnDeleteProtocol').addEventListener('click', async () => {
     if (!App.currentProtocolId) return;
-    const ok = confirm(
+    const ok = await appConfirm(
       'Obacht!\n\nDas Protokoll wird in den Papierkorb verschoben.\n' +
-      'Alle Protokollpunkte bleiben gespeichert und können über den Papierkorb wiederhergestellt werden.\n\n' +
-      'Bist du sicher?'
+      'Alle Protokollpunkte bleiben gespeichert und koennen ueber den Papierkorb wiederhergestellt werden.\n\n' +
+      'Bist du sicher?',
+      { title: 'Protokoll verschieben', confirmLabel: 'Verschieben', danger: true }
     );
     if (!ok) return;
     await DB.Protocols.trash(App.currentProtocolId);
@@ -2737,7 +3360,7 @@ function bindGlobalEvents() {
   // Duplikat speichern
   document.getElementById('btnSaveDuplicate').addEventListener('click', async () => {
     const name = document.getElementById('duplicateName').value.trim();
-    if (!name) { showToast('Bitte einen Namen für das Duplikat eingeben.', 'error'); return; }
+    if (!name) { showToast('Bitte einen Namen fÃ¼r das Duplikat eingeben.', 'error'); return; }
     if (!App._duplicatingProtocolId) return;
     closeModal('modalDuplicate');
     await duplicateProtocol(App._duplicatingProtocolId, name);
@@ -2753,10 +3376,9 @@ function bindGlobalEvents() {
     sb.style.width = '';
     sb.style.minWidth = '';
     sb.classList.toggle('collapsed');
-    const icon = document.querySelector('#btnToggleSidebar [data-lucide]');
+    const icon = document.querySelector('#btnToggleSidebar .kadra-icon');
     if (icon) {
-      icon.setAttribute('data-lucide', sb.classList.contains('collapsed') ? 'panel-left-open' : 'panel-left-close');
-      lucide.createIcons({ nodes: [icon] });
+      icon.outerHTML = sb.classList.contains('collapsed') ? iconPanelLeftOpen() : iconPanelLeftClose();
     }
   });
 
@@ -2795,11 +3417,17 @@ function bindGlobalEvents() {
     const action = btn.dataset.action;
 
     if (action === 'deleteParticipant') {
-      if (confirm('Teilnehmer entfernen?')) await deleteParticipant(parseInt(btn.dataset.idx, 10));
+      if (await appConfirm('Teilnehmer entfernen?', { title: 'Teilnehmer', confirmLabel: 'Entfernen', danger: true })) {
+        await deleteParticipant(parseInt(btn.dataset.idx, 10));
+      }
     } else if (action === 'deletePoint') {
-      if (confirm('Protokollpunkt unwiderruflich löschen?')) await deletePoint(btn.dataset.pointId);
+      if (await appConfirm('Protokollpunkt unwiderruflich löschen?', { title: 'Protokollpunkt', confirmLabel: 'Löschen', danger: true })) {
+        await deletePoint(btn.dataset.pointId);
+      }
     } else if (action === 'deleteAttachment') {
-      if (confirm('Anlage entfernen?')) await deleteAttachment(parseInt(btn.dataset.idx, 10));
+      if (await appConfirm('Anlage entfernen?', { title: 'Anlage', confirmLabel: 'Entfernen', danger: true })) {
+        await deleteAttachment(parseInt(btn.dataset.idx, 10));
+      }
     } else if (action === 'deleteChapter') {
       await deleteChapter(btn.dataset.chapter);
     } else if (action === 'deleteSubchapter') {
@@ -2811,12 +3439,12 @@ function bindGlobalEvents() {
 
   // Auto-Save Titelblock + Aufgestellt
   ['fieldDate','fieldTime','fieldLocation','fieldTenant','fieldLandlord',
-   'fieldAuthorFirstName','fieldAuthorLastName','fieldAuthorCompany','fieldAuthorDate'].forEach(id => {
+   'fieldAuthorName','fieldAuthorCompany','fieldAuthorDate','fieldAuthorSeen'].forEach(id => {
     document.getElementById(id).addEventListener('change', saveCurrentProtocol);
   });
   document.getElementById('fieldTitle').addEventListener('input', saveCurrentProtocol);
 
-  // Aufgestellt: Kalender-Button → hidden date input → Textfeld befüllen
+  // [cleanup]
   const authorDateInput  = document.getElementById('fieldAuthorDate');
   const authorCalBtn     = document.getElementById('btnAuthorDatePicker');
   const authorDateHidden = document.getElementById('authorDateHidden');
@@ -2840,14 +3468,42 @@ function bindGlobalEvents() {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(overlay.id); }));
 
   // Suche
-  document.getElementById('searchInput').addEventListener('input', (e) =>
-    filterProtocolList(e.target.value.trim().toLowerCase()));
+  const sidebarSearchInput = document.getElementById('searchInput');
+  const sidebarSearchClear = document.getElementById('btnSidebarSearchClear');
+  const updateSidebarSearchClear = () => {
+    if (!sidebarSearchInput || !sidebarSearchClear) return;
+    const hasValue = sidebarSearchInput.value.trim().length > 0;
+    sidebarSearchClear.classList.toggle('hidden', !hasValue);
+  };
+  sidebarSearchInput.addEventListener('input', (e) => {
+    filterProtocolList(e.target.value.trim().toLowerCase());
+    updateSidebarSearchClear();
+  });
+  if (sidebarSearchClear) {
+    sidebarSearchClear.addEventListener('click', () => {
+      sidebarSearchInput.value = '';
+      filterProtocolList('');
+      updateSidebarSearchClear();
+      sidebarSearchInput.focus();
+    });
+  }
+  updateSidebarSearchClear();
 
   // Quick-Save
   document.getElementById('btnQuickSave').addEventListener('click', () => quickSaveDB());
   _setupQuickSaveLabelEdit();
+  const btnSeriesToggle = document.getElementById('btnSeriesToggle');
+  if (btnSeriesToggle) {
+    btnSeriesToggle.addEventListener('click', () => {
+      App.collapsedSeriesSectionAll = !App.collapsedSeriesSectionAll;
+      renderProtocolList();
+    });
+  }
 
-  // Projekt-Menü + Löschen
+  // Projekt-Selector Dropdown (neues UI)
+  setupProjectSelector();
+
+  // [cleanup]
   setupProjectMenu();
   document.getElementById('btnConfirmDeleteProject').addEventListener('click', () => confirmDeleteProject());
   document.getElementById('btnExportBeforeDelete').addEventListener('click', () => exportProject());
@@ -2859,7 +3515,7 @@ function bindGlobalEvents() {
   document.getElementById('btnCloseTrash').addEventListener('click', () => closeTrash());
   document.getElementById('btnExportPdf').addEventListener('click', async () => {
     if (!App.currentProtocolId) {
-      showToast('Bitte zuerst ein Protokoll öffnen.', 'error');
+      showToast('Bitte zuerst ein Protokoll Ã¶ffnen.', 'error');
       return;
     }
     try {
@@ -2872,7 +3528,7 @@ function bindGlobalEvents() {
     }
   });
 
-  // JSON Export / Import (jetzt im ⋮-Menü)
+  // [cleanup]
   const fileInput = document.getElementById('fileImportJson');
   fileInput.addEventListener('change', () => {
     if (fileInput.files.length > 0) importProject(fileInput.files[0]);
@@ -2883,8 +3539,8 @@ function bindGlobalEvents() {
    DUPLIKAT
 ============================================================ */
 /**
- * Erstellt ein vollständiges Duplikat eines Protokolls:
- * - Neue seriesId (eigenständige Serie)
+ * [cleanup]
+ * [cleanup]
  * - neuer Name und Nummer 1
  * - Snapshots werden entfernt (keine Amendments im Duplikat)
  */
@@ -2893,7 +3549,7 @@ async function duplicateProtocol(protocolId, newName) {
   if (!source) return;
 
   const newSeriesId = DB.uuid();
-  // Deep-copy über JSON
+  // [cleanup]
   const copy = JSON.parse(JSON.stringify(source));
   delete copy.id;           // DB.Protocols.save erzeugt neue ID
   copy.seriesId   = newSeriesId;
@@ -2902,7 +3558,7 @@ async function duplicateProtocol(protocolId, newName) {
   copy.number     = 1;
   copy.deletedAt  = null;
   copy.date       = new Date().toISOString().slice(0, 10);
-  // Snapshots entfernen — Duplikat gilt als Ausgangsdokument
+  // [cleanup]
   copy.points = (copy.points || []).map(pt => {
     const { snapshot, ...rest } = pt;  // eslint-disable-line no-unused-vars
     return { ...rest, isNew: false, doneLastProtocol: false };
@@ -2919,7 +3575,25 @@ async function duplicateProtocol(protocolId, newName) {
    PAPIERKORB
 ============================================================ */
 
-/* ── Drei-Punkte-Menü (Projekt-Aktionen) ───────────────────── */
+/* [cleanup] */
+function setupProjectSelector() {
+  const btn   = document.getElementById('btnProjectSelector');
+  const panel = document.getElementById('projectSelectorPanel');
+  if (!btn || !panel) return;
+
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    panel.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', e => {
+    if (!panel.classList.contains('hidden') && !panel.contains(e.target) && !btn.contains(e.target)) {
+      panel.classList.add('hidden');
+    }
+  });
+}
+
+/* [cleanup] */
 function setupProjectMenu() {
   const btn   = document.getElementById('btnProjectMenu');
   const panel = document.getElementById('projectMenuPanel');
@@ -2940,16 +3614,37 @@ function setupProjectMenu() {
     openDeleteProjectModal();
   });
 
+  const btnNewProjectMenu = document.getElementById('btnNewProjectMenu');
+  if (btnNewProjectMenu) {
+    btnNewProjectMenu.addEventListener('click', () => {
+      panel.classList.add('hidden');
+      openModal('modalNewProject');
+    });
+  }
+
   document.getElementById('btnAppInfo').addEventListener('click', () => {
     panel.classList.add('hidden');
     document.getElementById('appInfoVersion').textContent = 'Version ' + APP_VERSION;
     openModal('modalAppInfo');
   });
 
-  document.querySelector('.sidebar-logo').addEventListener('click', () => {
-    document.getElementById('appInfoVersion').textContent = 'Version ' + APP_VERSION;
-    openModal('modalAppInfo');
-  });
+  const btnSettings = document.getElementById('btnSettings');
+  if (btnSettings) {
+    btnSettings.addEventListener('click', () => {
+      panel.classList.add('hidden');
+      // Platzhalter: Einstellungen folgen spaeter.
+    });
+  }
+
+  // [cleanup]
+  const _logoEl = document.querySelector('.sidebar-logo-img');
+  if (_logoEl) {
+    _logoEl.style.cursor = 'pointer';
+    _logoEl.addEventListener('click', () => {
+      document.getElementById('appInfoVersion').textContent = 'Version ' + APP_VERSION;
+      openModal('modalAppInfo');
+    });
+  }
 
   document.getElementById('btnLogout').addEventListener('click', () => {
     panel.classList.add('hidden');
@@ -2957,7 +3652,7 @@ function setupProjectMenu() {
     location.reload();
   });
 
-  // Datenbank schließen
+  // [cleanup]
   document.getElementById('btnCloseDatabase').addEventListener('click', () => {
     panel.classList.add('hidden');
     openModal('modalCloseDatabase');
@@ -2988,23 +3683,35 @@ function setupProjectMenu() {
 
   // Projekt importieren
   const projFileInput = document.getElementById('fileImportJson');
-  document.getElementById('btnImportProject').addEventListener('click', () => {
-    panel.classList.add('hidden');
-    projFileInput.value = '';
-    projFileInput.click();
-  });
+  const _btnImportProj = document.getElementById('btnImportProjectSelector') || document.getElementById('btnImportProject');
+  if (_btnImportProj) {
+    _btnImportProj.addEventListener('click', () => {
+      panel.classList.add('hidden');
+      projFileInput.value = '';
+      projFileInput.click();
+    });
+  }
 
   // meetjamie Import
   const jamieMdInput = document.getElementById('fileImportJamieMd');
   const jamieBtn = document.getElementById('btnImportJamieSidebar');
+  const isMarkdownFile = (file) => !!file && /\.md$/i.test(file.name || '');
+  const handleJamieSidebarFile = (file) => {
+    if (!file) return;
+    if (!isMarkdownFile(file)) {
+      showToast('Bitte eine .md-Datei importieren.', 'error');
+      return;
+    }
+    openJamieImportModal(file);
+  };
 
   jamieBtn.addEventListener('click', () => {
-    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt öffnen.', 'error'); return; }
+    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt Ã¶ffnen.', 'error'); return; }
     jamieMdInput.value = '';
     jamieMdInput.click();
   });
   jamieMdInput.addEventListener('change', () => {
-    if (jamieMdInput.files.length > 0) openJamieImportModal(jamieMdInput.files[0]);
+    if (jamieMdInput.files.length > 0) handleJamieSidebarFile(jamieMdInput.files[0]);
   });
 
   // Drag & Drop direkt auf den Import-Button
@@ -3016,9 +3723,9 @@ function setupProjectMenu() {
   jamieBtn.addEventListener('drop', (e) => {
     e.preventDefault();
     jamieBtn.classList.remove('drag-over');
-    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt öffnen.', 'error'); return; }
+    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt Ã¶ffnen.', 'error'); return; }
     const f = e.dataTransfer.files[0];
-    if (f) openJamieImportModal(f);
+    handleJamieSidebarFile(f);
   });
 
   // Jamie Modal: Datei-Drop-Zone klickbar machen
@@ -3056,13 +3763,13 @@ function setupProjectMenu() {
 
 function openDeleteProjectModal() {
   if (!App.currentProjectId) {
-    showToast('Bitte zuerst ein Projekt auswählen.', 'error');
+    showToast('Bitte zuerst ein Projekt auswÃ¤hlen.', 'error');
     return;
   }
   const project = App.projects.find(p => p.id === App.currentProjectId);
   if (!project) return;
   document.getElementById('deleteProjectLabel').textContent =
-    `${project.code}${project.name ? ' — ' + project.name : ''}`;
+    `${project.code}${project.name ? ' - ' + project.name : ''}`;
   openModal('modalDeleteProject');
 }
 
@@ -3070,7 +3777,7 @@ async function confirmDeleteProject() {
   if (!App.currentProjectId) return;
   const project = App.projects.find(p => p.id === App.currentProjectId);
   if (!project) return;
-  const label = project.code + (project.name ? ' — ' + project.name : '');
+  const label = project.code + (project.name ? ' - ' + project.name : '');
 
   // Alle Protokolle des Projekts soft-deleten
   const allProtocols = await DB.Protocols.getByProject(App.currentProjectId);
@@ -3088,9 +3795,9 @@ async function confirmDeleteProject() {
   localStorage.removeItem('lastProtocolId');
   App.projects = await DB.Projects.getAll();
   renderProjectSelect();
-  document.getElementById('projectSelect').value = '';
+  const _lbl = document.getElementById('projectSelectorLabel'); if (_lbl) _lbl.textContent = 'Projekt w\u00e4hlen...';
   document.getElementById('protocolList').innerHTML =
-    '<div class="empty-state-sidebar"><p>Kein Projekt ausgewählt.</p></div>';
+    '<div class="empty-state-sidebar"><p>Kein Projekt ausgewaehlt.</p></div>';
   document.getElementById('emptyState').classList.remove('hidden');
   document.getElementById('protocolView').classList.add('hidden');
   document.getElementById('workspaceToolbar').classList.add('hidden');
@@ -3107,7 +3814,7 @@ async function confirmCloseDatabase() {
   await DB.deleteDatabase();
   await DB.openDB();
 
-  // App-State zurücksetzen
+  // [cleanup]
   App.currentProjectId  = null;
   App.currentProtocolId = null;
   App.projects  = [];
@@ -3128,14 +3835,14 @@ async function confirmCloseDatabase() {
   localStorage.removeItem('lastProjectId');
   localStorage.removeItem('lastProtocolId');
 
-  // Quick-Save-Label zurücksetzen
-  _updateQuickSaveLabel('—');
+  // [cleanup]
+  _updateQuickSaveLabel('-');
 
   // UI: sauberer Zustand
   renderProjectSelect();
-  document.getElementById('projectSelect').value = '';
+  const _lbl = document.getElementById('projectSelectorLabel'); if (_lbl) _lbl.textContent = 'Projekt w\u00e4hlen...';
   document.getElementById('protocolList').innerHTML =
-    '<div class="empty-state-sidebar"><p>Kein Projekt ausgewählt.</p></div>';
+    '<div class="empty-state-sidebar"><p>Kein Projekt ausgewaehlt.</p></div>';
   document.getElementById('emptyState').classList.remove('hidden');
   document.getElementById('protocolView').classList.add('hidden');
   document.getElementById('workspaceToolbar').classList.add('hidden');
@@ -3143,7 +3850,7 @@ async function confirmCloseDatabase() {
   document.getElementById('btnImportJamieSidebar').disabled = true;
 
   closeModal('modalCloseDatabase');
-  showToast('Datenbank geschlossen — alle Daten gelöscht.', 'success');
+  showToast('Datenbank geschlossen - alle Daten geloescht.', 'success');
 }
 
 async function openTrash() {
@@ -3156,7 +3863,7 @@ function closeTrash() {
 }
 
 async function renderTrash() {
-  // ── Gelöschte Projekte ──
+  // [cleanup]
   const projContainer = document.getElementById('trashProjectList');
   const divider       = document.getElementById('trashDivider');
   projContainer.innerHTML = '';
@@ -3166,13 +3873,13 @@ async function renderTrash() {
     trashedProjects.sort((a, b) => b.deletedAt - a.deletedAt).forEach(proj => {
       const item = document.createElement('div');
       item.className = 'trash-item';
-      const label = proj.code + (proj.name ? ' — ' + proj.name : '');
+      const label = proj.code + (proj.name ? ' - ' + proj.name : '');
       const deletedDate = new Date(proj.deletedAt).toLocaleDateString('de-DE', {
         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
       });
       item.innerHTML = `
         <div class="trash-item-title">${esc(label)}</div>
-        <div class="trash-item-meta">Projekt · Gelöscht: ${deletedDate}</div>
+        <div class="trash-item-meta">Projekt - Geloescht: ${deletedDate}</div>
         <div class="trash-item-actions"></div>`;
       const actions = item.querySelector('.trash-item-actions');
 
@@ -3181,7 +3888,7 @@ async function renderTrash() {
       restoreBtn.textContent = 'Wiederherstellen';
       restoreBtn.addEventListener('click', async () => {
         await DB.Projects.restore(proj.id);
-        // Alle zugehörigen Protokolle wiederherstellen
+        // [cleanup]
         const allProto = await DB.Protocols.getByProject(proj.id);
         for (const p of allProto) {
           if (p.deletedAt) await DB.Protocols.restore(p.id);
@@ -3194,15 +3901,19 @@ async function renderTrash() {
 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'trash-action-btn delete-permanent';
-      deleteBtn.textContent = 'Endgültig löschen';
+      deleteBtn.textContent = 'Final löschen';
       deleteBtn.addEventListener('click', async () => {
-        if (!confirm(`Projekt "${label}" mit allen Protokollen endgültig löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden.`)) return;
-        // Alle Protokolle des Projekts endgültig löschen
+        if (!(await appConfirm(`Projekt "${label}" mit allen Protokollen final löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden.`, {
+          title: 'Final löschen',
+          confirmLabel: 'Final löschen',
+          danger: true,
+        }))) return;
+        // [cleanup]
         const allProto = await DB.Protocols.getByProject(proj.id);
         for (const p of allProto) await DB.Protocols.delete(p.id);
         await DB.Projects.delete(proj.id);
         await renderTrash();
-        showToast(`Projekt "${label}" endgültig gelöscht.`, '');
+        showToast('Projekt "' + label + '" endgültig gelöscht.', '');
       });
 
       actions.appendChild(restoreBtn);
@@ -3214,11 +3925,11 @@ async function renderTrash() {
     divider.classList.add('hidden');
   }
 
-  // ── Gelöschte Protokolle (aktuelles Projekt) ──
+  // [cleanup]
   const container = document.getElementById('trashList');
   container.innerHTML = '';
 
-  // Protokolle aus aktuellem Projekt UND aus gelöschten Projekten anzeigen
+  // [cleanup]
   let trashed = [];
   if (App.currentProjectId) {
     const all = await DB.Protocols.getByProject(App.currentProjectId);
@@ -3246,7 +3957,7 @@ async function renderTrash() {
 
     item.innerHTML = `
       <div class="trash-item-title">${esc(label)}</div>
-      <div class="trash-item-meta">Gelöscht: ${deletedDate}</div>
+      <div class="trash-item-meta">Geloescht: ${deletedDate}</div>
       <div class="trash-item-actions"></div>`;
 
     const actions = item.querySelector('.trash-item-actions');
@@ -3264,12 +3975,16 @@ async function renderTrash() {
 
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'trash-action-btn delete-permanent';
-    deleteBtn.textContent = 'Endgültig löschen';
-    deleteBtn.addEventListener('click', async () => {
-      if (!confirm(`"${label}" endgültig löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden.`)) return;
+      deleteBtn.textContent = 'Final löschen';
+      deleteBtn.addEventListener('click', async () => {
+      if (!(await appConfirm(`"${label}" final löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden.`, {
+        title: 'Final löschen',
+        confirmLabel: 'Final löschen',
+        danger: true,
+      }))) return;
       await DB.Protocols.delete(proto.id);
       await renderTrash();
-      showToast(`"${label}" endgültig gelöscht.`, '');
+      showToast('"' + label + '" endgültig gelöscht.', '');
     });
 
     actions.appendChild(restoreBtn);
@@ -3287,7 +4002,7 @@ async function renderTrash() {
  */
 async function exportProject() {
   if (!App.currentProjectId) {
-    showToast('Bitte zuerst ein Projekt auswählen.', 'error');
+    showToast('Bitte zuerst ein Projekt auswÃ¤hlen.', 'error');
     return;
   }
   const project = await DB.Projects.get(App.currentProjectId);
@@ -3320,7 +4035,7 @@ async function exportProject() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  showToast(`Export: ${project.code} — ${allProtocols.length} Protokoll(e).`, 'success');
+  showToast('Export: ' + project.code + ' - ' + allProtocols.length + ' Protokoll(e).', 'success');
 }
 
 /* ============================================================
@@ -3331,14 +4046,14 @@ async function exportProject() {
  * Parst eine meetjamie-Markdown-Datei und erstellt daraus eine KADRA-Aktennotiz.
  *
  * Regeln:
- *   # Titel          → Protokolltitel (zurückgegeben als docTitle)
- *   ## / ### Heading → neuer Abschnitt (außer ignorierte und Task-Blöcke)
+ * [cleanup]
+ * [cleanup]
  *   Ignoriert:       ## Executive Summary, ## Full Summary (nur als Wrapper-Marker)
- *   Task-Blöcke:     ## Aufgaben / Als Nächstes / Nächste Schritte / Tasks → Kapitel N
- *   Bullet - Text    → 1 Punkt pro Bullet
- *   Sub-Bullet         → an übergeordneten Punkt angehängt
- *   Fließtext        → 1 Punkt pro Absatz (Leerzeile = neuer Punkt)
- *   Checkboxen       → immer Tasks, egal wo im Dokument
+ * [cleanup]
+ * [cleanup]
+ * [cleanup]
+ * [cleanup]
+ * [cleanup]
  */
 function parseJamieMarkdown(text) {
   const lines = text.split('\n');
@@ -3372,13 +4087,13 @@ function parseJamieMarkdown(text) {
   let inTasks = false;
   let currentSection = null;
   let lastMainBullet = null;
-  let pendingFließtext = ''; // sammelt aufeinanderfolgende Fließtextzeilen eines Absatzes
+  let pendingFliesstext = ''; // sammelt aufeinanderfolgende Fliesstextzeilen eines Absatzes
 
   function stripBold(s) { return s.replace(/\*\*([^*]+)\*\*/g, '$1'); }
 
-  function flushFließtext() {
-    const t = pendingFließtext.trim();
-    pendingFließtext = '';
+  function flushFliesstext() {
+    const t = pendingFliesstext.trim();
+    pendingFliesstext = '';
     if (!t || !currentSection) return;
     currentSection.points.push({ content: t, category: 'Info', responsible: '' });
     lastMainBullet = currentSection.points.length - 1;
@@ -3396,40 +4111,40 @@ function parseJamieMarkdown(text) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trimEnd();
 
-    // Checkbox → immer Task, egal in welchem Block
+    // [cleanup]
     const task = parseTask(line);
-    if (task) { flushFließtext(); tasks.push(task); continue; }
+    if (task) { flushFliesstext(); tasks.push(task); continue; }
 
-    // Task-Block-Überschrift
-    if (/^##\s+(Tasks?|Aufgaben|Als N[äa]chstes?|N[äa]chste Schritte)\b/i.test(line)) {
-      flushFließtext();
+    // [cleanup]
+    if (/^##\s+(Tasks?|Aufgaben|Als N(a|ae)chstes?|N(a|ae)chste Schritte)\b/i.test(line)) {
+      flushFliesstext();
       inTasks = true; inContent = false; currentSection = null; lastMainBullet = null;
       continue;
     }
 
-    // # Titel (H1) → Dokumenttitel
+    // [cleanup]
     if (/^#\s+/.test(line)) {
       docTitle = line.replace(/^#\s+/, '').trim();
       continue;
     }
 
-    // Full Summary → Content-Modus ein
+    // [cleanup]
     if (/^##\s+Full Summary/i.test(line)) {
-      flushFließtext();
+      flushFliesstext();
       inContent = true; inTasks = false; currentSection = null; lastMainBullet = null;
       continue;
     }
 
     // Ignorierte Sektionen
     if (/^##\s+(Executive Summary)\b/i.test(line)) {
-      flushFließtext();
+      flushFliesstext();
       inContent = false; inTasks = false; currentSection = null;
       continue;
     }
 
-    // ## / ### Überschrift → neuer Abschnitt
+    // [cleanup]
     if (/^#{2,3}\s+/.test(line)) {
-      flushFließtext();
+      flushFliesstext();
       if (!inTasks) {
         inContent = true;
         const title = line.replace(/^#{2,3}\s+/, '').trim();
@@ -3442,26 +4157,26 @@ function parseJamieMarkdown(text) {
 
     if (!inContent || !currentSection) continue;
 
-    // Leerzeile → Absatzende → Fließtext flushen (neuer Punkt)
+    // [cleanup]
     if (line === '') {
-      flushFließtext();
+      flushFliesstext();
       lastMainBullet = null;
       continue;
     }
 
-    // Eingerückter Sub-Bullet
+    // [cleanup]
     const subBullet = line.match(/^[ \t]{2,}-\s+(.*)/);
     if (subBullet && lastMainBullet !== null) {
-      flushFließtext();
+      flushFliesstext();
       const subContent = stripBold(subBullet[1]).trim();
       if (subContent) currentSection.points[lastMainBullet].content += '\n- ' + subContent;
       continue;
     }
 
-    // Haupt-Bullet → eigener Punkt
+    // [cleanup]
     const mainBullet = line.match(/^-\s+(.*)/);
     if (mainBullet) {
-      flushFließtext();
+      flushFliesstext();
       const content = stripBold(mainBullet[1]).trim();
       if (content) {
         currentSection.points.push({ content, category: 'Info', responsible: '' });
@@ -3470,20 +4185,20 @@ function parseJamieMarkdown(text) {
       continue;
     }
 
-    // Fließtext → sammeln (Leerzeile oder nächste Überschrift beendet Absatz)
+    // [cleanup]
     const trimmed = stripBold(line).trim();
     if (trimmed) {
-      pendingFließtext += (pendingFließtext ? ' ' : '') + trimmed;
+      pendingFliesstext += (pendingFliesstext ? ' ' : '') + trimmed;
     }
   }
 
-  flushFließtext(); // letzten Absatz sichern
+  flushFliesstext(); // letzten Absatz sichern
 
   return { sections, tasks, docTitle, docDate, docTime, docParticipants };
 }
 
 /**
- * Öffnet den Jamie-Import-Dialog.
+ * [cleanup]
  * Liest die Datei vor und extrahiert # H1-Titel (Vorrang) oder Dateinamen als Titel-Vorschlag.
  */
 async function openJamieImportModal(file) {
@@ -3499,7 +4214,7 @@ async function openJamieImportModal(file) {
     const { docTitle, docDate, docParticipants } = parseJamieMarkdown(text);
     if (docTitle) titleVal = docTitle;
     if (docDate) dateVal = docDate;
-    // Datei für späteren Import cachen (inkl. Teilnehmer)
+    // [cleanup]
     document.getElementById('jamieImportFile')._pendingFile = file;
     document.getElementById('jamieImportFile')._pendingText = text;
     document.getElementById('jamieImportFile')._pendingParticipants = docParticipants;
@@ -3523,13 +4238,13 @@ async function openJamieImportModal(file) {
  */
 async function importJamieMarkdown() {
   if (!App.currentProjectId) {
-    showToast('Kein Projekt geöffnet.', 'error');
+    showToast('Kein Projekt geÃ¶ffnet.', 'error');
     return;
   }
 
   const fileInput = document.getElementById('jamieImportFile');
   const file = fileInput._pendingFile;
-  if (!file) { showToast('Keine Datei ausgewählt.', 'error'); return; }
+  if (!file) { showToast('Keine Datei ausgewaehlt.', 'error'); return; }
 
   const title        = document.getElementById('jamieImportTitle').value.trim();
   const date         = document.getElementById('jamieImportDate').value;
@@ -3552,11 +4267,11 @@ async function importJamieMarkdown() {
   const project = App.projects.find(p => p.id === App.currentProjectId) || {};
 
   // Struktur aufbauen: P + A-Abschnitte aus Full Summary + N
-  const structure = { P: { label: 'Präambel', subchapters: [] } };
+  const structure = { P: { label: 'Praeambel', subchapters: [] } };
   const chKeys = [];
   let charCode = 65; // A
   for (const sec of sections) {
-    // P und N überspringen (reserviert)
+    // [cleanup]
     while (charCode === 78 || charCode === 80) charCode++; // N=78, P=80
     if (charCode > 90) break;
     const key = String.fromCharCode(charCode);
@@ -3564,7 +4279,7 @@ async function importJamieMarkdown() {
     chKeys.push(key);
     charCode++;
   }
-  structure['N'] = { label: 'Nächste Schritte', subchapters: [] };
+  structure['N'] = { label: 'Naechste Schritte', subchapters: [] };
 
   // Punkte erzeugen
   const points = [];
@@ -3586,7 +4301,7 @@ async function importJamieMarkdown() {
     });
   }
 
-  // Tasks → Kapitel N
+  // [cleanup]
   tasks.forEach((t, idx) => {
     points.push({
       id: `N.${String(idx + 1).padStart(2, '0')}`,
@@ -3625,7 +4340,7 @@ async function importJamieMarkdown() {
     points,
     attachments: [],
     deletedAt: null,
-    author: { firstName: 'Olaf', lastName: 'Schüler', company: 'Hopro GmbH & Co. KG', date: '' },
+    author: { name: 'Olaf Schueler', firstName: 'Olaf', lastName: 'Schueler', company: 'Hopro GmbH & Co. KG', date: '', seen: '' },
     customAbbreviations: [],
   };
 
@@ -3642,7 +4357,7 @@ async function importJamieMarkdown() {
 
 /**
  * Importiert ein Projekt + Protokolle aus einer JSON-Backup-Datei.
- * Bestehende Daten mit gleicher ID werden überschrieben.
+ * [cleanup]
  */
 async function importProject(file) {
   let data;
@@ -3650,28 +4365,29 @@ async function importProject(file) {
     const text = await file.text();
     data = JSON.parse(text);
   } catch {
-    showToast('Datei konnte nicht gelesen werden. Ungültiges JSON.', 'error');
+    showToast('Datei konnte nicht gelesen werden. Ungueltiges JSON.', 'error');
     return;
   }
 
   // Validierung
   if (!data._format || data._format !== 'ProtokollApp-Backup' || !data.project || !data.protocols) {
-    showToast('Ungültiges Backup-Format.', 'error');
+    showToast('Ungueltiges Backup-Format.', 'error');
     return;
   }
 
   const proj = data.project;
   if (!proj.id || !proj.code) {
-    showToast('Projekt-Daten unvollständig.', 'error');
+    showToast('Projekt-Daten unvollstaendig.', 'error');
     return;
   }
 
-  // Prüfen ob Projekt mit gleicher ID bereits existiert
+  // [cleanup]
   const existing = await DB.Projects.get(proj.id);
   if (existing) {
-    const ok = confirm(
-      `Projekt „${existing.code}" existiert bereits.\n` +
-      `Überschreiben mit Import-Daten (${data.protocols.length} Protokolle)?`
+    const ok = await appConfirm(
+      `Projekt "${existing.code}" existiert bereits.\n` +
+      `Ueberschreiben mit Import-Daten (${data.protocols.length} Protokolle)?`,
+      { title: 'Import bestaetigen', confirmLabel: 'Ueberschreiben', danger: true }
     );
     if (!ok) return;
   }
@@ -3679,7 +4395,7 @@ async function importProject(file) {
   // Projekt speichern
   await DB.Projects.save(proj);
 
-  // Datei-Anlagen wiederherstellen (Base64 → ArrayBuffer)
+  // [cleanup]
   restoreProtocolFiles(data.protocols);
 
   // Protokolle speichern
@@ -3696,7 +4412,7 @@ async function importProject(file) {
   renderProjectSelect();
   await selectProject(proj.id);
 
-  showToast(`Import: ${proj.code} — ${count} Protokoll(e) importiert.`, 'success');
+  showToast('Import: ' + proj.code + ' - ' + count + ' Protokoll(e) importiert.', 'success');
 }
 
 /* ============================================================
@@ -3739,27 +4455,27 @@ function _backupFileName() {
 
 /** Aktualisiert die Dateiname-Anzeige in der Sidebar. */
 function _updateQuickSaveLabel(fileName) {
-  App._saveFileName = fileName;
+  App._saveFileName = fileName || '-';
   const label = document.getElementById('quickSaveLabel');
   if (label) {
-    label.textContent = fileName;
+    label.textContent = (fileName && fileName !== '-') ? fileName : 'Dateiname.json';
     label.title       = 'Dateinamen der letzten Speicherung eingeben';
   }
-  // Persistieren für Reload
-  if (fileName && fileName !== '—') {
+  // [cleanup]
+  if (fileName && fileName !== '-') {
     localStorage.setItem('kadra_saveFileName', fileName);
   } else {
     localStorage.removeItem('kadra_saveFileName');
   }
 }
 
-/** Label klickbar machen → Inline-Edit für Dateinamen. */
+/* [cleanup] */
 function _setupQuickSaveLabelEdit() {
   const label = document.getElementById('quickSaveLabel');
   if (!label) return;
 
   label.addEventListener('click', () => {
-    if (!App._saveFileName || App._saveFileName === '—') return;
+    if (!App._saveFileName || App._saveFileName === '-') return;
 
     const input = document.createElement('input');
     input.type  = 'text';
@@ -3770,7 +4486,7 @@ function _setupQuickSaveLabelEdit() {
       const val = input.value.trim();
       if (val && val !== App._saveFileName) {
         App._saveFileName = val;
-        App._saveFileHandle = null; // Handle passt nicht mehr → Reset
+        App._saveFileHandle = null; // Handle passt nicht mehr -> Reset
       }
       label.textContent = App._saveFileName;
       label.title       = 'Dateinamen der letzten Speicherung eingeben';
@@ -3792,14 +4508,14 @@ function _setupQuickSaveLabelEdit() {
 }
 
 /**
- * Datenbank exportieren (Drei-Punkte-Menü).
+ * [cleanup]
  * Erzeugt IMMER einen neuen Dateinamen und Download-Dialog.
  */
 async function exportFullDB() {
   const { blob, projectCount, protocolCount } = await _buildBackup();
   const fileName = _backupFileName();
 
-  // File System Access API verfügbar? → Speicherdialog
+  // [cleanup]
   if (window.showSaveFilePicker) {
     try {
       const handle = await window.showSaveFilePicker({
@@ -3809,7 +4525,7 @@ async function exportFullDB() {
       const writable = await handle.createWritable();
       await writable.write(blob);
       await writable.close();
-      // Handle für Quick-Save merken
+      // [cleanup]
       App._saveFileHandle = handle;
       _updateQuickSaveLabel(handle.name);
       showToast(`Exportiert: ${projectCount} Projekt(e), ${protocolCount} Protokoll(e).`, 'success');
@@ -3835,12 +4551,12 @@ async function exportFullDB() {
 /**
  * Quick-Save (Speicher-Button in der Sidebar).
  * - Erster Klick: wie exportFullDB() (Dialog / Download)
- * - Weitere Klicks: still in dieselbe Datei schreiben (wenn File System Access API verfügbar)
+ * [cleanup]
  */
 async function quickSaveDB() {
   const { blob, projectCount, protocolCount } = await _buildBackup();
 
-  // Wenn wir schon ein File-Handle haben → still überschreiben
+  // [cleanup]
   if (App._saveFileHandle) {
     try {
       const writable = await App._saveFileHandle.createWritable();
@@ -3853,12 +4569,12 @@ async function quickSaveDB() {
       showToast(`Gespeichert: ${projectCount} Projekt(e), ${protocolCount} Protokoll(e).`, 'success');
       return;
     } catch (err) {
-      // Handle ungültig geworden (Datei gelöscht etc.) → zurücksetzen
+      // [cleanup]
       App._saveFileHandle = null;
     }
   }
 
-  // Kein Handle → File System Access API verfügbar?
+  // [cleanup]
   if (window.showSaveFilePicker) {
     try {
       const fileName = App._saveFileName || _backupFileName();
@@ -3906,24 +4622,26 @@ async function importFullDB(file) {
     const text = await file.text();
     data = JSON.parse(text);
   } catch {
-    showToast('Datei konnte nicht gelesen werden. Ungültiges JSON.', 'error');
+    showToast('Datei konnte nicht gelesen werden. Ungueltiges JSON.', 'error');
     return;
   }
 
   // Validierung
   if (!data._format || data._format !== 'KADRA-FullBackup') {
-    showToast('Ungültiges Backup-Format. Erwartet: KADRA-FullBackup.', 'error');
+    showToast('Ungueltiges Backup-Format. Erwartet: KADRA-FullBackup.', 'error');
     return;
   }
   if (!Array.isArray(data.projects) || !Array.isArray(data.protocols)) {
-    showToast('Backup-Daten unvollständig (projects/protocols fehlen).', 'error');
+    showToast('Backup-Daten unvollstaendig (projects/protocols fehlen).', 'error');
     return;
   }
 
-  const ok = confirm(
+  const ok = await appConfirm(
     `Datenbank-Import:\n` +
     `${data.projects.length} Projekt(e) und ${data.protocols.length} Protokoll(e).\n\n` +
-    `Bestehende Daten mit gleicher ID werden überschrieben.\nFortfahren?`
+    `Bestehende Daten mit gleicher ID werden ueberschrieben.\nFortfahren?`
+    ,
+    { title: 'Datenbank-Import', confirmLabel: 'Fortfahren', danger: true }
   );
   if (!ok) return;
 
@@ -3936,7 +4654,7 @@ async function importFullDB(file) {
     }
   }
 
-  // Datei-Anlagen wiederherstellen (Base64 → ArrayBuffer)
+  // [cleanup]
   restoreProtocolFiles(data.protocols);
 
   // Protokolle importieren
@@ -3952,13 +4670,13 @@ async function importFullDB(file) {
   App.projects = await DB.Projects.getAll();
   renderProjectSelect();
 
-  // Falls ein Projekt ausgewählt war, Sidebar aktualisieren
+  // [cleanup]
   if (App.currentProjectId) {
     App.protocols = await DB.Protocols.getActiveByProject(App.currentProjectId);
     renderProtocolList();
   }
 
-  // Dateiname in Quick-Save-Label übernehmen
+  // [cleanup]
   _updateQuickSaveLabel(file.name);
 
   showToast(`Import: ${pCount} Projekt(e), ${prCount} Protokoll(e) importiert.`, 'success');
@@ -3968,7 +4686,7 @@ async function importFullDB(file) {
    UTILS
 ============================================================ */
 
-/** ArrayBuffer → Base64-String (für JSON-Export von Datei-Anlagen) */
+/* [cleanup] */
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -3976,7 +4694,7 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
-/** Base64-String → ArrayBuffer (für JSON-Import von Datei-Anlagen) */
+/* [cleanup] */
 function base64ToArrayBuffer(base64) {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -3984,7 +4702,7 @@ function base64ToArrayBuffer(base64) {
   return bytes.buffer;
 }
 
-/** Bereitet Protokoll-Array für JSON-Export vor (fileData → Base64) */
+/* [cleanup] */
 function prepareProtocolsForExport(protocols) {
   return protocols.map(proto => {
     if (!proto.attachments?.length) return proto;
@@ -3996,7 +4714,7 @@ function prepareProtocolsForExport(protocols) {
   });
 }
 
-/** Stellt Datei-Anlagen nach JSON-Import wieder her (Base64 → ArrayBuffer) */
+/* [cleanup] */
 function restoreProtocolFiles(protocols) {
   for (const proto of protocols) {
     if (!proto.attachments?.length) continue;
@@ -4018,6 +4736,67 @@ function filterProtocolList(query) {
 function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
+async function appConfirm(message, opts = {}) {
+  const {
+    title = 'Bestätigen',
+    confirmLabel = 'OK',
+    cancelLabel = 'Abbrechen',
+    danger = false,
+  } = opts;
+
+  const modal = document.getElementById('modalConfirm');
+  const titleEl = document.getElementById('confirmModalTitle');
+  const msgEl = document.getElementById('confirmModalMessage');
+  const btnOk = document.getElementById('btnConfirmDialogOk');
+  const btnCancel = document.getElementById('btnConfirmDialogCancel');
+  const btnClose = document.getElementById('btnConfirmDialogClose');
+
+  if (!modal || !titleEl || !msgEl || !btnOk || !btnCancel || !btnClose) {
+    return confirm(message);
+  }
+
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+  btnOk.textContent = confirmLabel;
+  btnCancel.textContent = cancelLabel;
+  btnOk.classList.remove('btn-primary', 'btn-danger');
+  btnOk.classList.add(danger ? 'btn-danger' : 'btn-primary');
+
+  openModal('modalConfirm');
+
+  return await new Promise((resolve) => {
+    let settled = false;
+    const settle = (val) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      closeModal('modalConfirm');
+      resolve(val);
+    };
+
+    const onOk = () => settle(true);
+    const onCancel = () => settle(false);
+    const onOverlay = (e) => { if (e.target === modal) settle(false); };
+    const onEsc = (e) => { if (e.key === 'Escape') settle(false); };
+
+    const cleanup = () => {
+      btnOk.removeEventListener('click', onOk);
+      btnCancel.removeEventListener('click', onCancel);
+      btnClose.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onOverlay);
+      document.removeEventListener('keydown', onEsc);
+    };
+
+    btnOk.addEventListener('click', onOk);
+    btnCancel.addEventListener('click', onCancel);
+    btnClose.addEventListener('click', onCancel);
+    modal.addEventListener('click', onOverlay);
+    document.addEventListener('keydown', onEsc);
+
+    setTimeout(() => btnOk.focus(), 0);
+  });
+}
+
 function clearForm(modalId) {
   document.querySelectorAll(`#${modalId} input, #${modalId} select`).forEach(el => {
     if (el.type === 'checkbox') el.checked = false; else el.value = '';
@@ -4027,7 +4806,7 @@ function clearForm(modalId) {
 function showToast(message, type = '') {
   const c = document.getElementById('toastContainer');
   const t = document.createElement('div');
-  t.className = 'toast' + (type ? ' ' + type : '');
+  t.className = 'toast' + (type ? ` ${type} toast-${type}` : '');
   t.textContent = message;
   c.appendChild(t);
   setTimeout(() => t.remove(), 3500);
@@ -4045,19 +4824,12 @@ const Search = {
 };
 
 function setupFulltextSearch() {
-  const btn     = document.getElementById('btnOpenSearch');
   const input   = document.getElementById('searchBarInput');
+  if (!input) return;
   const btnPrev = document.getElementById('searchBarPrev');
   const btnNext = document.getElementById('searchBarNext');
-  const btnClose= document.getElementById('searchBarClose');
-
-  btn.addEventListener('click', () => {
-    if (Search.active) { closeSearch(); } else { openSearch(); }
-  });
-
-  btnClose.addEventListener('click', closeSearch);
-  btnPrev.addEventListener('click', () => jumpToMatch(-1));
-  btnNext.addEventListener('click', () => jumpToMatch(1));
+  if (btnPrev) btnPrev.addEventListener('click', () => jumpToMatch(-1));
+  if (btnNext) btnNext.addEventListener('click', () => jumpToMatch(1));
 
   input.addEventListener('input', () => {
     clearTimeout(Search._debounceTimer);
@@ -4075,7 +4847,7 @@ function setupFulltextSearch() {
     }
   });
 
-  // Ctrl+F / Cmd+F → eigene Suche statt Browser-Suche
+  // [cleanup]
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
       // Nur abfangen wenn Protokoll offen
@@ -4089,37 +4861,34 @@ function setupFulltextSearch() {
 
 function openSearch() {
   Search.active = true;
-  const bar   = document.getElementById('searchBar');
   const input = document.getElementById('searchBarInput');
-  const btn   = document.getElementById('btnOpenSearch');
-  bar.classList.remove('hidden');
-  btn.classList.add('search-active');
-  input.focus();
-  if (input.value) executeSearch(input.value);
+  if (input) {
+    input.focus();
+    input.select();
+    if (input.value) executeSearch(input.value);
+  }
 }
 
 function closeSearch() {
   Search.active = false;
-  Search.query  = '';
+  Search.query = '';
   Search.matches = [];
   Search.currentIndex = -1;
 
-  const bar   = document.getElementById('searchBar');
   const input = document.getElementById('searchBarInput');
-  const btn   = document.getElementById('btnOpenSearch');
   const count = document.getElementById('searchBarCount');
+  const prev = document.getElementById('searchBarPrev');
+  const next = document.getElementById('searchBarNext');
 
-  bar.classList.add('hidden');
-  btn.classList.remove('search-active');
-  input.value = '';
-  count.textContent = '';
+  if (input) input.value = '';
+  if (count) { count.textContent = ''; count.classList.add('hidden'); }
+  if (prev) prev.classList.add('hidden');
+  if (next) next.classList.add('hidden');
 
-  // Remove all search classes
   document.querySelectorAll('#pointsBody .search-hidden').forEach(tr => tr.classList.remove('search-hidden'));
   document.querySelectorAll('#pointsBody .search-match').forEach(tr => tr.classList.remove('search-match'));
   document.querySelectorAll('#pointsBody .search-match-active').forEach(tr => tr.classList.remove('search-match-active'));
 
-  // Re-show structure rows that were hidden
   document.querySelectorAll('#pointsBody .search-struct-hidden').forEach(tr => {
     tr.classList.remove('search-struct-hidden');
     tr.style.removeProperty('display');
@@ -4144,7 +4913,11 @@ function executeSearch(rawQuery) {
   });
 
   if (!query) {
-    countEl.textContent = '';
+    const prevBtn = document.getElementById('searchBarPrev');
+    const nextBtn = document.getElementById('searchBarNext');
+    if (countEl) { countEl.textContent = ''; countEl.classList.add('hidden'); }
+    if (prevBtn) prevBtn.classList.add('hidden');
+    if (nextBtn) nextBtn.classList.add('hidden');
     return;
   }
 
@@ -4158,7 +4931,7 @@ function executeSearch(rawQuery) {
 
   pointRows.forEach(tr => {
     // Skip rows already hidden by other filters
-    if (tr.classList.contains('filter-hidden') || tr.classList.contains('chapter-filtered')) return;
+    if (tr.classList.contains('filter-hidden') || tr.classList.contains('chapter-filtered') || tr.classList.contains('row-hidden')) return;
 
     const content    = (tr.querySelector('[data-field="content"]')?.value || '').toLowerCase();
     const pointId    = (tr.querySelector('.point-id')?.textContent || '').toLowerCase();
@@ -4194,15 +4967,25 @@ function executeSearch(rawQuery) {
     }
   });
 
-  // Update counter
+  // Update counter + show/hide nav arrows
   const total = Search.matches.length;
+  const prevBtn = document.getElementById('searchBarPrev');
+  const nextBtn = document.getElementById('searchBarNext');
   if (total > 0) {
     Search.currentIndex = 0;
     Search.matches[0].classList.add('search-match-active');
-    countEl.textContent = `1 von ${total}`;
+    if (countEl) { countEl.textContent = `1 von ${total}`; countEl.classList.remove('hidden'); }
+    if (prevBtn) prevBtn.classList.remove('hidden');
+    if (nextBtn) nextBtn.classList.remove('hidden');
     scrollToMatch(Search.matches[0]);
+  } else if (query.length > 0) {
+    if (countEl) { countEl.textContent = 'Keine Treffer'; countEl.classList.remove('hidden'); }
+    if (prevBtn) prevBtn.classList.add('hidden');
+    if (nextBtn) nextBtn.classList.add('hidden');
   } else {
-    countEl.textContent = 'Keine Treffer';
+    if (countEl) { countEl.textContent = ''; countEl.classList.add('hidden'); }
+    if (prevBtn) prevBtn.classList.add('hidden');
+    if (nextBtn) nextBtn.classList.add('hidden');
   }
 }
 
@@ -4220,8 +5003,8 @@ function jumpToMatch(direction) {
 
   const tr = Search.matches[Search.currentIndex];
   tr.classList.add('search-match-active');
-  document.getElementById('searchBarCount').textContent =
-    `${Search.currentIndex + 1} von ${Search.matches.length}`;
+  const _cnt = document.getElementById('searchBarCount');
+  if (_cnt) _cnt.textContent = `${Search.currentIndex + 1} von ${Search.matches.length}`;
   scrollToMatch(tr);
 }
 
@@ -4234,18 +5017,41 @@ function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function iconTrash() {
-  return `<i data-lucide="trash-2"></i>`;
+// Icon-Funktionen jetzt in js/icons.js definiert
+
+function isLocalDevHost() {
+  const h = window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h === '::1';
 }
 
-function iconChevron() {
-  return `<i data-lucide="chevron-down"></i>`;
-}
+async function forceFreshReload() {
+  try {
+    if ('serviceWorker' in navigator && isLocalDevHost()) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    }
+  } catch (_) {}
 
-function lucideIcon(name, extraClass = '') {
-  return `<i data-lucide="${name}"${extraClass ? ` class="${extraClass}"` : ''}></i>`;
+  const url = new URL(window.location.href);
+  url.searchParams.set('_reload', String(Date.now()));
+  window.location.replace(url.toString());
 }
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(()=>{}); });
+  window.addEventListener('load', async () => {
+    if (isLocalDevHost()) {
+      // Live-Server/localhost: kein SW-Caching, um stale CSS/JS zu vermeiden.
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      } catch (_) {}
+      return;
+    }
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
 }
+

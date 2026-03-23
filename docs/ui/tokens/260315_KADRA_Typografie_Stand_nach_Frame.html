@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KADRA Typografie-Stand nach Frame</title>
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --line: #dcdcdc;
+      --text: #111111;
+      --muted: #6e6e6e;
+      --accent: #0e2d58;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: "Nunito Sans", "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1200px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    th {
+      background: #fafafa;
+      font-weight: 700;
+      color: #222;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .frame {
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .sample {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .s10 { font-size: 10px; font-weight: 400; }
+    .s11 { font-size: 11px; font-weight: 400; }
+    .s12 { font-size: 12px; font-weight: 400; }
+    .s13 { font-size: 13px; font-weight: 400; }
+    .s14 { font-size: 14px; font-weight: 400; }
+    .s16 { font-size: 16px; font-weight: 700; }
+    .s18 { font-size: 18px; font-weight: 600; }
+    .s20 { font-size: 20px; font-weight: 700; }
+    .w600 { font-weight: 600; }
+    .w700 { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Aktueller Typo-Stand nach Frame (Ist-Zustand)</h1>
+  <p>Quelle: 260315 KADRA Aktueller Typo-Stand nach Frame.md</p>
+
+  <div class="table-wrap">
+    <table aria-label="KADRA Typografie nach Frame">
+      <thead>
+        <tr>
+          <th>Frame</th>
+          <th>Zweck</th>
+          <th>Größen</th>
+          <th>Gewichte</th>
+          <th>Typische Nutzung</th>
+          <th>Beispiel (Formatierung sichtbar)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="frame">1. Login-Frame</td>
+          <td>Eingabemaske + Fehlermeldungen</td>
+          <td>12px, 14px</td>
+          <td>400, 600</td>
+          <td>14px Input/Button, 12px Subtitle/Fehler</td>
+          <td>
+            <div class="sample">
+              <span class="s14">Passwort</span>
+              <span class="s14 w600">Anmelden</span>
+              <span class="s12">Falsches Passwort</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="frame">2. Sidebar-Frame</td>
+          <td>Navigation, Projektwahl, Aktionen, Listen, Quick-Save-Hinweis</td>
+          <td>10px, 11px, 12px, 13px, 14px</td>
+          <td>überwiegend 400, punktuell betont</td>
+          <td>14px Controls, 13px Dropdown, 12px Empty-State, 11px Meta, 10px Quick-Save</td>
+          <td>
+            <div class="sample">
+              <span class="s14">Neues Protokoll</span>
+              <span class="s13">Projekt öffnen</span>
+              <span class="s12">Noch keine Protokolle vorhanden.</span>
+              <span class="s11">Protokoll zum Planer Jour Fixe Nr. 15</span>
+              <span class="s10">260313_KADRA-TESTDB_Anlagen.json</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="frame">3. Toolbar / Action-Bar</td>
+          <td>Hauptaktionen, Suchbereich, Filterbereiche</td>
+          <td>11px, 12px, 13px, 14px</td>
+          <td>600/700 für Aktionen, sonst 400</td>
+          <td>14px Hauptbuttons, 13px Dropdown-Inhalte, 11–12px Labels/Hilfen</td>
+          <td>
+            <div class="sample">
+              <span class="s14 w700">PKT</span>
+              <span class="s13">Nur überfällige</span>
+              <span class="s12">3 Treffer</span>
+              <span class="s11">Kapitel einblenden</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="frame">4. Protokoll-Überschrift</td>
+          <td>Titelzeile + Meta-Pillen</td>
+          <td>20px, 16px, 14px, 13px, 11px</td>
+          <td>700 (Titelzone), 400 (Meta)</td>
+          <td>20px Titel/Nr., 16px Badge, 14px Meta, 13px Mieterin/Vermieterin, 11px Labels</td>
+          <td>
+            <div class="sample">
+              <span class="s20">Protokoll zum Planer Jour Fixe</span>
+              <span class="s16 w700">HIS</span>
+              <span class="s14">Ort / Format</span>
+              <span class="s13">Sudarshan Germany Horizons</span>
+              <span class="s11">Mieterin</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="frame">5. Frame Teilnehmer</td>
+          <td>Tabellenkopf + Zeileninhalte</td>
+          <td>11px, 12px, 13px, 14px</td>
+          <td>400, 600, teils 700</td>
+          <td>11–12px Kopf/Meta, 13–14px Eingaben und Namen</td>
+          <td>
+            <div class="sample">
+              <span class="s11">E-Mail-Adresse</span>
+              <span class="s12">Teilnehmer</span>
+              <span class="s13">Olaf Schüler</span>
+              <span class="s14 w600">Hopro GmbH &amp; Co. KG</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="frame">6. Inhalte / Protokollpunkte</td>
+          <td>Kapitel, Unterkapitel, Themen, Punkte, Status</td>
+          <td>11px, 13px, 14px</td>
+          <td>400, 600, 700</td>
+          <td>14px Inhalt, 13px Select/Context, 11px IDs/Trigger</td>
+          <td>
+            <div class="sample">
+              <span class="s14">A - ORGANISATION</span>
+              <span class="s13 w600">A.1 Termine &amp; Abwesenheiten</span>
+              <span class="s13"><u>Thema: Datenaustausch</u></span>
+              <span class="s11">#12|A.1.03</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="frame">7. Frame Anlagen</td>
+          <td>Tabellen-/Formulareinträge, Metainfos</td>
+          <td>12px, 13px, 14px</td>
+          <td>überwiegend 400</td>
+          <td>14px Haupteingabe, 12–13px Meta/Hinweise</td>
+          <td>
+            <div class="sample">
+              <span class="s14">Dateiname.pdf</span>
+              <span class="s13">Anlage 01</span>
+              <span class="s12">Datei hierher ziehen</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="frame">8. Modals / Overlays / Info</td>
+          <td>Dialogtitel, Formularlabels, Hinweise, Buttons</td>
+          <td>12px, 13px, 14px, 16px</td>
+          <td>400, 600, 700</td>
+          <td>16px Titel, 14px Buttons/Inputs, 12–13px Labels/Hinweise</td>
+          <td>
+            <div class="sample">
+              <span class="s16 w700">Neues Projekt anlegen</span>
+              <span class="s13 w600">Projektkürzel</span>
+              <span class="s14">Projekt erstellen</span>
+              <span class="s12">2-4 Großbuchstaben, eindeutig</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="frame">9. Empty-States / Sondertexte</td>
+          <td>Leere Zustände, Hinweise</td>
+          <td>12px, 14px, 18px</td>
+          <td>400, 600</td>
+          <td>18px Titel, 14px Body, 12px Nebenhinweis</td>
+          <td>
+            <div class="sample">
+              <span class="s18">Noch keine Protokolle vorhanden.</span>
+              <span class="s14">Bitte zuerst ein Projekt öffnen.</span>
+              <span class="s12">Tipp: Neues Protokoll anlegen.</span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h1 style="margin-top:24px;">Textfarben-Palette (Variablen)</h1>
+  <p>Hinweis: Typo-Variablen und Textfarben sind kombinierbar. Bitte Kontrast/Lesbarkeit pro Kontext prüfen.</p>
+
+  <div class="table-wrap">
+    <table aria-label="KADRA Textfarben-Palette">
+      <thead>
+        <tr>
+          <th>Variable</th>
+          <th>HEX</th>
+          <th>Vorschau</th>
+          <th>Beispieltext</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>--text-primary</code></td>
+          <td><code>#000000</code></td>
+          <td><span style="display:inline-block;width:56px;height:20px;border-radius:6px;background:#000000;border:1px solid #dcdcdc;"></span></td>
+          <td><span style="color:#000000;font-size:14px;font-weight:400;">Beispiel in Primary</span></td>
+        </tr>
+        <tr>
+          <td><code>--text-secondary</code></td>
+          <td><code>#6E6E6E</code></td>
+          <td><span style="display:inline-block;width:56px;height:20px;border-radius:6px;background:#6E6E6E;border:1px solid #dcdcdc;"></span></td>
+          <td><span style="color:#6E6E6E;font-size:14px;font-weight:400;">Beispiel in Secondary</span></td>
+        </tr>
+        <tr>
+          <td><code>--text-tertiary</code></td>
+          <td><code>#AEAEAE</code></td>
+          <td><span style="display:inline-block;width:56px;height:20px;border-radius:6px;background:#AEAEAE;border:1px solid #dcdcdc;"></span></td>
+          <td><span style="color:#AEAEAE;font-size:14px;font-weight:400;">Beispiel in Tertiary</span></td>
+        </tr>
+        <tr>
+          <td><code>--text-blue</code></td>
+          <td><code>#154384</code></td>
+          <td><span style="display:inline-block;width:56px;height:20px;border-radius:6px;background:#154384;border:1px solid #dcdcdc;"></span></td>
+          <td><span style="color:#154384;font-size:14px;font-weight:600;">Beispiel in Blue</span></td>
+        </tr>
+        <tr>
+          <td><code>--text-inverted</code></td>
+          <td><code>#FFFFFF</code></td>
+          <td><span style="display:inline-block;width:56px;height:20px;border-radius:6px;background:#ffffff;border:1px solid #bdbdbd;"></span></td>
+          <td><span style="display:inline-block;background:#0E2D58;color:#FFFFFF;padding:4px 10px;border-radius:12px;font-size:14px;">Inverted auf Dark BG</span></td>
+        </tr>
+        <tr>
+          <td><code>--text-done</code></td>
+          <td><code>#C0C0C0</code></td>
+          <td><span style="display:inline-block;width:56px;height:20px;border-radius:6px;background:#C0C0C0;border:1px solid #dcdcdc;"></span></td>
+          <td><span style="color:#C0C0C0;font-size:14px;font-weight:400;">Beispiel Erledigt</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
