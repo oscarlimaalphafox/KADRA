@@ -34,6 +34,22 @@ const MarkdownExport = (() => {
     return `${String(now.getFullYear()).slice(2)}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
   }
 
+  function buildFileDateFromAuthor(authorDate) {
+    if (!authorDate) return '';
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(authorDate)) {
+      const [year, month, day] = authorDate.split('-');
+      return `${year.slice(2)}${month}${day}`;
+    }
+
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(authorDate)) {
+      const [day, month, year] = authorDate.split('.');
+      return `${year.slice(2)}${month}${day}`;
+    }
+
+    return '';
+  }
+
   function sanitizeFilePart(value) {
     return String(value || '')
       .trim()
@@ -58,8 +74,7 @@ const MarkdownExport = (() => {
   }
 
   function buildProtocolFileName(protocol, project) {
-    const now = new Date();
-    const fileDate = buildFileDate(now);
+    const fileDate = buildFileDateFromAuthor(protocol.author?.date) || buildFileDate(new Date());
     const typeName = sanitizeFilePart(protocol.seriesName || protocol.title || protocol.type || 'Protokoll');
     const numStr = protocol.type === 'Aktennotiz'
       ? ''
