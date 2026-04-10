@@ -5,7 +5,7 @@
  * ErmÃ¶glicht Offline-Nutzung der App.
  */
 
-const CACHE_NAME    = 'protokoll-app-v2.24';
+const CACHE_NAME    = 'protokoll-app-v2.25';
 const SHELL_ASSETS  = [
   './index.html',
   './css/style.css',
@@ -14,6 +14,7 @@ const SHELL_ASSETS  = [
   './js/lib/nunito-sans-fonts.js',
   './js/db.js',
   './js/pdf-export.js',
+  './js/markdown-export.js',
   './js/app.js',
   './js/icons.js',
   './manifest.json',
