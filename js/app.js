@@ -14,7 +14,7 @@
  * [cleanup]
  */
 
-const APP_VERSION = '2.3';
+const APP_VERSION = '0.3';
 
 /* [cleanup] */
 const App = {
@@ -143,7 +143,7 @@ function initStaticIcons() {
   setOnlyIcon('#btnPointFilter', iconFilter);
   setOnlyIcon('#btnReload', iconRefreshCw);
   setLeadingIcon('#btnExportPdf', iconFileText);
-  setLeadingIcon('#btnExportXlsx', iconFileSpreadsheet);
+  setLeadingIcon('#btnExportMd', iconFileText);
   setOnlyIcon('#btnDeleteProtocol', iconShredder);
   setLeadingIcon('.toolbar-search-wrap', iconSearch);
   setOnlyIcon('#searchBarPrev', iconChevronUp);
@@ -3525,6 +3525,21 @@ function bindGlobalEvents() {
     } catch (e) {
       console.error('PDF-Export Fehler:', e);
       showToast('PDF-Export fehlgeschlagen: ' + e.message, 'error');
+    }
+  });
+  document.getElementById('btnExportMd').addEventListener('click', async () => {
+    if (!App.currentProtocolId) {
+      showToast('Bitte zuerst ein Protokoll oeffnen.', 'error');
+      return;
+    }
+    try {
+      await saveCurrentProtocol();
+      const fileName = await MarkdownExport.exportProtocolMarkdown(App.currentProtocolId, App.hiddenChapters);
+      showToast(`Markdown exportiert: ${fileName}`, 'success');
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+      console.error('Markdown-Export Fehler:', e);
+      showToast('Markdown-Export fehlgeschlagen: ' + e.message, 'error');
     }
   });
 
