@@ -250,11 +250,11 @@ const MarkdownExport = (() => {
     lines.push('## Teilnehmer');
     lines.push('');
     if (protocol.participants && protocol.participants.length) {
-      lines.push('| Name | Firma | Kuerzel | Teilgenommen | Verteiler |');
-      lines.push('|---|---|---|:---:|:---:|');
+      lines.push('| Name | Firma | Kuerzel | E-Mail | Teilgenommen | Verteiler |');
+      lines.push('|---|---|---|---|:---:|:---:|');
       protocol.participants.forEach((participant) => {
         lines.push(
-          `| ${escapeCell(participant.name || '')} | ${escapeCell(participant.company || '')} | ${escapeCell(participant.abbr || '')} | ${participantSymbol(!!participant.attended)} | ${participantSymbol(!!participant.inDistrib)} |`
+          `| ${escapeCell(participant.name || '')} | ${escapeCell(participant.company || '')} | ${escapeCell(participant.abbr || '')} | ${escapeCell(participant.email || '')} | ${participantSymbol(!!participant.attended)} | ${participantSymbol(!!participant.inDistrib)} |`
         );
       });
     } else {

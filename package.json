@@ -1,10 +1,10 @@
 {
   "name": "kadra",
-  "version": "1.0.0",
+  "version": "0.4",
   "description": "",
   "main": "sw.js",
   "scripts": {
-    "build": "node node_modules/@tailwindcss/cli/dist/index.mjs -i src/main.css -o css/style.css",
+    "build": "node scripts/set-version.js && node node_modules/@tailwindcss/cli/dist/index.mjs -i src/main.css -o css/style.css",
     "watch": "node node_modules/@tailwindcss/cli/dist/index.mjs -i src/main.css -o css/style.css --watch"
   },
   "repository": {

@@ -639,7 +639,16 @@ const PDFExport = (() => {
     doc.text('#11|B.1.02', MARGIN_LEFT + 48, startY);
     doc.setFont(FONT_NAME, 'normal');
     doc.text('= Punkt aus Protokoll Nr. 11, Kapitel B, Unterkapitel 1, laufende Nr. 02', MARGIN_LEFT + 62, startY);
-    startY += 10;
+    startY += 6;
+
+    doc.setTextColor(100, 100, 100);
+    const idHint = 'Die ID wird bei Erstellung eines Punktes einmalig vergeben und bleibt dauerhaft erhalten — '
+      + 'auch wenn der Punkt später an eine andere Position (Kapitel, Unterkapitel oder Thema) verschoben wird. '
+      + 'Sie kennzeichnet die Herkunft des Punktes, nicht seinen aktuellen Ort.';
+    const idHintLines = doc.splitTextToSize(idHint, CONTENT_WIDTH);
+    doc.text(idHintLines, MARGIN_LEFT, startY);
+    startY += idHintLines.length * 3.6 + 6;
+    doc.setTextColor(...BLACK);
 
     return startY;
   }

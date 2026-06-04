@@ -7,7 +7,7 @@
   <meta name="description" content="KADRA - Besprechungsprotokolle für Immobilienprojekte nach AHO-Standard" />
   <title>KADRA</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/png" sizes="96x96" href="icons/favicon.png" />
+  <link rel="icon" type="image/jpeg" sizes="96x96" href="icons/260521_KADRA_Icon_weiss_96x96.jpg" />
   <link rel="preload" href="fonts/nunito-sans-v19-latin-regular.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/nunito-sans-v19-latin-600.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="css/style.css" />
@@ -43,7 +43,7 @@
 
       <!-- Sidebar Topbar: Logo | Hamburger | Toggle -->
       <div class="sidebar-topbar">
-        <img src="icons/kadra-logo.png" alt="KADRA" class="sidebar-logo-img" />
+        <img src="icons/260521_KADRA_Logo_weiss_highres.png" alt="KADRA" class="sidebar-logo-img" />
 
         <!-- Hamburger-Menü -->
         <div class="sidebar-menu-wrap">
@@ -52,9 +52,17 @@
           </button>
           <div id="projectMenuPanel" class="project-menu-panel hidden">
             <button id="btnImportFullDB" class="project-menu-item">
-              
+
               Datenbank öffnen
             </button>
+            <div class="project-submenu-wrap" id="recentDbWrap">
+              <button id="btnRecentDb" class="project-menu-item project-submenu-trigger" aria-haspopup="true" aria-expanded="false">
+
+                <span class="project-submenu-label">Zuletzt verwendet</span>
+                <span class="project-submenu-chevron"></span>
+              </button>
+              <div id="recentDbPanel" class="project-submenu-panel hidden"></div>
+            </div>
             <button id="btnExportFullDB" class="project-menu-item">
               
               Datenbank speichern
@@ -133,7 +141,7 @@
       <!-- Aktionsbuttons -->
       <div class="sidebar-actions">
         <button id="btnNewProtocol" class="btn-sidebar-action" disabled>Neues Protokoll</button>
-        <button id="btnImportJamieSidebar" class="btn-sidebar-action" disabled>Import Protokoll</button>
+        <button id="btnImportVoctaSidebar" class="btn-sidebar-action" disabled>Import Protokoll</button>
       </div>
 
       <!-- Protokoll-Suche -->
@@ -398,9 +406,6 @@
           <!-- -- Protokollpunkte / Inhalte ------------------------- -->
           <div class="proto-card" id="sectionPoints">
             <div class="proto-card-header">
-              <button id="btnCollapseAll" class="proto-card-header-collapse" title="Alle Kapitel ein-/ausklappen">
-                
-              </button>
               <span>INHALTE</span>
             </div>
             <div class="proto-card-body proto-card-body-table">
@@ -633,41 +638,87 @@
     </div>
   </div>
 
-  <!-- meetjamie Markdown Import -->
-  <div id="modalJamieImport" class="modal-overlay hidden">
+  <!-- Import-Modus-Auswahl: Komplett vs. Schrittweise -->
+  <div id="modalImportMode" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">Markdown importieren</h2>
+        <button class="modal-close" data-close="modalImportMode"></button>
+      </div>
+      <div class="modal-body">
+        <p class="form-hint" style="margin-bottom: 1rem;">Wie soll das Markdown importiert werden?</p>
+        <div class="import-mode-options">
+          <button id="btnImportModeFull" class="import-mode-card">
+            <div class="import-mode-card-title">Komplett importieren</div>
+            <div class="import-mode-card-desc">Erzeugt eine neue Aktennotiz aus dem gesamten Markdown.</div>
+          </button>
+          <button id="btnImportModeStepwise" class="import-mode-card" disabled>
+            <div class="import-mode-card-title">Schrittweise importieren</div>
+            <div class="import-mode-card-desc">&Ouml;ffnet ein verschiebbares Panel. Punkte per Drag &amp; Drop in das aktuell ge&ouml;ffnete Protokoll &uuml;bernehmen.</div>
+            <div class="import-mode-card-hint" id="importModeStepwiseHint">Nur verf&uuml;gbar, wenn ein Protokoll ge&ouml;ffnet ist.</div>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-close="modalImportMode">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schrittweiser Import: Verschiebbares Panel -->
+  <div id="importStepperPanel" class="hidden">
+    <div class="import-stepper-header" id="importStepperHeader">
+      <div class="import-stepper-title">
+        <span class="import-stepper-filename" id="importStepperFilename">--</span>
+        <span class="import-stepper-counter" id="importStepperCounter">0 / 0</span>
+      </div>
+      <div class="import-stepper-actions">
+        <button class="import-stepper-min" id="importStepperMin" title="Import-Fenster minimieren">&minus;</button>
+        <button class="import-stepper-close" id="importStepperClose" title="Schlie&szlig;en">&times;</button>
+      </div>
+    </div>
+    <div class="import-stepper-body" id="importStepperBody"></div>
+  </div>
+
+  <!-- FAB fuer minimierten Import-Stepper -->
+  <button id="importStepperFab" class="hidden" title="Import-Fenster maximieren">
+    <span class="import-fab-label">aktueller Import</span>
+    <span class="import-fab-plus">+</span>
+  </button>
+
+  <!-- Popup-Blocker / kein Protokoll: Hinweise -->
+
+  <!-- VOCTA Markdown Import -->
+  <div id="modalVoctaImport" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal-header">
-        <h2 class="modal-title">Aktennotiz aus meetjamie importieren</h2>
-        <button class="modal-close" data-close="modalJamieImport">
-          
+        <h2 class="modal-title">Aktennotiz aus VOCTA importieren</h2>
+        <button class="modal-close" data-close="modalVoctaImport">
+
         </button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label" for="jamieImportTitle">Titel der Aktennotiz <span class="required">*</span></label>
-          <input type="text" id="jamieImportTitle" class="form-input" placeholder="z. B. HIS. Liste Unterlagen Inbetriebnahme" />
+          <label class="form-label" for="voctaImportTitle">Titel der Aktennotiz <span class="required">*</span></label>
+          <input type="text" id="voctaImportTitle" class="form-input" placeholder="z. B. HIS. Liste Unterlagen Inbetriebnahme" />
         </div>
         <div class="form-group">
-          <label class="form-label" for="jamieImportDate">Datum</label>
-          <input type="date" id="jamieImportDate" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="jamieImportParticipants">Teilnehmer <span class="form-hint-inline">(kommagetrennt)</span></label>
-          <input type="text" id="jamieImportParticipants" class="form-input" placeholder="z. B. Olaf Schueler, Josef Zohner" />
-          <span class="form-hint">Werden als Teilnehmer ohne Kürzel angelegt.</span>
+          <label class="form-label" for="voctaImportDate">Datum</label>
+          <input type="date" id="voctaImportDate" class="form-input" />
         </div>
         <div class="form-group">
           <label class="form-label">Markdown-Datei <span class="required">*</span></label>
-          <div class="jamie-file-drop" id="jamieFileDrop">
-            
-            <span id="jamieFileLabel">Datei hierher ziehen oder <u>auswählen</u></span>
+          <div class="vocta-file-drop" id="voctaFileDrop">
+
+            <span id="voctaFileLabel">Datei hierher ziehen oder <u>auswählen</u></span>
           </div>
-          <input type="file" id="jamieImportFile" accept=".md,.txt" class="hidden" />
+          <input type="file" id="voctaImportFile" accept=".md,.txt" class="hidden" />
+          <span class="form-hint">Teilnehmer, Kapitelstruktur und Punkte werden aus dem Markdown übernommen.</span>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" data-close="modalJamieImport">Abbrechen</button>
-        <button id="btnJamieImportConfirm" class="btn-primary" disabled>Importieren</button>
+        <button class="btn-secondary" data-close="modalVoctaImport">Abbrechen</button>
+        <button id="btnVoctaImportConfirm" class="btn-primary" disabled>Importieren</button>
       </div>
     </div>
   </div>
@@ -821,17 +872,26 @@
         </button>
       </div>
       <div class="modal-body app-info-body">
-        <img src="icons/kadra-logo.png" alt="KADRA" class="app-info-logo" />
+        <img src="icons/260521_KADRA_Logo_weiss_highres.png" alt="KADRA" class="app-info-logo" />
         <p class="app-info-version" id="appInfoVersion"></p>
-        <p class="app-info-copyright">&copy; Hopro GmbH &amp; Co. KG</p>
+        <p class="app-info-desc">KADRA &mdash; Besprechungsprotokolle und Aktennotizen f&uuml;r Immobilienprojekte nach AHO-Standard.</p>
         <a href="https://www.hopro.de" target="_blank" rel="noopener" class="app-info-link">www.hopro.de</a>
+        <hr class="app-info-divider" />
+        <p class="app-info-credits-label">CREDITS</p>
+        <div class="app-info-credits">
+          <p>Vanilla JS &middot; HTML5 &middot; CSS3</p>
+          <p>IndexedDB &middot; PWA Service Worker</p>
+          <p>Tailwind CSS &middot; jsPDF &middot; jsPDF-AutoTable</p>
+          <p>Nunito Sans &middot; Lucide Icons</p>
+        </div>
+        <p class="app-info-copyright">&copy; Hopro GmbH &amp; Co. KG</p>
       </div>
     </div>
   </div>
 
   <input type="file" id="fileImportJson" accept=".json" class="hidden" />
   <input type="file" id="fileImportFullDB" accept=".json" class="hidden" />
-  <input type="file" id="fileImportJamieMd" accept=".md" class="hidden" />
+  <input type="file" id="fileImportVoctaMd" accept=".md" class="hidden" />
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- -- Passwort-Gate --------------------------------------- -->

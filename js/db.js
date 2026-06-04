@@ -346,6 +346,104 @@ function generateAttachmentId(protocolNumber, seq) {
   return `#${numStr}.${seqStr}`;
 }
 
+/* ── Zuletzt-verwendet-Verlauf (eigene IndexedDB) ───────────────
+ * Bewusst getrennt von der App-DB (ProtokollApp): "Datenbank schließen"
+ * löscht die App-DB komplett – der Verlauf muss das aber überleben,
+ * damit man eine geschlossene Datenbank wieder öffnen kann.
+ * Speichert FileSystemFileHandle-Objekte (strukturklonbar in IndexedDB,
+ * nicht JSON-serialisierbar -> kein localStorage).
+ */
+const RECENT_DB_NAME    = 'KADRA_Recent';
+const RECENT_DB_VERSION = 1;
+const RECENT_STORE      = 'files';
+const RECENT_MAX        = 8;
+
+let _recentDb = null;
+
+function _openRecentDB() {
+  if (_recentDb) return Promise.resolve(_recentDb);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(RECENT_DB_NAME, RECENT_DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(RECENT_STORE)) {
+        // keyPath 'key' = eindeutige Kennung (Dateiname), lastOpened = Sortierung
+        db.createObjectStore(RECENT_STORE, { keyPath: 'key' });
+      }
+    };
+    req.onsuccess = (e) => { _recentDb = e.target.result; resolve(_recentDb); };
+    req.onerror   = (e) => reject(e.target.error);
+  });
+}
+
+const Recent = {
+  /** Liste der zuletzt verwendeten Einträge, neueste zuerst. */
+  async list() {
+    const db = await _openRecentDB();
+    return new Promise((res, rej) => {
+      const req = db.transaction(RECENT_STORE, 'readonly')
+                    .objectStore(RECENT_STORE).getAll();
+      req.onsuccess = () => {
+        const all = (req.result || []).sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0));
+        res(all);
+      };
+      req.onerror = () => rej(req.error);
+    });
+  },
+
+  /**
+   * Eintrag hinzufügen/aktualisieren.
+   * @param {string} fileName  Dateiname (dient als Schlüssel + Anzeige)
+   * @param {FileSystemFileHandle|null} handle  Datei-Handle (Chrome/Edge) oder null
+   */
+  async add(fileName, handle) {
+    if (!fileName) return;
+    const db = await _openRecentDB();
+    const record = {
+      key: fileName,
+      fileName,
+      handle: handle || null,
+      lastOpened: Date.now(),
+    };
+    await new Promise((res, rej) => {
+      const req = db.transaction(RECENT_STORE, 'readwrite')
+                    .objectStore(RECENT_STORE).put(record);
+      req.onsuccess = () => res();
+      req.onerror   = () => rej(req.error);
+    });
+    // Auf RECENT_MAX kürzen (älteste entfernen)
+    const all = await this.list();
+    if (all.length > RECENT_MAX) {
+      const toDelete = all.slice(RECENT_MAX);
+      const tx = db.transaction(RECENT_STORE, 'readwrite');
+      const store = tx.objectStore(RECENT_STORE);
+      toDelete.forEach(r => store.delete(r.key));
+    }
+  },
+
+  /** Einzelnen Eintrag entfernen. */
+  async remove(key) {
+    const db = await _openRecentDB();
+    return new Promise((res, rej) => {
+      const req = db.transaction(RECENT_STORE, 'readwrite')
+                    .objectStore(RECENT_STORE).delete(key);
+      req.onsuccess = () => res();
+      req.onerror   = () => rej(req.error);
+    });
+  },
+
+  /** Gesamten Verlauf löschen. */
+  async clear() {
+    const db = await _openRecentDB();
+    return new Promise((res, rej) => {
+      const req = db.transaction(RECENT_STORE, 'readwrite')
+                    .objectStore(RECENT_STORE).clear();
+      req.onsuccess = () => res();
+      req.onerror   = () => rej(req.error);
+    });
+  },
+};
+
 /** Löscht die gesamte Datenbank. */
 function deleteDatabase() {
   return new Promise((resolve, reject) => {
@@ -363,6 +461,7 @@ window.DB = {
   uuid,
   Projects,
   Protocols,
+  Recent,
   getDefaultStructure,
   generatePointId,
   generateAttachmentId,

@@ -48,7 +48,7 @@
   --danger:           #CC4933;   /* = accent-red */
   --success:          #94AF83;   /* Grün */
 
-  --bg-app:           #E3E5E8;
+  --bg-app:           #F5F4F0;
   --bg-surface:       #FFFFFF;
   --bg-sidebar:       #FFFFFF;
   --bg-hover:         #F5F5F5;
@@ -141,7 +141,7 @@
   --color-kadra-red:      #CC4933;
   --color-kadra-chapter:  #7C7C7C;
   --color-kadra-subch:    #DADADA;
-  --color-kadra-app:      #C7CCD1;
+  --color-kadra-app:      #F5F4F0;
   --color-kadra-surface:  #FFFFFF;
   --color-kadra-hover:    #F5F5F5;
 }

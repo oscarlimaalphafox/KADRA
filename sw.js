@@ -5,7 +5,7 @@
  * ErmÃ¶glicht Offline-Nutzung der App.
  */
 
-const CACHE_NAME    = 'protokoll-app-v2.25';
+const CACHE_NAME    = 'protokoll-app-v2.44';
 const SHELL_ASSETS  = [
   './index.html',
   './css/style.css',
@@ -18,9 +18,9 @@ const SHELL_ASSETS  = [
   './js/app.js',
   './js/icons.js',
   './manifest.json',
-  './icons/favicon.jpg',
   './icons/favicon.png',
   './icons/kadra-logo.png',
+  './icons/260521_KADRA_Logo_weiss_highres.png',
   './icons/HOPRO%20Logo_wei%C3%9FerHintergrund_medres.jpg',
   './fonts/nunito-sans-v19-latin-regular.woff2',
   './fonts/nunito-sans-v19-latin-600.woff2',

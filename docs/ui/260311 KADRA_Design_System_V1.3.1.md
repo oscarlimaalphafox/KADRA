@@ -185,7 +185,7 @@ KADRA/
 |  |  |- review/              <- UI-Wellen, Baseline, Defects/Plan
 |  |  \- reports/             <- z. B. INLINE_SVG_REPORT.txt
 |  |- future_features/        <- geplante Features/Spezifikationen
-|  \- reviews/                <- allgemeiner Review-Sammelordner
+|  \- ToDo/                   <- offene Punkte, Kleinigkeiten, Session-Handover
 |
 |- fonts/
 |- icons/

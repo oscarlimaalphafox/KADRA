@@ -14,7 +14,7 @@
  * [cleanup]
  */
 
-const APP_VERSION = '0.3';
+const APP_VERSION = '0.4';
 
 /* [cleanup] */
 const App = {
@@ -27,6 +27,7 @@ const App = {
   allCollapsed:       false,
   _pendingChapter:    null,
   _pendingSubchapter: null,
+  _pendingTopicMove:  null,   // Thema-ID, das nach UKAP-Anlage per Drag dorthin verschoben wird
   // v1.3: Serien & Seitenleiste
   selectedSeriesId:    null,   // Welche Serie ist fÃ¼r Fortfuehrung ausgewaehlt
   collapsedSeriesIds:  new Set(),
@@ -112,6 +113,8 @@ function initStaticIcons() {
   // Sidebar / project menu
   setOnlyIcon('#btnProjectMenu', iconMenu);
   setLeadingIcon('#btnImportFullDB', iconFileInput);
+  setLeadingIcon('#btnRecentDb', iconHistory);
+  ensureAppendedIcon('.project-submenu-chevron', iconChevronRight());
   setLeadingIcon('#btnExportFullDB', iconSave);
   setLeadingIcon('#btnCloseDatabase', iconCircleX);
   setLeadingIcon('#btnNewProjectMenu', iconFolderPlus);
@@ -127,7 +130,7 @@ function initStaticIcons() {
   setLeadingIcon('#btnImportProjectSelector', iconFolderOpen);
   ensureAppendedIcon('#btnProjectSelector', iconChevronDown('selector-chevron'));
   setLeadingIcon('#btnNewProtocol', iconFilePlus2);
-  setLeadingIcon('#btnImportJamieSidebar', iconFileInput);
+  setLeadingIcon('#btnImportVoctaSidebar', iconFileInput);
   setLeadingIcon('.sidebar-search', iconFileSearch2);
   setLeadingIcon('#btnSeriesToggle', iconLayers);
   setOnlyIcon('#btnSidebarSearchClear', iconX);
@@ -150,19 +153,19 @@ function initStaticIcons() {
   setOnlyIcon('#searchBarNext', iconChevronDown);
 
   // Section headers / controls
+  setLeadingIcon('#sectionPoints .proto-card-header', iconList);
   setLeadingIcon('#sectionParticipants .proto-card-header', iconUsers);
   setLeadingIcon('#sectionAttachments .proto-card-header', iconPaperclip);
   setLeadingIcon('#sectionAuthor .proto-card-header', iconPenLine);
   setLeadingIcon('#sectionLegend .proto-card-header', iconBookOpen);
   setOnlyIcon('#btnAddParticipant', iconUserPlus);
-  setOnlyIcon('#btnCollapseAll', iconChevronsDown);
   setOnlyIcon('#btnAuthorDatePicker', iconCalendar);
 
   // Modals / dialog controls
   setAllOnlyIcons('.modal-close', iconX);
   setLeadingIcon('#btnExportBeforeDelete', iconDownload);
   setLeadingIcon('#btnExportBeforeClose', iconDownload);
-  setLeadingIcon('#jamieFileDrop', iconDownload);
+  setLeadingIcon('#voctaFileDrop', iconDownload);
 }
 
 /* ============================================================
@@ -212,7 +215,7 @@ async function selectProject(projectId) {
     if (label) label.textContent = _projectCodeLabel(project);
   }
   document.getElementById('btnNewProtocol').disabled = false;
-  document.getElementById('btnImportJamieSidebar').disabled = false;
+  document.getElementById('btnImportVoctaSidebar').disabled = false;
   await loadProtocolList();
   const lastProtId = localStorage.getItem('lastProtocolId');
   if (lastProtId && App.protocols.find(p => p.id === lastProtId)) {
@@ -371,79 +374,119 @@ function _buildProtocolItem(proto) {
     ? new Date(proto.date + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' })
     : '-';
   const hasFiles = (proto.attachments||[]).some(a => a.fileName);
-  const clipHtml = hasFiles ? `<span class="protocol-item-clip" title="Enthaelt Datei-Anlagen">${iconPaperclip()}</span>` : '';
+  const clipHtml = hasFiles ? `<span class="protocol-item-clip" title="Enthält Datei-Anlagen">${iconPaperclip()}</span>` : '';
 
   const sName = esc(proto.seriesName || proto.title || proto.type);
   const label = proto.type === 'Aktennotiz'
     ? `${sName}${clipHtml}`
-    : `${sName}\u202FNr.\u202F${String(proto.number || 1).padStart(2,'0')}${clipHtml}`;
+    : `${sName} Nr. ${String(proto.number || 1).padStart(2,'0')}${clipHtml}`;
 
   const main = document.createElement('div');
   main.className = 'protocol-item-main';
   main.setAttribute('role', 'button');
   main.tabIndex = 0;
-  main.setAttribute('aria-label', `Protokoll ${proto.seriesName || proto.title || proto.type} Ã¶ffnen`);
+  main.setAttribute('aria-label', `Protokoll ${proto.seriesName || proto.title || proto.type} öffnen`);
   main.innerHTML = `
     <div class="protocol-item-title">${label}</div>
-    <div class="protocol-item-date-row">
-      <span class="protocol-item-meta">${dateStr}</span>
-      <div class="protocol-item-actions"></div>
-    </div>`;
+    <div class="protocol-item-date">${dateStr}</div>`;
   main.addEventListener('click', (e) => {
-    if (e.target.closest('.protocol-item-actions')) return;
+    if (e.target.closest('.protocol-item-menu-wrap')) return;
     App.selectedSeriesId = proto.seriesId || ('type:' + proto.type);
     document.querySelectorAll('.series-header').forEach(h => h.classList.remove('selected'));
     openProtocol(proto.id);
   });
   main.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      main.click();
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); main.click(); }
+  });
+
+  const menuWrap = document.createElement('div');
+  menuWrap.className = 'protocol-item-menu-wrap';
+
+  const menuBtn = document.createElement('button');
+  menuBtn.type = 'button';
+  menuBtn.className = 'protocol-item-menu-btn';
+  menuBtn.title = 'Optionen';
+  menuBtn.innerHTML = iconEllipsisVertical();
+
+  const menuPanel = document.createElement('div');
+  menuPanel.className = 'protocol-item-menu-panel';
+  menuPanel.innerHTML = `
+    <button type="button" class="protocol-item-menu-entry" data-action="dup">
+      ${iconCopy()} <span>Duplizieren</span>
+    </button>
+    <button type="button" class="protocol-item-menu-entry danger" data-action="del">
+      ${iconTrash()} <span>Löschen</span>
+    </button>`;
+
+  const closeMenu = () => {
+    menuWrap.classList.remove('open');
+    menuPanel.classList.remove('open');
+    if (menuPanel.parentNode) menuPanel.parentNode.removeChild(menuPanel);
+  };
+
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = menuPanel.classList.contains('open');
+    closeAllProtocolMenus();
+    if (!isOpen) {
+      document.body.appendChild(menuPanel);
+      // open-Klasse VOR der Positionierung setzen, damit offsetWidth die
+      // tatsaechliche Panelbreite liefert (sonst 0 -> falsche Position beim
+      // ersten Oeffnen, Klick auf "Loeschen" trifft daneben).
+      menuWrap.classList.add('open');
+      menuPanel.classList.add('open');
+      const rect = menuBtn.getBoundingClientRect();
+      menuPanel.style.top  = (rect.bottom + 4) + 'px';
+      menuPanel.style.left = (rect.right - menuPanel.offsetWidth) + 'px';
     }
   });
 
-  const actionsDiv = main.querySelector('.protocol-item-actions');
-
-  const dupBtn = document.createElement('button');
-  dupBtn.type = 'button'; dupBtn.className = 'protocol-item-dup-btn'; dupBtn.title = 'Duplizieren';
-  dupBtn.innerHTML = iconCopy();
-  dupBtn.addEventListener('click', (e) => {
+  menuPanel.addEventListener('click', async (e) => {
     e.stopPropagation();
-    App._duplicatingProtocolId = proto.id;
-    document.getElementById('duplicateName').value = '';
-    openModal('modalDuplicate');
-    setTimeout(() => document.getElementById('duplicateName').focus(), 80);
-  });
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if (!action) return;
+    closeMenu();
 
-  const delBtn = document.createElement('button');
-  delBtn.type = 'button'; delBtn.className = 'protocol-item-del-btn'; delBtn.title = 'In Papierkorb';
-  delBtn.innerHTML = iconTrash();
-  delBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    const lbl = proto.type === 'Aktennotiz'
-      ? (proto.seriesName || proto.title || 'Aktennotiz')
-      : `${proto.seriesName||proto.title||proto.type} Nr. ${String(proto.number||1).padStart(2,'0')}`;
-    if (!(await appConfirm(`Obacht!\n\n"${lbl}" in den Papierkorb verschieben?\n\nAlle Punkte bleiben gespeichert.`, {
-      title: 'In Papierkorb verschieben',
-      confirmLabel: 'Verschieben',
-      danger: true,
-    }))) return;
-    await DB.Protocols.trash(proto.id);
-    if (App.currentProtocolId === proto.id) {
-      App.currentProtocolId = null;
-      document.getElementById('emptyState').classList.remove('hidden');
-      document.getElementById('protocolView').classList.add('hidden');
-      document.getElementById('workspaceToolbar').classList.add('hidden');
+    if (action === 'dup') {
+      App._duplicatingProtocolId = proto.id;
+      document.getElementById('duplicateName').value = '';
+      openModal('modalDuplicate');
+      setTimeout(() => document.getElementById('duplicateName').focus(), 80);
+    } else if (action === 'del') {
+      const lbl = proto.type === 'Aktennotiz'
+        ? (proto.seriesName || proto.title || 'Aktennotiz')
+        : `${proto.seriesName||proto.title||proto.type} Nr. ${String(proto.number||1).padStart(2,'0')}`;
+      if (!(await appConfirm(`Obacht!\n\n"${lbl}" in den Papierkorb verschieben?\n\nAlle Punkte bleiben gespeichert.`, {
+        title: 'In Papierkorb verschieben',
+        confirmLabel: 'Verschieben',
+        danger: true,
+      }))) return;
+      await DB.Protocols.trash(proto.id);
+      if (App.currentProtocolId === proto.id) {
+        App.currentProtocolId = null;
+        document.getElementById('emptyState').classList.remove('hidden');
+        document.getElementById('protocolView').classList.add('hidden');
+        document.getElementById('workspaceToolbar').classList.add('hidden');
+      }
+      App.protocols = await DB.Protocols.getActiveByProject(App.currentProjectId);
+      renderProtocolList();
+      showToast('Protokoll in den Papierkorb verschoben.', '');
     }
-    App.protocols = await DB.Protocols.getActiveByProject(App.currentProjectId);
-    renderProtocolList();
-    showToast('Protokoll in den Papierkorb verschoben.', '');
   });
 
-  actionsDiv.appendChild(dupBtn);
-  actionsDiv.appendChild(delBtn);
+  menuWrap.appendChild(menuBtn);
   item.appendChild(main);
+  item.appendChild(menuWrap);
   return item;
+}
+
+/** Schließt alle offenen Protokoll-Item-Menüs und entfernt ihre Panels aus dem body. */
+function closeAllProtocolMenus() {
+  document.querySelectorAll('.protocol-item-menu-wrap.open').forEach(w => w.classList.remove('open'));
+  document.querySelectorAll('body > .protocol-item-menu-panel.open').forEach(p => {
+    p.classList.remove('open');
+    if (p.parentNode) p.parentNode.removeChild(p);
+  });
 }
 
 /* ============================================================
@@ -878,6 +921,10 @@ function setupCategoryDisable(tr) {
 ============================================================ */
 function renderPoints(protocol) {
   const tbody = document.getElementById('pointsBody');
+  // Scroll-Position des Arbeitsbereichs sichern: Neuaufbau des tbody laesst die Hoehe
+  // kurz auf 0 kollabieren, was den Container sonst an eine andere Stelle springen laesst.
+  const scrollContainer = document.querySelector('.workspace-content');
+  const savedScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
   tbody.innerHTML = '';
   // Cleanup document-Listener vom vorherigen Render (verhindert Listener-Leaks)
   if (renderPoints._ac) renderPoints._ac.abort();
@@ -902,6 +949,8 @@ function renderPoints(protocol) {
     chRow.dataset.collapseId = chCollId;
 
     let chLabelHtml, chDelBtn;
+    // Nur Nutzer-Kapitel (ab F, keine Aktennotiz) sind per Drag umsortierbar
+    const isReorderableChapter = !isAk && !DEFAULT_CHAPTERS.includes(chKey);
 
     if (isAk) {
       // Aktennotiz: P/N fix, A-Abschnitte nummeriert + editierbar
@@ -947,7 +996,10 @@ function renderPoints(protocol) {
       <td colspan="7">
         <div class="structure-label-cell">
           ${chLabelHtml}
-          ${chDelBtn}
+          <span class="structure-actions">
+            ${chDelBtn}
+            ${isReorderableChapter ? `<span class="drag-handle chapter-drag-handle" title="Kapitel verschieben">${iconGrip()}</span>` : ''}
+          </span>
         </div>
       </td>
     `;
@@ -991,6 +1043,80 @@ function renderPoints(protocol) {
         });
       }
     }
+
+    // Kapitel als Drag-Quelle (nur F+): Reorder zwischen Nutzer-Kapiteln
+    if (isReorderableChapter) {
+      const chHandle = chRow.querySelector('.chapter-drag-handle');
+      let chHandleDown = false;
+      chHandle.addEventListener('mousedown',  () => { chHandleDown = true; chRow.draggable = true; });
+      chHandle.addEventListener('touchstart', () => { chHandleDown = true; chRow.draggable = true; }, { passive: true });
+      document.addEventListener('mouseup',  () => { chHandleDown = false; chRow.draggable = false; }, { signal: ac.signal });
+      document.addEventListener('touchend', () => { chHandleDown = false; chRow.draggable = false; }, { signal: ac.signal });
+
+      chRow.addEventListener('dragstart', e => {
+        if (!chHandleDown) { e.preventDefault(); return; }
+        e.dataTransfer.setData('text/plain', chKey);
+        e.dataTransfer.setData('application/x-dragtype', 'chapter');
+        e.dataTransfer.effectAllowed = 'move';
+        chRow.classList.add('drag-active');
+        App._dragType = 'chapter';
+        startDragAutoScroll();
+      });
+      chRow.addEventListener('dragend', () => {
+        chRow.classList.remove('drag-active');
+        App._dragType = null;
+        stopDragAutoScroll();
+        document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-into').forEach(el => {
+          el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
+        });
+      });
+    }
+
+    // Drop-Ziel Kapitel-Zeile: UKAP/Punkt ans Kapitel-Ende; Thema -> neues UKAP anlegen (Modal);
+    // anderes Nutzer-Kapitel -> Reorder (davor/danach)
+    chRow.addEventListener('dragover', e => {
+      // Kapitel-Reorder: nur zwischen Nutzer-Kapiteln (F+), A-E sind keine gueltigen Ziele
+      if (App._dragType === 'chapter') {
+        if (!isReorderableChapter) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = chRow.getBoundingClientRect();
+        const mid  = rect.top + rect.height / 2;
+        chRow.classList.toggle('drag-over-top',    e.clientY < mid);
+        chRow.classList.toggle('drag-over-bottom', e.clientY >= mid);
+        return;
+      }
+      if (App._dragType !== 'subchapter' && App._dragType !== 'point' && App._dragType !== 'topic') return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      chRow.classList.add('drag-over-into');
+    });
+    chRow.addEventListener('dragleave', () => {
+      chRow.classList.remove('drag-over-into', 'drag-over-top', 'drag-over-bottom');
+    });
+    chRow.addEventListener('drop', async e => {
+      e.preventDefault();
+      chRow.classList.remove('drag-over-into', 'drag-over-top', 'drag-over-bottom');
+      const draggedId = e.dataTransfer.getData('text/plain');
+      if (App._dragType === 'chapter') {
+        if (!isReorderableChapter) return;
+        const rect = chRow.getBoundingClientRect();
+        const after = e.clientY >= rect.top + rect.height / 2;
+        await reorderUserChapter(draggedId, chKey, after);
+      } else if (App._dragType === 'subchapter') {
+        await moveSubchapterTo(draggedId, { chapter: chKey, anchorSubId: null });
+      } else if (App._dragType === 'point') {
+        await movePointTo(draggedId, { chapter: chKey, subchapter: null, topic: null });
+      } else if (App._dragType === 'topic') {
+        // Thema braucht ein UKAP als Container -> Anlage-Modal, danach Thema hineinverschieben
+        App._pendingTopicMove = draggedId;
+        App._pendingChapter    = chKey;
+        document.getElementById('modalSubchapterTitle').textContent = `Neues Unterkapitel in Kapitel ${chKey}`;
+        document.getElementById('subchapterLabel').value = '';
+        openModal('modalSubchapter');
+        setTimeout(() => document.getElementById('subchapterLabel').focus(), 80);
+      }
+    });
 
     addRowClick(chRow, { type:'chapter', chapterKey:chKey, label: isAk ? chapter.label : `Kapitel ${chKey}` });
     tbody.appendChild(chRow);
@@ -1084,6 +1210,7 @@ function renderPoints(protocol) {
         subRow.classList.add('drag-active');
         App._dragGroup = chKey;
         App._dragType  = 'subchapter';
+        startDragAutoScroll();
         // [cleanup]
         let sib = subRow.nextElementSibling;
         while (sib && sib.dataset.type !== 'subchapter' && sib.dataset.type !== 'chapter') {
@@ -1098,8 +1225,9 @@ function renderPoints(protocol) {
         subRow.classList.remove('drag-active');
         App._dragGroup = null;
         App._dragType  = null;
-        document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
-          el.classList.remove('drag-over-top', 'drag-over-bottom');
+        stopDragAutoScroll();
+        document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-into').forEach(el => {
+          el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
         });
         document.querySelectorAll('.drag-child-hidden').forEach(el => {
           el.classList.remove('drag-child-hidden');
@@ -1107,8 +1235,15 @@ function renderPoints(protocol) {
       });
 
       subRow.addEventListener('dragover', e => {
-        if (App._dragType !== 'subchapter' || !App._dragGroup) return;
-        if (subRow.dataset.chapter !== App._dragGroup) return;
+        // Punkt- oder Thema-Drop auf UKAP-Zeile: landet ans Ende dieses UKAP
+        if (App._dragType === 'point' || App._dragType === 'topic') {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          subRow.classList.add('drag-over-into');
+          return;
+        }
+        // UKAP-Drop auf UKAP-Zeile: frei ueber alle Kapitel (davor/danach)
+        if (App._dragType !== 'subchapter') return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         const rect = subRow.getBoundingClientRect();
@@ -1118,38 +1253,38 @@ function renderPoints(protocol) {
       });
 
       subRow.addEventListener('dragleave', () => {
-        subRow.classList.remove('drag-over-top', 'drag-over-bottom');
+        subRow.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
       });
 
       subRow.addEventListener('drop', async e => {
         e.preventDefault();
-        subRow.classList.remove('drag-over-top', 'drag-over-bottom');
+        subRow.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
+
+        // Punkt-Drop auf UKAP-Zeile -> ans Ende des UKAP (kein Thema)
+        if (App._dragType === 'point') {
+          const draggedId = e.dataTransfer.getData('text/plain');
+          await movePointTo(draggedId, { chapter: chKey, subchapter: sub.id, topic: null });
+          return;
+        }
+        // Thema-Drop auf UKAP-Zeile -> ans Ende dieses UKAP
+        if (App._dragType === 'topic') {
+          const draggedTopicId = e.dataTransfer.getData('text/plain');
+          await moveTopicTo(draggedTopicId, { chapter: chKey, subchapter: sub.id, anchorTopicId: null });
+          return;
+        }
+
         if (App._dragType !== 'subchapter') return;
 
         const draggedSubId = e.dataTransfer.getData('text/plain');
         if (draggedSubId === sub.id) return;
 
-        await saveCurrentProtocol();
-        const proto = await DB.Protocols.get(App.currentProtocolId);
-        if (!proto) return;
-        const ch = proto.structure[chKey];
-        if (!ch?.subchapters) return;
-
-        const fromIdx = ch.subchapters.findIndex(s => s.id === draggedSubId);
-        if (fromIdx === -1) return;
-        const [movedSub] = ch.subchapters.splice(fromIdx, 1);
-
-        let toIdx = ch.subchapters.findIndex(s => s.id === sub.id);
-        if (toIdx === -1) toIdx = ch.subchapters.length;
-
         const rect = subRow.getBoundingClientRect();
-        if (e.clientY >= rect.top + rect.height / 2) toIdx++;
-
-        ch.subchapters.splice(toIdx, 0, movedSub);
-
-        await DB.Protocols.save(proto);
-        renderPoints(proto);
-        showToast('Unterkapitel verschoben.', 'success');
+        const after = e.clientY >= rect.top + rect.height / 2;
+        await moveSubchapterTo(draggedSubId, {
+          chapter:     chKey,
+          anchorSubId: sub.id,
+          after,
+        });
       });
 
       addRowClick(subRow, {
@@ -1224,6 +1359,7 @@ function renderPoints(protocol) {
           topicRow.classList.add('drag-active');
           App._dragGroup = group;
           App._dragType  = 'topic';
+          startDragAutoScroll();
           // [cleanup]
           let sib = topicRow.nextElementSibling;
           while (sib && sib.dataset.type === 'point' && sib.dataset.topic === topic.id) {
@@ -1236,8 +1372,9 @@ function renderPoints(protocol) {
           topicRow.classList.remove('drag-active');
           App._dragGroup = null;
           App._dragType  = null;
-          document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
-            el.classList.remove('drag-over-top', 'drag-over-bottom');
+          stopDragAutoScroll();
+          document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-into').forEach(el => {
+            el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
           });
           document.querySelectorAll('.drag-child-hidden').forEach(el => {
             el.classList.remove('drag-child-hidden');
@@ -1245,9 +1382,15 @@ function renderPoints(protocol) {
         });
 
         topicRow.addEventListener('dragover', e => {
-          if (App._dragType !== 'topic' || !App._dragGroup) return;
-          const myGroup = [topicRow.dataset.chapter, topicRow.dataset.subchapter].join('|');
-          if (myGroup !== App._dragGroup) return;
+          // Punkt-Drop auf Themen-Zeile: Punkt landet unter diesem Thema
+          if (App._dragType === 'point') {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            topicRow.classList.add('drag-over-into');
+            return;
+          }
+          // Thema-Drop auf Themen-Zeile: frei ueber alle UKAPs/Kapitel (davor/danach)
+          if (App._dragType !== 'topic') return;
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
           const rect = topicRow.getBoundingClientRect();
@@ -1257,39 +1400,33 @@ function renderPoints(protocol) {
         });
 
         topicRow.addEventListener('dragleave', () => {
-          topicRow.classList.remove('drag-over-top', 'drag-over-bottom');
+          topicRow.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
         });
 
         topicRow.addEventListener('drop', async e => {
           e.preventDefault();
-          topicRow.classList.remove('drag-over-top', 'drag-over-bottom');
+          topicRow.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
+
+          // Punkt-Drop auf Themen-Zeile -> ans Ende dieses Themas
+          if (App._dragType === 'point') {
+            const draggedId = e.dataTransfer.getData('text/plain');
+            await movePointTo(draggedId, { chapter: chKey, subchapter: sub.id, topic: topic.id });
+            return;
+          }
+
           if (App._dragType !== 'topic') return;
 
           const draggedTopicId = e.dataTransfer.getData('text/plain');
           if (draggedTopicId === topic.id) return;
 
-          await saveCurrentProtocol();
-          const proto = await DB.Protocols.get(App.currentProtocolId);
-          if (!proto) return;
-          const ch = proto.structure[chKey];
-          const s = (ch?.subchapters || []).find(sc => sc.id === sub.id);
-          if (!s?.topics) return;
-
-          const fromIdx = s.topics.findIndex(t => t.id === draggedTopicId);
-          if (fromIdx === -1) return;
-          const [movedTopic] = s.topics.splice(fromIdx, 1);
-
-          let toIdx = s.topics.findIndex(t => t.id === topic.id);
-          if (toIdx === -1) toIdx = s.topics.length;
-
           const rect = topicRow.getBoundingClientRect();
-          if (e.clientY >= rect.top + rect.height / 2) toIdx++;
-
-          s.topics.splice(toIdx, 0, movedTopic);
-
-          await DB.Protocols.save(proto);
-          renderPoints(proto);
-          showToast('Thema verschoben.', 'success');
+          const after = e.clientY >= rect.top + rect.height / 2;
+          await moveTopicTo(draggedTopicId, {
+            chapter:       chKey,
+            subchapter:    sub.id,
+            anchorTopicId: topic.id,
+            after,
+          });
         });
 
         addRowClick(topicRow, {
@@ -1324,6 +1461,202 @@ function renderPoints(protocol) {
   applyChapterFilter();
   syncSelectionAfterRender();
   syncCollapseAllButtonState();
+
+  // Scroll-Position wiederherstellen (nach autoResizeAll, da dieses die Hoehe beeinflusst)
+  if (scrollContainer) scrollContainer.scrollTop = savedScrollTop;
+}
+
+/* Punkt verschieben: ID bleibt fix (Herkunft), nur Position (chapter/subchapter/topic)
+   und Reihenfolge im flachen points-Array werden angepasst.
+   target = { chapter, subchapter, topic, beforeId|afterId }.
+   beforeId/afterId = Anker-Punkt; fehlen beide, wird ans Ende des Ziel-UKAP/-Themas gehaengt. */
+async function movePointTo(draggedId, target) {
+  await saveCurrentProtocol();  // DOM-Inhalte sichern bevor DB gelesen wird
+  const protocol = await DB.Protocols.get(App.currentProtocolId);
+  if (!protocol?.points) return;
+
+  const fromIdx = protocol.points.findIndex(p => p.id === draggedId);
+  if (fromIdx === -1) return;
+
+  const [moved] = protocol.points.splice(fromIdx, 1);
+  moved.chapter    = target.chapter;
+  moved.subchapter = target.subchapter || null;
+  moved.topic      = target.topic || null;
+
+  let insertIdx;
+  if (target.beforeId) {
+    insertIdx = protocol.points.findIndex(p => p.id === target.beforeId);
+    if (insertIdx === -1) insertIdx = protocol.points.length;
+  } else if (target.afterId) {
+    insertIdx = protocol.points.findIndex(p => p.id === target.afterId);
+    insertIdx = insertIdx === -1 ? protocol.points.length : insertIdx + 1;
+  } else {
+    // Kein Anker: hinter den letzten Punkt desselben Ziel-UKAP/-Themas einfuegen
+    let last = -1;
+    protocol.points.forEach((p, i) => {
+      if (p.chapter === moved.chapter
+          && (p.subchapter || null) === moved.subchapter
+          && (p.topic || null) === moved.topic) last = i;
+    });
+    insertIdx = last === -1 ? protocol.points.length : last + 1;
+  }
+
+  protocol.points.splice(insertIdx, 0, moved);
+
+  await DB.Protocols.save(protocol);
+  renderPoints(protocol);
+  showToast('Punkt verschoben.', 'success');
+}
+
+/* Naechste freie UKAP-Nummer in einem Kapitel ermitteln (z.B. "F.3"). */
+function nextSubchapterId(chapter, chKey) {
+  const subs = chapter.subchapters || [];
+  const maxNum = subs.reduce((m, s) => Math.max(m, parseInt(String(s.id || '').split('.')[1], 10) || 0), 0);
+  let n = maxNum + 1;
+  while (subs.some(s => s.id === `${chKey}.${n}`)) n++;
+  return `${chKey}.${n}`;
+}
+
+/* UKAP verschieben (auch kapiteluebergreifend).
+   target = { chapter, anchorSubId|null, after }.
+   anchorSubId fehlt -> ans Ende des Ziel-Kapitels.
+   Bei Kapitelwechsel: UKAP wird neu nummeriert (B.1 -> F.3), enthaltene Punkte ziehen mit
+   (point.chapter/subchapter aktualisiert), Punkt-IDs bleiben fix (Herkunft). */
+async function moveSubchapterTo(draggedSubId, target) {
+  await saveCurrentProtocol();
+  const proto = await DB.Protocols.get(App.currentProtocolId);
+  if (!proto) return;
+  // Quell-Kapitel anhand des UKAP suchen (nicht aus der ID ableiten, robuster)
+  const fromChKey = Object.keys(proto.structure).find(
+    k => (proto.structure[k].subchapters || []).some(s => s.id === draggedSubId)
+  );
+  if (!fromChKey) return;
+  const fromCh = proto.structure[fromChKey];
+  const toCh   = proto.structure[target.chapter];
+  if (!fromCh?.subchapters || !toCh) return;
+
+  const fromIdx = fromCh.subchapters.findIndex(s => s.id === draggedSubId);
+  if (fromIdx === -1) return;
+  const [movedSub] = fromCh.subchapters.splice(fromIdx, 1);
+
+  const sameChapter = fromChKey === target.chapter;
+  const oldSubId = movedSub.id;
+  let newSubId = oldSubId;
+
+  if (!sameChapter) {
+    // Neue UKAP-Nummer im Zielkapitel vergeben und enthaltene Punkte ummappen
+    newSubId = nextSubchapterId(toCh, target.chapter);
+    movedSub.id = newSubId;
+    (proto.points || []).forEach(p => {
+      if (p.chapter === fromChKey && p.subchapter === oldSubId) {
+        p.chapter    = target.chapter;
+        p.subchapter = newSubId;
+      }
+    });
+  }
+
+  if (!toCh.subchapters) toCh.subchapters = [];
+  let toIdx;
+  if (target.anchorSubId) {
+    toIdx = toCh.subchapters.findIndex(s => s.id === target.anchorSubId);
+    if (toIdx === -1) toIdx = toCh.subchapters.length;
+    else if (target.after) toIdx++;
+  } else {
+    toIdx = toCh.subchapters.length; // ans Ende
+  }
+  toCh.subchapters.splice(toIdx, 0, movedSub);
+
+  await DB.Protocols.save(proto);
+  renderPoints(proto);
+  showToast('Unterkapitel verschoben.', 'success');
+}
+
+/* Thema verschieben (auch in anderes UKAP/Kapitel).
+   target = { chapter, subchapter, anchorTopicId|null, after }.
+   anchorTopicId fehlt -> ans Ende des Ziel-UKAP.
+   Themen haben keine sichtbare Nummer; enthaltene Punkte ziehen mit
+   (point.chapter/subchapter/topic aktualisiert), Punkt-IDs bleiben fix (Herkunft). */
+async function moveTopicTo(draggedTopicId, target) {
+  await saveCurrentProtocol();
+  const proto = await DB.Protocols.get(App.currentProtocolId);
+  if (!proto) return;
+
+  // Quell-UKAP des Themas suchen
+  let fromChKey = null, fromSub = null, movedTopic = null;
+  for (const [k, ch] of Object.entries(proto.structure)) {
+    for (const s of (ch.subchapters || [])) {
+      const idx = (s.topics || []).findIndex(t => t.id === draggedTopicId);
+      if (idx !== -1) {
+        fromChKey = k; fromSub = s;
+        [movedTopic] = s.topics.splice(idx, 1);
+        break;
+      }
+    }
+    if (movedTopic) break;
+  }
+  if (!movedTopic) return;
+
+  const toCh  = proto.structure[target.chapter];
+  const toSub = (toCh?.subchapters || []).find(s => s.id === target.subchapter);
+  if (!toSub) { fromSub.topics.push(movedTopic); return; } // Ziel ungueltig -> zuruecklegen
+  if (!toSub.topics) toSub.topics = [];
+
+  const movedAcross = fromChKey !== target.chapter || fromSub.id !== target.subchapter;
+  if (movedAcross) {
+    // Enthaltene Punkte ummappen (IDs bleiben fix)
+    (proto.points || []).forEach(p => {
+      if (p.topic === draggedTopicId) {
+        p.chapter    = target.chapter;
+        p.subchapter = target.subchapter;
+      }
+    });
+  }
+
+  let toIdx;
+  if (target.anchorTopicId) {
+    toIdx = toSub.topics.findIndex(t => t.id === target.anchorTopicId);
+    if (toIdx === -1) toIdx = toSub.topics.length;
+    else if (target.after) toIdx++;
+  } else {
+    toIdx = toSub.topics.length;
+  }
+  toSub.topics.splice(toIdx, 0, movedTopic);
+
+  await DB.Protocols.save(proto);
+  renderPoints(proto);
+  showToast('Thema verschoben.', 'success');
+}
+
+/* Auto-Scroll des Arbeitsbereichs waehrend eines Punkt-Drags: scrollt .workspace-content,
+   wenn der Cursor in der oberen/unteren Randzone steht (Geschwindigkeit randnaehe-proportional).
+   Noetig, weil natives HTML5-Drag den inneren Scroll-Container nicht selbst scrollt. */
+let _dragScrollRAF = null;
+let _dragScrollY   = 0;
+function _onDragScrollMove(e) { _dragScrollY = e.clientY; }
+function startDragAutoScroll() {
+  if (_dragScrollRAF) return;
+  document.addEventListener('dragover', _onDragScrollMove);
+  const EDGE = 64;        // Randzone in px
+  const MAX_SPEED = 18;   // max. px pro Frame
+  const step = () => {
+    const container = document.querySelector('.workspace-content');
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const yTop = _dragScrollY - rect.top;
+      const yBot = rect.bottom - _dragScrollY;
+      if (yTop >= 0 && yTop < EDGE) {
+        container.scrollTop -= Math.ceil(MAX_SPEED * (1 - yTop / EDGE));
+      } else if (yBot >= 0 && yBot < EDGE) {
+        container.scrollTop += Math.ceil(MAX_SPEED * (1 - yBot / EDGE));
+      }
+    }
+    _dragScrollRAF = requestAnimationFrame(step);
+  };
+  _dragScrollRAF = requestAnimationFrame(step);
+}
+function stopDragAutoScroll() {
+  if (_dragScrollRAF) { cancelAnimationFrame(_dragScrollRAF); _dragScrollRAF = null; }
+  document.removeEventListener('dragover', _onDragScrollMove);
 }
 
 /* [cleanup] */
@@ -1478,32 +1811,29 @@ function createPointRow(point, currentNum, chKey, subId, topicId, renderSignal) 
 
   tr.addEventListener('dragstart', e => {
     if (!handleMouseDown) { e.preventDefault(); return; }
-    // Gruppenkennung: chapter|subchapter (Topics beeinflussen Nummerierung nicht)
-    const group = [chKey, subId || ''].join('|');
     e.dataTransfer.setData('text/plain', point.id);
-    e.dataTransfer.setData('application/x-group', group);
+    e.dataTransfer.setData('application/x-dragtype', 'point');
     e.dataTransfer.effectAllowed = 'move';
     tr.classList.add('drag-active');
-    App._dragGroup = group;
     App._dragType  = 'point';
+    startDragAutoScroll();
   });
 
   tr.addEventListener('dragend', () => {
     tr.classList.remove('drag-active');
-    App._dragGroup = null;
     App._dragType  = null;
+    stopDragAutoScroll();
     document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
       el.classList.remove('drag-over-top', 'drag-over-bottom');
     });
   });
 
+  // Punkte lassen sich frei im gesamten Protokoll ablegen (Kapitel-/UKAP-/Themengrenzen
+  // egal). Die ID bleibt fix (Herkunft), nur chapter/subchapter/topic des Ziels werden gesetzt.
   tr.addEventListener('dragover', e => {
-    if (App._dragType !== 'point' || !App._dragGroup) return;
-    const myGroup = [tr.dataset.chapter, tr.dataset.subchapter || ''].join('|');
-    if (myGroup !== App._dragGroup) return;
+    if (App._dragType !== 'point') return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    // [cleanup]
     const rect = tr.getBoundingClientRect();
     const mid  = rect.top + rect.height / 2;
     tr.classList.toggle('drag-over-top',    e.clientY < mid);
@@ -1523,33 +1853,15 @@ function createPointRow(point, currentNum, chKey, subId, topicId, renderSignal) 
     const targetId  = point.id;
     if (draggedId === targetId) return;
 
-    await saveCurrentProtocol();  // DOM-Inhalte sichern bevor DB gelesen wird
-    const protocol = await DB.Protocols.get(App.currentProtocolId);
-    if (!protocol?.points) return;
-
-    const dragAllIdx   = protocol.points.findIndex(p => p.id === draggedId);
-    const targetAllIdx = protocol.points.findIndex(p => p.id === targetId);
-    if (dragAllIdx === -1 || targetAllIdx === -1) return;
-
-    // Element entfernen
-    const [moved] = protocol.points.splice(dragAllIdx, 1);
-
-    // [cleanup]
-    let insertIdx = protocol.points.findIndex(p => p.id === targetId);
-    if (insertIdx === -1) insertIdx = protocol.points.length;
-
-    // [cleanup]
     const rect = tr.getBoundingClientRect();
-    if (e.clientY >= rect.top + rect.height / 2) insertIdx++;
-
-    // [cleanup]
-    moved.topic = point.topic || null;
-
-    protocol.points.splice(insertIdx, 0, moved);
-
-    await DB.Protocols.save(protocol);
-    renderPoints(protocol);
-    showToast('Punkt verschoben.', 'success');
+    const after = e.clientY >= rect.top + rect.height / 2;
+    await movePointTo(draggedId, {
+      chapter:    chKey,
+      subchapter: subId || null,
+      topic:      topicId || null,
+      beforeId:   after ? null : targetId,
+      afterId:    after ? targetId : null,
+    });
   });
 
   return tr;
@@ -1688,16 +2000,10 @@ function syncSelectionAfterRender() {
 
 
 function syncCollapseAllButtonState() {
-  const cab = document.getElementById('btnCollapseAll');
-  if (!cab) return;
   const sectionIds = Array.from(document.querySelectorAll('#pointsBody tr[data-collapse-id]'))
     .map(tr => tr.dataset.collapseId)
     .filter(Boolean);
-  const allCollapsed = sectionIds.length > 0 && sectionIds.every(id => App.collapsedSections.has(id));
-  App.allCollapsed = allCollapsed;
-  cab.classList.toggle('all-collapsed', allCollapsed);
-  const cabIcon = cab.querySelector('.kadra-icon');
-  if (cabIcon) cabIcon.outerHTML = allCollapsed ? iconChevronsRight() : iconChevronsDown();
+  App.allCollapsed = sectionIds.length > 0 && sectionIds.every(id => App.collapsedSections.has(id));
 }
 /* ============================================================
    COLLAPSE / EXPAND
@@ -2101,6 +2407,93 @@ function getNextChapterKey(protocol) {
   return null;
 }
 
+/* Nutzer-Kapitel (ab F) neu anordnen und komplett neu durchbuchstabieren.
+   A-E bleiben fix an Ort und Reihenfolge. Beim Verschieben werden Kapitel- und
+   UKAP-Nummern der betroffenen Kapitel umgeschrieben (G->F, G.1->F.1 ...).
+   Punkt-IDs bleiben fix (Herkunft). UI-State (collapsed/hidden) wird mit-uebersetzt.
+   draggedChKey: zu verschiebendes Kapitel; anchorChKey: Ziel-Kapitel; after: dahinter? */
+async function reorderUserChapter(draggedChKey, anchorChKey, after) {
+  if (DEFAULT_CHAPTERS.includes(draggedChKey)) return;       // A-E nicht verschiebbar
+  if (DEFAULT_CHAPTERS.includes(anchorChKey)) return;        // nur Drop zwischen F+ erlaubt
+  if (draggedChKey === anchorChKey) return;
+
+  await saveCurrentProtocol();
+  const proto = await DB.Protocols.get(App.currentProtocolId);
+  if (!proto?.structure) return;
+
+  const keys = Object.keys(proto.structure);
+  const fixed = keys.filter(k => DEFAULT_CHAPTERS.includes(k));     // A-E (Reihenfolge unveraendert)
+  let user  = keys.filter(k => !DEFAULT_CHAPTERS.includes(k));      // F+ in aktueller Reihenfolge
+
+  const fromIdx = user.indexOf(draggedChKey);
+  if (fromIdx === -1) return;
+  user.splice(fromIdx, 1);
+  let toIdx = user.indexOf(anchorChKey);
+  if (toIdx === -1) toIdx = user.length;
+  else if (after) toIdx++;
+  user.splice(toIdx, 0, draggedChKey);
+
+  // Neue Buchstaben ab F (70) in der neuen Reihenfolge: alte chKey -> neue chKey
+  const keyMap = {};
+  fixed.forEach(k => { keyMap[k] = k; });
+  user.forEach((oldKey, i) => { keyMap[oldKey] = String.fromCharCode(70 + i); });
+
+  // Wenn sich nichts aendert (gleiche Zuordnung), abbrechen
+  const changed = Object.entries(keyMap).some(([o, n]) => o !== n);
+  if (!changed) return;
+
+  // structure neu aufbauen: A-E zuerst (Originalreihenfolge), dann F+ in neuer Reihenfolge
+  const newStructure = {};
+  const rebuild = (oldKey) => {
+    const newKey = keyMap[oldKey];
+    const ch = proto.structure[oldKey];
+    const newSubs = (ch.subchapters || []).map(s => {
+      const seq = String(s.id || '').split('.')[1] || '';
+      return { ...s, id: `${newKey}.${seq}` };
+    });
+    newStructure[newKey] = { ...ch, subchapters: newSubs };
+  };
+  fixed.forEach(rebuild);
+  user.forEach(rebuild);
+  proto.structure = newStructure;
+
+  // Punkte ummappen: chapter + subchapter-Praefix (IDs unveraendert)
+  (proto.points || []).forEach(p => {
+    const newKey = keyMap[p.chapter];
+    if (newKey && newKey !== p.chapter) {
+      if (p.subchapter) {
+        const seq = String(p.subchapter).split('.')[1] || '';
+        p.subchapter = `${newKey}.${seq}`;
+      }
+      p.chapter = newKey;
+    }
+  });
+
+  // Transienten UI-State uebersetzen (collapsed/hidden)
+  const newCollapsed = new Set();
+  App.collapsedSections.forEach(id => {
+    if (id.startsWith('chapter-')) {
+      const o = id.slice(8); newCollapsed.add('chapter-' + (keyMap[o] || o));
+    } else if (id.startsWith('subchapter-')) {
+      const o = id.slice(11); const ch = o.split('.')[0]; const seq = o.split('.')[1] || '';
+      newCollapsed.add('subchapter-' + ((keyMap[ch] || ch) + '.' + seq));
+    } else { newCollapsed.add(id); }
+  });
+  App.collapsedSections = newCollapsed;
+
+  const newHidden = new Set();
+  App.hiddenChapters.forEach(o => newHidden.add(keyMap[o] || o));
+  App.hiddenChapters = newHidden;
+
+  if (App.selectedRow?.chapterKey) {
+    App.selectedRow.chapterKey = keyMap[App.selectedRow.chapterKey] || App.selectedRow.chapterKey;
+  }
+
+  await DB.Protocols.save(proto);
+  renderPoints(proto);
+  showToast('Kapitel neu angeordnet.', 'success');
+}
+
 /* KAP - Modal Ã¶ffnen */
 async function startAddChapter() {
   const protocol = await DB.Protocols.get(App.currentProtocolId);
@@ -2256,11 +2649,22 @@ async function saveSubchapter() {
     let nextNum = maxNum + 1;
     while ((chapter.subchapters || []).some(s => s.id === `${chKey}.${nextNum}`)) nextNum++;
 
-    chapter.subchapters = [...(chapter.subchapters || []), { id: `${chKey}.${nextNum}`, label, topics: [] }];
+    const newSubId = `${chKey}.${nextNum}`;
+    chapter.subchapters = [...(chapter.subchapters || []), { id: newSubId, label, topics: [] }];
     await DB.Protocols.save(protocol);
+
+    // Per Drag angefordert: Thema ins frisch angelegte UKAP verschieben
+    // (vor closeModal sichern, da closeModal das Pending-Feld verwirft)
+    const pendingTopic = App._pendingTopicMove;
     closeModal('modalSubchapter');
+    if (pendingTopic) {
+      App._busy = false; // moveTopicTo darf nicht durch _busy blockiert werden
+      await moveTopicTo(pendingTopic, { chapter: chKey, subchapter: newSubId, anchorTopicId: null });
+      return;
+    }
+
     renderPoints(protocol);
-    showToast(`Unterkapitel ${chKey}.${nextNum} angelegt.`, 'success');
+    showToast(`Unterkapitel ${newSubId} angelegt.`, 'success');
   } finally {
     App._busy = false;
   }
@@ -3223,12 +3627,19 @@ function bindGlobalEvents() {
     }
   });
 
+  // Proto-Card Header Collapse
+  ['sectionParticipants', 'sectionAttachments', 'sectionAuthor', 'sectionLegend'].forEach(id => {
+    document.querySelector(`#${id} .proto-card-header`).addEventListener('click', () => {
+      document.getElementById(id).classList.toggle('is-collapsed');
+    });
+  });
+
   // Toolbar
   document.getElementById('btnAddChapter').addEventListener('click', startAddChapter);
   document.getElementById('btnAddSubchapter').addEventListener('click', startAddSubchapter);
   document.getElementById('btnAddTopic').addEventListener('click', startAddTopic);
   document.getElementById('btnAddPoint').addEventListener('click', addPoint);
-  document.getElementById('btnCollapseAll').addEventListener('click', toggleCollapseAll);
+  document.querySelector('#sectionPoints .proto-card-header').addEventListener('click', toggleCollapseAll);
   setupPointFilter();
   setupChapterFilter();
   setupFulltextSearch();
@@ -3683,12 +4094,14 @@ function setupProjectMenu() {
   const dbFileInput = document.getElementById('fileImportFullDB');
   document.getElementById('btnImportFullDB').addEventListener('click', () => {
     panel.classList.add('hidden');
-    dbFileInput.value = '';
-    dbFileInput.click();
+    openDatabaseViaPicker();
   });
   dbFileInput.addEventListener('change', () => {
     if (dbFileInput.files.length > 0) importFullDB(dbFileInput.files[0]);
   });
+
+  // Untermenü "Zuletzt verwendet"
+  setupRecentDbMenu(panel);
 
   // Projekt exportieren
   document.getElementById('btnExportProject').addEventListener('click', () => {
@@ -3707,73 +4120,76 @@ function setupProjectMenu() {
     });
   }
 
-  // meetjamie Import
-  const jamieMdInput = document.getElementById('fileImportJamieMd');
-  const jamieBtn = document.getElementById('btnImportJamieSidebar');
+  // VOCTA Import
+  const voctaMdInput = document.getElementById('fileImportVoctaMd');
+  const voctaBtn = document.getElementById('btnImportVoctaSidebar');
   const isMarkdownFile = (file) => !!file && /\.md$/i.test(file.name || '');
-  const handleJamieSidebarFile = (file) => {
+  const handleVoctaSidebarFile = (file) => {
     if (!file) return;
     if (!isMarkdownFile(file)) {
       showToast('Bitte eine .md-Datei importieren.', 'error');
       return;
     }
-    openJamieImportModal(file);
+    // Auswahl-Dialog: Komplett vs. Schrittweise
+    openImportModeDialog(file);
   };
 
-  jamieBtn.addEventListener('click', () => {
-    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt Ã¶ffnen.', 'error'); return; }
-    jamieMdInput.value = '';
-    jamieMdInput.click();
+  voctaBtn.addEventListener('click', () => {
+    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt oeffnen.', 'error'); return; }
+    voctaMdInput.value = '';
+    voctaMdInput.click();
   });
-  jamieMdInput.addEventListener('change', () => {
-    if (jamieMdInput.files.length > 0) handleJamieSidebarFile(jamieMdInput.files[0]);
+  voctaMdInput.addEventListener('change', () => {
+    if (voctaMdInput.files.length > 0) handleVoctaSidebarFile(voctaMdInput.files[0]);
   });
 
   // Drag & Drop direkt auf den Import-Button
-  jamieBtn.addEventListener('dragover', (e) => {
+  voctaBtn.addEventListener('dragover', (e) => {
     e.preventDefault();
-    if (!jamieBtn.disabled) jamieBtn.classList.add('drag-over');
+    if (!voctaBtn.disabled) voctaBtn.classList.add('drag-over');
   });
-  jamieBtn.addEventListener('dragleave', () => jamieBtn.classList.remove('drag-over'));
-  jamieBtn.addEventListener('drop', (e) => {
+  voctaBtn.addEventListener('dragleave', () => voctaBtn.classList.remove('drag-over'));
+  voctaBtn.addEventListener('drop', (e) => {
     e.preventDefault();
-    jamieBtn.classList.remove('drag-over');
-    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt Ã¶ffnen.', 'error'); return; }
+    voctaBtn.classList.remove('drag-over');
+    if (!App.currentProjectId) { showToast('Bitte zuerst ein Projekt oeffnen.', 'error'); return; }
     const f = e.dataTransfer.files[0];
-    handleJamieSidebarFile(f);
+    handleVoctaSidebarFile(f);
   });
 
-  // Jamie Modal: Datei-Drop-Zone klickbar machen
-  document.getElementById('jamieFileDrop').addEventListener('click', () => {
-    document.getElementById('jamieImportFile').value = '';
-    document.getElementById('jamieImportFile').click();
+  // VOCTA Modal: Datei-Drop-Zone klickbar machen
+  document.getElementById('voctaFileDrop').addEventListener('click', () => {
+    document.getElementById('voctaImportFile').value = '';
+    document.getElementById('voctaImportFile').click();
   });
-  document.getElementById('jamieImportFile').addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      const f = e.target.files[0];
-      document.getElementById('jamieFileLabel').textContent = f.name;
-      document.getElementById('btnJamieImportConfirm').disabled = false;
-      e.target._pendingFile = f;
-    }
+  document.getElementById('voctaImportFile').addEventListener('change', (e) => {
+    if (e.target.files.length > 0) openVoctaImportModal(e.target.files[0]);
   });
 
-  // Jamie Modal: Drag & Drop auf Drop-Zone
-  const dropZone = document.getElementById('jamieFileDrop');
+  // VOCTA Modal: Drag & Drop auf Drop-Zone
+  const dropZone = document.getElementById('voctaFileDrop');
   dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
   dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('drag-over');
     const f = e.dataTransfer.files[0];
-    if (f) {
-      document.getElementById('jamieFileLabel').textContent = f.name;
-      document.getElementById('btnJamieImportConfirm').disabled = false;
-      document.getElementById('jamieImportFile')._pendingFile = f;
-    }
+    if (f && isMarkdownFile(f)) openVoctaImportModal(f);
+    else if (f) showToast('Bitte eine .md-Datei importieren.', 'error');
   });
 
-  // Jamie Modal: Importieren-Button
-  document.getElementById('btnJamieImportConfirm').addEventListener('click', importJamieMarkdown);
+  // VOCTA Modal: Importieren-Button
+  document.getElementById('btnVoctaImportConfirm').addEventListener('click', importVoctaMarkdown);
+
+  // VOCTA Modal: Enter in Titel-/Datumsfeld loest den Import aus
+  ['voctaImportTitle', 'voctaImportDate'].forEach((fieldId) => {
+    document.getElementById(fieldId).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('btnVoctaImportConfirm').click();
+      }
+    });
+  });
 }
 
 function openDeleteProjectModal() {
@@ -3817,7 +4233,7 @@ async function confirmDeleteProject() {
   document.getElementById('protocolView').classList.add('hidden');
   document.getElementById('workspaceToolbar').classList.add('hidden');
   document.getElementById('btnNewProtocol').disabled = true;
-  document.getElementById('btnImportJamieSidebar').disabled = true;
+  document.getElementById('btnImportVoctaSidebar').disabled = true;
 
   closeModal('modalDeleteProject');
   showToast(`Projekt "${label}" in den Papierkorb verschoben.`, 'success');
@@ -3862,7 +4278,7 @@ async function confirmCloseDatabase() {
   document.getElementById('protocolView').classList.add('hidden');
   document.getElementById('workspaceToolbar').classList.add('hidden');
   document.getElementById('btnNewProtocol').disabled = true;
-  document.getElementById('btnImportJamieSidebar').disabled = true;
+  document.getElementById('btnImportVoctaSidebar').disabled = true;
 
   closeModal('modalCloseDatabase');
   showToast('Datenbank geschlossen - alle Daten geloescht.', 'success');
@@ -4054,290 +4470,137 @@ async function exportProject() {
 }
 
 /* ============================================================
-   MEETJAMIE MARKDOWN IMPORT
+   VOCTA MARKDOWN IMPORT
+   - Importiert KADRA/VOCTA-Tabellen-Markdown als neue Aktennotiz.
+   - Format-Vorgabe: Ausgabe von MarkdownExport.exportProtocolMarkdown().
+   - Parser: parseVoctaMarkdown() (siehe weiter unten in dieser Datei).
 ============================================================ */
 
 /**
- * Parst eine meetjamie-Markdown-Datei und erstellt daraus eine KADRA-Aktennotiz.
- *
- * Regeln:
- * [cleanup]
- * [cleanup]
- *   Ignoriert:       ## Executive Summary, ## Full Summary (nur als Wrapper-Marker)
- * [cleanup]
- * [cleanup]
- * [cleanup]
- * [cleanup]
- * [cleanup]
+ * Oeffnet das VOCTA-Import-Modal und befuellt es mit den geparsten
+ * Metadaten (Titel, Datum) aus der Markdown-Datei.
+ * Datei + Parse-Ergebnis werden am File-Input zwischengespeichert.
  */
-function parseJamieMarkdown(text) {
-  const lines = text.split('\n');
-  const sections = [];
-  const tasks = [];
-  let docTitle = '';
-  let docDate = '';
-  let docTime = '';
-  const docParticipants = [];
-
-  // Metadaten-Block parsen (Zeilen vor ## Executive Summary / ## Full Summary)
-  let inParticipantList = false;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trimEnd();
-    if (/^##\s+/.test(line)) break; // Ende Metadaten-Block
-    const titleMatch = line.match(/^Titel:\s*(.+)/i);
-    if (titleMatch) { docTitle = titleMatch[1].trim(); inParticipantList = false; continue; }
-    const dateMatch = line.match(/^Datum:\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/i);
-    if (dateMatch) { docDate = `${dateMatch[3]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[1].padStart(2,'0')}`; inParticipantList = false; continue; }
-    const timeMatch = line.match(/^Uhrzeit:\s*(\d{1,2}:\d{2})/i);
-    if (timeMatch) { docTime = timeMatch[1]; inParticipantList = false; continue; }
-    if (/^Teilnehmer/i.test(line)) { inParticipantList = true; continue; }
-    if (inParticipantList) {
-      const bullet = line.match(/^-\s+(.+)/);
-      if (bullet) docParticipants.push(bullet[1].trim());
-    }
-  }
-
-  const hasFullSummary = /^##\s+Full Summary/im.test(text);
-  let inContent = !hasFullSummary;
-  let inTasks = false;
-  let currentSection = null;
-  let lastMainBullet = null;
-  let pendingFliesstext = ''; // sammelt aufeinanderfolgende Fliesstextzeilen eines Absatzes
-
-  function stripBold(s) { return s.replace(/\*\*([^*]+)\*\*/g, '$1'); }
-
-  function flushFliesstext() {
-    const t = pendingFliesstext.trim();
-    pendingFliesstext = '';
-    if (!t || !currentSection) return;
-    currentSection.points.push({ content: t, category: 'Info', responsible: '' });
-    lastMainBullet = currentSection.points.length - 1;
-  }
-
-  function parseTask(line) {
-    const m = line.match(/^-\s+\[\s*\]\s+(.+)/);
-    if (!m) return null;
-    const full = m[1].trim();
-    const respMatch = full.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-    if (respMatch) return { content: respMatch[1].trim(), responsible: respMatch[2].trim() };
-    return { content: full, responsible: '' };
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trimEnd();
-
-    // [cleanup]
-    const task = parseTask(line);
-    if (task) { flushFliesstext(); tasks.push(task); continue; }
-
-    // [cleanup]
-    if (/^##\s+(Tasks?|Aufgaben|Als N(a|ae)chstes?|N(a|ae)chste Schritte)\b/i.test(line)) {
-      flushFliesstext();
-      inTasks = true; inContent = false; currentSection = null; lastMainBullet = null;
-      continue;
-    }
-
-    // [cleanup]
-    if (/^#\s+/.test(line)) {
-      docTitle = line.replace(/^#\s+/, '').trim();
-      continue;
-    }
-
-    // [cleanup]
-    if (/^##\s+Full Summary/i.test(line)) {
-      flushFliesstext();
-      inContent = true; inTasks = false; currentSection = null; lastMainBullet = null;
-      continue;
-    }
-
-    // Ignorierte Sektionen
-    if (/^##\s+(Executive Summary)\b/i.test(line)) {
-      flushFliesstext();
-      inContent = false; inTasks = false; currentSection = null;
-      continue;
-    }
-
-    // [cleanup]
-    if (/^#{2,3}\s+/.test(line)) {
-      flushFliesstext();
-      if (!inTasks) {
-        inContent = true;
-        const title = line.replace(/^#{2,3}\s+/, '').trim();
-        currentSection = { title, points: [] };
-        sections.push(currentSection);
-        lastMainBullet = null;
-      }
-      continue;
-    }
-
-    if (!inContent || !currentSection) continue;
-
-    // [cleanup]
-    if (line === '') {
-      flushFliesstext();
-      lastMainBullet = null;
-      continue;
-    }
-
-    // [cleanup]
-    const subBullet = line.match(/^[ \t]{2,}-\s+(.*)/);
-    if (subBullet && lastMainBullet !== null) {
-      flushFliesstext();
-      const subContent = stripBold(subBullet[1]).trim();
-      if (subContent) currentSection.points[lastMainBullet].content += '\n- ' + subContent;
-      continue;
-    }
-
-    // [cleanup]
-    const mainBullet = line.match(/^-\s+(.*)/);
-    if (mainBullet) {
-      flushFliesstext();
-      const content = stripBold(mainBullet[1]).trim();
-      if (content) {
-        currentSection.points.push({ content, category: 'Info', responsible: '' });
-        lastMainBullet = currentSection.points.length - 1;
-      }
-      continue;
-    }
-
-    // [cleanup]
-    const trimmed = stripBold(line).trim();
-    if (trimmed) {
-      pendingFliesstext += (pendingFliesstext ? ' ' : '') + trimmed;
-    }
-  }
-
-  flushFliesstext(); // letzten Absatz sichern
-
-  return { sections, tasks, docTitle, docDate, docTime, docParticipants };
-}
-
-/**
- * [cleanup]
- * Liest die Datei vor und extrahiert # H1-Titel (Vorrang) oder Dateinamen als Titel-Vorschlag.
- */
-async function openJamieImportModal(file) {
+async function openVoctaImportModal(file) {
   const name = file.name.replace(/\.[^.]+$/, '');
-  const dateMatch = name.match(/^(\d{2})(\d{2})(\d{2})_/);
+  const dateMatch = name.match(/^(\d{2})(\d{2})(\d{2})[ _]/);
   let dateVal = new Date().toISOString().slice(0, 10);
   if (dateMatch) dateVal = `20${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
 
-  // Dateiinhalt vorab lesen um Metadaten zu extrahieren
-  let titleVal = name.replace(/^\d{6}_/, '').replace(/_/g, ' ').trim();
+  let titleVal = name.replace(/^\d{6}[ _]/, '').replace(/_/g, ' ').trim();
+  const fileInput = document.getElementById('voctaImportFile');
+
   try {
     const text = await file.text();
-    const { docTitle, docDate, docParticipants } = parseJamieMarkdown(text);
-    if (docTitle) titleVal = docTitle;
-    if (docDate) dateVal = docDate;
-    // [cleanup]
-    document.getElementById('jamieImportFile')._pendingFile = file;
-    document.getElementById('jamieImportFile')._pendingText = text;
-    document.getElementById('jamieImportFile')._pendingParticipants = docParticipants;
+    const parsed = parseVoctaMarkdown(text);
+    if (parsed.meta.title) titleVal = parsed.meta.title;
+    if (parsed.meta.date) {
+      // DD.MM.YYYY -> YYYY-MM-DD fuer das date-Input
+      const dm = parsed.meta.date.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+      if (dm) dateVal = `${dm[3]}-${dm[2].padStart(2, '0')}-${dm[1].padStart(2, '0')}`;
+    }
+    fileInput._pendingFile = file;
+    fileInput._pendingText = text;
+    fileInput._pendingParsed = parsed;
   } catch (e) {
-    document.getElementById('jamieImportFile')._pendingFile = file;
-    document.getElementById('jamieImportFile')._pendingText = null;
-    document.getElementById('jamieImportFile')._pendingParticipants = [];
+    fileInput._pendingFile = file;
+    fileInput._pendingText = null;
+    fileInput._pendingParsed = null;
   }
 
-  document.getElementById('jamieImportTitle').value = titleVal;
-  document.getElementById('jamieImportDate').value  = dateVal;
-  document.getElementById('jamieImportParticipants').value = '';
-  document.getElementById('jamieFileLabel').textContent = file.name;
-  document.getElementById('btnJamieImportConfirm').disabled = false;
+  document.getElementById('voctaImportTitle').value = titleVal;
+  document.getElementById('voctaImportDate').value  = dateVal;
+  document.getElementById('voctaFileLabel').textContent = file.name;
+  document.getElementById('btnVoctaImportConfirm').disabled = false;
 
-  openModal('modalJamieImport');
+  openModal('modalVoctaImport');
 }
 
 /**
- * Erstellt aus geparsten Jamie-Daten eine KADRA-Aktennotiz im aktuellen Projekt.
+ * Erstellt aus geparsten VOCTA-Daten eine KADRA-Aktennotiz im aktuellen
+ * Projekt. Uebernimmt Kapitelstruktur (1:1), Teilnehmer (inkl. E-Mail)
+ * und Protokollpunkte aus dem Markdown.
  */
-async function importJamieMarkdown() {
+async function importVoctaMarkdown() {
   if (!App.currentProjectId) {
-    showToast('Kein Projekt geÃ¶ffnet.', 'error');
+    showToast('Kein Projekt geoeffnet.', 'error');
     return;
   }
 
-  const fileInput = document.getElementById('jamieImportFile');
+  const fileInput = document.getElementById('voctaImportFile');
   const file = fileInput._pendingFile;
   if (!file) { showToast('Keine Datei ausgewaehlt.', 'error'); return; }
 
-  const title        = document.getElementById('jamieImportTitle').value.trim();
-  const date         = document.getElementById('jamieImportDate').value;
-  const participantRaw = document.getElementById('jamieImportParticipants').value.trim();
-
+  const title = document.getElementById('voctaImportTitle').value.trim();
+  const date  = document.getElementById('voctaImportDate').value;
   if (!title) { showToast('Bitte Titel eingeben.', 'error'); return; }
 
-  let text = fileInput._pendingText;
-  if (!text) {
+  let parsed = fileInput._pendingParsed;
+  if (!parsed) {
     try {
-      text = await file.text();
+      const text = fileInput._pendingText || await file.text();
+      parsed = parseVoctaMarkdown(text);
     } catch (e) {
       showToast('Datei konnte nicht gelesen werden.', 'error');
       return;
     }
   }
 
-  const { sections, tasks, docTime, docParticipants: parsedParticipants } = parseJamieMarkdown(text);
+  const { meta, participants: parsedParticipants, structure: parsedStructure,
+          chapterOrder, points: parsedPoints } = parsed;
+
+  if (!parsedPoints.length) {
+    showToast('Keine Protokollpunkte im Markdown gefunden.', 'error');
+    return;
+  }
 
   const project = App.projects.find(p => p.id === App.currentProjectId) || {};
 
-  // Struktur aufbauen: P + A-Abschnitte aus Full Summary + N
+  // ── Struktur 1:1 uebernehmen ──
+  // Aktennotiz braucht eine Praeambel P; Kapitel folgen der Markdown-Reihenfolge.
   const structure = { P: { label: 'Praeambel', subchapters: [] } };
-  const chKeys = [];
-  let charCode = 65; // A
-  for (const sec of sections) {
-    // [cleanup]
-    while (charCode === 78 || charCode === 80) charCode++; // N=78, P=80
-    if (charCode > 90) break;
-    const key = String.fromCharCode(charCode);
-    structure[key] = { label: sec.title, subchapters: [] };
-    chKeys.push(key);
-    charCode++;
-  }
-  structure['N'] = { label: 'Naechste Schritte', subchapters: [] };
-
-  // Punkte erzeugen
-  const points = [];
-  let akSectionNum = 0;
-
-  for (let si = 0; si < sections.length; si++) {
-    const chKey = chKeys[si];
-    akSectionNum++;
-    const sec = sections[si];
-    sec.points.forEach((pt, idx) => {
-      points.push({
-        id: `${akSectionNum}.${String(idx + 1).padStart(2, '0')}`,
-        chapter: chKey, subchapter: null, topic: null,
-        content: pt.content,
-        category: 'Info', responsible: '', deadline: '',
-        done: false, isNew: false, doneLastProtocol: false,
-        createdInProtocol: null,
-      });
-    });
-  }
-
-  // [cleanup]
-  tasks.forEach((t, idx) => {
-    points.push({
-      id: `N.${String(idx + 1).padStart(2, '0')}`,
-      chapter: 'N', subchapter: null, topic: null,
-      content: t.content,
-      category: 'Aufgabe', responsible: t.responsible, deadline: '',
-      done: false, isNew: false, doneLastProtocol: false,
-      createdInProtocol: null,
-    });
+  (chapterOrder || []).forEach((key) => {
+    if (key === 'P') return;
+    const src = parsedStructure[key];
+    structure[key] = {
+      label: src.label || '',
+      subchapters: (src.subchapters || []).map(sub => ({
+        id: sub.id,
+        label: sub.label || '',
+        topics: (sub.topics || []).map(t => ({ id: t.id, label: t.label })),
+      })),
+    };
   });
 
-  // Teilnehmer: aus Metadaten-Block der MD-Datei (gecacht), sonst aus manuellem Eingabefeld
-  const cachedParticipants = fileInput._pendingParticipants;
-  const participantNames = (cachedParticipants && cachedParticipants.length)
-    ? cachedParticipants
-    : (participantRaw ? participantRaw.split(',').map(s => s.trim()).filter(Boolean) : []);
-  const participants = participantNames.map(name => ({
-    id: DB.uuid(),
-    name, company: '', abbr: '', email: '',
-    attended: true, inDistrib: true,
+  // Punkte uebernehmen: Strukturkeys aus dem Parser direkt verwenden.
+  const points = parsedPoints.map((pt, idx) => ({
+    id: pt.id || `${idx + 1}`,
+    chapter: pt.chapter,
+    subchapter: pt.subchapter || null,
+    topic: pt.topic || null,
+    content: pt.content,
+    category: pt.category || 'Info',
+    responsible: pt.responsible || '',
+    deadline: pt.deadline || '',
+    done: !!pt.done,
+    isNew: !!pt.isNew,
+    doneLastProtocol: false,
+    createdInProtocol: null,
   }));
+
+  // ── Teilnehmer uebernehmen (volle Tabelle inkl. E-Mail) ──
+  const participants = (parsedParticipants || []).map(p => ({
+    id: DB.uuid(),
+    name: p.name || '',
+    company: p.company || '',
+    abbr: p.abbr || '',
+    email: p.email || '',
+    attended:  p.attended  !== false,
+    inDistrib: p.inDistrib !== false,
+  }));
+
+  // Abkuerzungen aus Teilnehmer-Kuerzeln ableiten (customAbbreviations bleibt leer;
+  // PDF-/MD-Export sammelt Kuerzel ohnehin aus participants).
 
   const protocol = {
     projectId: App.currentProjectId,
@@ -4347,9 +4610,10 @@ async function importJamieMarkdown() {
     title,
     number: null,
     date: date || new Date().toISOString().slice(0, 10),
-    time: docTime || '', location: '',
-    tenant:   project.tenant || '',
-    landlord: project.owner  || '',
+    time: meta.time || '',
+    location: meta.location || '',
+    tenant:   meta.tenant   || project.tenant || '',
+    landlord: meta.landlord || project.owner  || '',
     participants,
     structure,
     points,
@@ -4359,9 +4623,10 @@ async function importJamieMarkdown() {
     customAbbreviations: [],
   };
 
-  closeModal('modalJamieImport');
+  closeModal('modalVoctaImport');
   fileInput._pendingFile = null;
   fileInput._pendingText = null;
+  fileInput._pendingParsed = null;
 
   const saved = await DB.Protocols.save(protocol);
   App.protocols = await DB.Protocols.getActiveByProject(App.currentProjectId);
@@ -4543,6 +4808,7 @@ async function exportFullDB() {
       // [cleanup]
       App._saveFileHandle = handle;
       _updateQuickSaveLabel(handle.name);
+      try { await DB.Recent.add(handle.name, handle); await renderRecentDbList(); } catch {}
       showToast(`Exportiert: ${projectCount} Projekt(e), ${protocolCount} Protokoll(e).`, 'success');
       return;
     } catch (err) {
@@ -4602,6 +4868,7 @@ async function quickSaveDB() {
       await writable.close();
       App._saveFileHandle = handle;
       _updateQuickSaveLabel(handle.name);
+      try { await DB.Recent.add(handle.name, handle); await renderRecentDbList(); } catch {}
       showToast(`Gespeichert: ${projectCount} Projekt(e), ${protocolCount} Protokoll(e).`, 'success');
       return;
     } catch (err) {
@@ -4631,7 +4898,7 @@ async function quickSaveDB() {
  * Importiert eine KADRA-FullBackup JSON-Datei.
  * Alle Projekte + Protokolle werden in IndexedDB geschrieben (Upsert).
  */
-async function importFullDB(file) {
+async function importFullDB(file, handle = null) {
   let data;
   try {
     const text = await file.text();
@@ -4694,7 +4961,189 @@ async function importFullDB(file) {
   // [cleanup]
   _updateQuickSaveLabel(file.name);
 
+  // Quick-Save-Handle übernehmen, damit Speichern direkt in dieselbe Datei geht
+  if (handle) App._saveFileHandle = handle;
+
+  // In "Zuletzt verwendet" aufnehmen (Handle nur wenn vorhanden -> Direkt-Öffnen möglich)
+  try { await DB.Recent.add(file.name, handle); } catch (e) { /* Verlauf ist optional */ }
+  await renderRecentDbList();
+
   showToast(`Import: ${pCount} Projekt(e), ${prCount} Protokoll(e) importiert.`, 'success');
+}
+
+/* ============================================================
+   ZULETZT VERWENDET (Datenbank-Verlauf)
+============================================================ */
+
+/**
+ * Öffnet eine Datenbank über den Picker.
+ * Chrome/Edge: showOpenFilePicker -> liefert ein persistierbares Handle,
+ * sodass die Datei später per "Zuletzt verwendet" direkt geöffnet werden kann.
+ * Firefox/Fallback: klassischer Datei-Input (kein Handle, kein Direkt-Öffnen).
+ */
+async function openDatabaseViaPicker() {
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+        multiple: false,
+      });
+      const file = await handle.getFile();
+      await importFullDB(file, handle);
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // abgebrochen
+      // Sonstiger Fehler -> Fallback auf Datei-Input
+    }
+  }
+  const dbFileInput = document.getElementById('fileImportFullDB');
+  dbFileInput.value = '';
+  dbFileInput.click();
+}
+
+/** Untermenü "Zuletzt verwendet" verdrahten (Hover + Klick). */
+function setupRecentDbMenu(menuPanel) {
+  const wrap    = document.getElementById('recentDbWrap');
+  const trigger = document.getElementById('btnRecentDb');
+  const sub     = document.getElementById('recentDbPanel');
+  if (!wrap || !trigger || !sub) return;
+
+  const open = async () => {
+    await renderRecentDbList();
+    sub.classList.remove('hidden');
+    wrap.classList.add('open');
+    trigger.setAttribute('aria-expanded', 'true');
+  };
+  const close = () => {
+    sub.classList.add('hidden');
+    wrap.classList.remove('open');
+    trigger.setAttribute('aria-expanded', 'false');
+  };
+
+  // Klick auf Trigger togglet (für Touch / Tastatur)
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (sub.classList.contains('hidden')) open(); else close();
+  });
+
+  // Hover öffnet/schließt (Desktop)
+  let hoverTimer = null;
+  wrap.addEventListener('mouseenter', () => { clearTimeout(hoverTimer); open(); });
+  wrap.addEventListener('mouseleave', () => {
+    hoverTimer = setTimeout(close, 180);
+  });
+
+  // Schließt mit, wenn das Hauptmenü zugeht
+  const mo = new MutationObserver(() => {
+    if (menuPanel.classList.contains('hidden')) close();
+  });
+  mo.observe(menuPanel, { attributes: true, attributeFilter: ['class'] });
+}
+
+/** Rendert die Liste der zuletzt verwendeten Datenbanken. */
+async function renderRecentDbList() {
+  const sub = document.getElementById('recentDbPanel');
+  if (!sub) return;
+
+  let items = [];
+  try { items = await DB.Recent.list(); } catch { items = []; }
+
+  sub.innerHTML = '';
+
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'recent-db-empty';
+    empty.textContent = 'Noch keine Datenbank geöffnet.';
+    sub.appendChild(empty);
+    return;
+  }
+
+  for (const it of items) {
+    const row = document.createElement('div');
+    row.className = 'recent-db-item';
+    row.title = it.fileName + (it.handle ? '' : '  ·  (nur Merker – öffnet Datei-Dialog)');
+
+    // Icon
+    row.insertAdjacentHTML('afterbegin', iconFileText());
+
+    // Name (Anfang abgeschnitten, Dateiname sichtbar dank direction:rtl)
+    const name = document.createElement('span');
+    name.className = 'recent-db-name';
+    const bdi = document.createElement('bdi');
+    bdi.textContent = it.fileName;
+    name.appendChild(bdi);
+    row.appendChild(name);
+
+    // Klick auf Zeile -> öffnen
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.recent-db-remove')) return;
+      openRecentDb(it);
+    });
+
+    // Entfernen-Button
+    const rm = document.createElement('button');
+    rm.className = 'recent-db-remove';
+    rm.title = 'Aus Liste entfernen';
+    rm.insertAdjacentHTML('afterbegin', iconX());
+    rm.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await DB.Recent.remove(it.key);
+      await renderRecentDbList();
+    });
+    row.appendChild(rm);
+
+    sub.appendChild(row);
+  }
+
+  // Fußzeile: Liste leeren
+  const footer = document.createElement('div');
+  footer.className = 'recent-db-footer';
+  const clear = document.createElement('button');
+  clear.className = 'recent-db-clear';
+  clear.textContent = 'Liste leeren';
+  clear.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await DB.Recent.clear();
+    await renderRecentDbList();
+  });
+  footer.appendChild(clear);
+  sub.appendChild(footer);
+}
+
+/** Öffnet einen Eintrag aus "Zuletzt verwendet". */
+async function openRecentDb(entry) {
+  // Hauptmenü schließen
+  const menuPanel = document.getElementById('projectMenuPanel');
+  if (menuPanel) menuPanel.classList.add('hidden');
+
+  // Ohne Handle (z. B. Firefox-Eintrag) -> nur Datei-Dialog öffnen
+  if (!entry.handle) {
+    showToast('Diese Datei muss erneut ausgewählt werden.', 'info');
+    openDatabaseViaPicker();
+    return;
+  }
+
+  // Leseberechtigung prüfen/anfordern (Browser kann Nachfrage zeigen)
+  try {
+    if (entry.handle.queryPermission) {
+      let perm = await entry.handle.queryPermission({ mode: 'read' });
+      if (perm !== 'granted' && entry.handle.requestPermission) {
+        perm = await entry.handle.requestPermission({ mode: 'read' });
+      }
+      if (perm !== 'granted') {
+        showToast('Keine Leseberechtigung für die Datei.', 'error');
+        return;
+      }
+    }
+    const file = await entry.handle.getFile();
+    await importFullDB(file, entry.handle);
+  } catch (err) {
+    // Datei verschoben/gelöscht o. Ä.
+    showToast('Datei nicht mehr verfügbar. Bitte erneut öffnen.', 'error');
+    await DB.Recent.remove(entry.key);
+    await renderRecentDbList();
+    openDatabaseViaPicker();
+  }
 }
 
 /* ============================================================
@@ -4749,7 +5198,11 @@ function filterProtocolList(query) {
 }
 
 function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function closeModal(id) {
+  // Abbruch des UKAP-Modals verwirft einen vorgemerkten Thema-Verschiebe-Auftrag
+  if (id === 'modalSubchapter') App._pendingTopicMove = null;
+  document.getElementById(id).classList.add('hidden');
+}
 
 async function appConfirm(message, opts = {}) {
   const {
@@ -4777,8 +5230,6 @@ async function appConfirm(message, opts = {}) {
   btnOk.classList.remove('btn-primary', 'btn-danger');
   btnOk.classList.add(danger ? 'btn-danger' : 'btn-primary');
 
-  openModal('modalConfirm');
-
   return await new Promise((resolve) => {
     let settled = false;
     const settle = (val) => {
@@ -4789,26 +5240,31 @@ async function appConfirm(message, opts = {}) {
       resolve(val);
     };
 
-    const onOk = () => settle(true);
-    const onCancel = () => settle(false);
-    const onOverlay = (e) => { if (e.target === modal) settle(false); };
-    const onEsc = (e) => { if (e.key === 'Escape') settle(false); };
-
+    // Handler werden als onclick-/onkeydown-PROPERTIES gesetzt, nicht via
+    // addEventListener. modalConfirm ist ein wiederverwendetes Singleton —
+    // eine Property-Zuweisung ersetzt den vorigen Handler, statt ihn zu
+    // stapeln. So koennen keine toten Handler eines frueheren Dialog-
+    // Aufrufs zurueckbleiben, die den aktuellen Dialog wegklicken
+    // ("Dialog schliesst sich, nichts geloescht").
     const cleanup = () => {
-      btnOk.removeEventListener('click', onOk);
-      btnCancel.removeEventListener('click', onCancel);
-      btnClose.removeEventListener('click', onCancel);
-      modal.removeEventListener('click', onOverlay);
+      btnOk.onclick = null;
+      btnCancel.onclick = null;
+      btnClose.onclick = null;
+      modal.onclick = null;
       document.removeEventListener('keydown', onEsc);
     };
 
-    btnOk.addEventListener('click', onOk);
-    btnCancel.addEventListener('click', onCancel);
-    btnClose.addEventListener('click', onCancel);
-    modal.addEventListener('click', onOverlay);
+    const onEsc = (e) => { if (e.key === 'Escape') settle(false); };
+
+    btnOk.onclick     = () => settle(true);
+    btnCancel.onclick = () => settle(false);
+    btnClose.onclick  = () => settle(false);
+    modal.onclick     = (e) => { if (e.target === modal) settle(false); };
     document.addEventListener('keydown', onEsc);
 
-    setTimeout(() => btnOk.focus(), 0);
+    openModal('modalConfirm');
+    // Fokus erst nach dem Sichtbarmachen setzen.
+    requestAnimationFrame(() => { if (!settled) btnOk.focus(); });
   });
 }
 
@@ -5069,4 +5525,957 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(()=>{});
   });
 }
+
+/* ============================================================
+   SCHRITTWEISER MARKDOWN-IMPORT
+   - Auswahl-Modal (Komplett vs. Schrittweise)
+   - Parser fuer KADRA-Tabellen-Markdown
+   - Verschiebbares Panel mit Drag & Drop in das offene Protokoll
+============================================================ */
+
+const ImportStepper = {
+  items: [],          // geparste Items aus dem Markdown
+  fileName: '',
+  imported: new Set(),// origIds bereits importierter Items
+  draggedItemId: null,
+  _panelDragOff: null,// {dx, dy} fuer Header-Drag
+};
+
+/**
+ * Parst KADRA/VOCTA-Tabellen-Markdown (von MarkdownExport erzeugtes Format).
+ *
+ * Liefert ein Dokument-Objekt:
+ *   {
+ *     meta:        { title, date, time, location, tenant, landlord,
+ *                    project, projectCode, authorRaw },
+ *     participants:[ { name, company, abbr, email, attended, inDistrib } ],
+ *     structure:   { A: { label, subchapters:[ { id, label, topics:[ { id, label } ] } ] } },
+ *     points:      [ { id, chapter, subchapter, topic, content, category,
+ *                      responsible, deadline, done, isNew } ],
+ *     items:       [ ...wie points, zusaetzlich origId/source* fuer den Stepper ],
+ *   }
+ *
+ * - Metadaten-Block:  **Label:** Wert  (vor erster ##-Ueberschrift)
+ * - Teilnehmer:       ## Teilnehmer  + Tabelle (Name|Firma|Kuerzel|E-Mail|Teilgenommen|Verteiler)
+ * - Struktur 1:1:     ## A - Label / ### A.1 - Label / #### Thema: Label  (auch leere)
+ * - Marker (neu)/(Update) am Inhaltsende werden entfernt; *(neu)* an der ID setzt isNew.
+ */
+function parseVoctaMarkdown(text) {
+  const lines = text.split(/\r?\n/);
+  const items = [];
+
+  const meta = {
+    title: '', date: '', time: '', location: '',
+    tenant: '', landlord: '', project: '', projectCode: '', authorRaw: '',
+  };
+  const participants = [];
+  const structure = {};       // { key: { label, subchapters: [...] } }
+  const chapterOrder = [];     // Reihenfolge der Kapitel-Keys
+
+  let curChapter = null;     // { key, label }
+  let curSubchapter = null;  // { id, label }
+  let curTopic = null;       // { id, label }
+  // Sektionsmodus: 'meta' | 'participants' | 'attachments' | 'abbrev' | 'content' | 'ignored'
+  let mode = 'meta';
+
+  // Tabellen-Tracker
+  let tableHeader = null;    // map: feldname -> spaltenindex
+  let tableActive = false;
+
+  const ignoredHeadings = /^(Aufgaben(ü|ue)bersicht|Hinweise? zur Verarbeitung|Hinweis)\b/i;
+
+  function resetTable() { tableHeader = null; tableActive = false; }
+
+  let topicSeq = 0;
+  function ensureChapter(key, label) {
+    if (!structure[key]) {
+      structure[key] = { label: label || '', subchapters: [] };
+      chapterOrder.push(key);
+    } else if (label) {
+      structure[key].label = label;
+    }
+    return structure[key];
+  }
+  function ensureSubchapter(chapterKey, id, label) {
+    const ch = ensureChapter(chapterKey);
+    let sub = ch.subchapters.find(s => s.id === id);
+    if (!sub) { sub = { id, label: label || '', topics: [] }; ch.subchapters.push(sub); }
+    else if (label) sub.label = label;
+    return sub;
+  }
+  function ensureTopic(sub, label) {
+    let topic = sub.topics.find(t => t.label === label);
+    if (!topic) { topic = { id: `t${++topicSeq}`, label }; sub.topics.push(topic); }
+    return topic;
+  }
+
+  // ── Metadaten-Header normalisieren ──
+  function applyMetaLine(label, value) {
+    const l = label.toLowerCase().replace(/\s+/g, '');
+    if (l === 'projekt') meta.project = value;
+    else if (l.startsWith('projektk'))  meta.projectCode = value;   // Projektkuerzel
+    else if (l.startsWith('mieter'))    meta.tenant = value;
+    else if (l.startsWith('vermieter')) meta.landlord = value;
+    else if (l === 'datum')             meta.date = value;
+    else if (l === 'zeit' || l === 'uhrzeit') meta.time = value;
+    else if (l === 'ort')               meta.location = value;
+    else if (l.startsWith('aufgestellt')) meta.authorRaw = value;
+  }
+
+  function parseTableRow(line) {
+    // pipe-getrennt; fuehrendes/abschliessendes pipe entfernen.
+    // Escaped pipes \| innerhalb einer Zelle (z.B. in IDs wie #21\|B.1.01) bleiben erhalten.
+    const inner = line.replace(/^\s*\|/, '').replace(/\|\s*$/, '');
+    const cells = [];
+    let buf = '';
+    for (let i = 0; i < inner.length; i++) {
+      const ch = inner[i];
+      if (ch === '\\' && inner[i + 1] === '|') { buf += '|'; i++; continue; }
+      if (ch === '|') { cells.push(buf.trim()); buf = ''; continue; }
+      buf += ch;
+    }
+    cells.push(buf.trim());
+    return cells;
+  }
+
+  function isSeparatorRow(cells) {
+    return cells.length > 0 && cells.every(c => /^:?-{2,}:?$/.test(c) || c === '');
+  }
+
+  function normalizeHeader(h) {
+    const s = h.toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
+    if (s === 'id') return 'id';
+    if (s === 'inhalt' || s === 'beschreibung' || s === 'text') return 'content';
+    if (s === 'kategorie' || s === 'kat') return 'category';
+    if (s.startsWith('verantw') || s === 'wer') return 'responsible';
+    if (s === 'frist' || s === 'termin' || s === 'deadline') return 'deadline';
+    if (s === 'erledigt' || s === 'done' || s === 'fertig') return 'done';
+    return null;
+  }
+
+  // Header der Teilnehmer-Tabelle (eigenes Schema)
+  function normalizeParticipantHeader(h) {
+    const s = h.toLowerCase().replace(/\s+/g, '').replace(/[.\-]/g, '');
+    if (s === 'name') return 'name';
+    if (s === 'firma' || s === 'unternehmen') return 'company';
+    if (s.startsWith('kuerz') || s.startsWith('kürz') || s === 'abbr') return 'abbr';
+    if (s === 'email' || s === 'emailadresse' || s === 'mail') return 'email';
+    if (s.startsWith('teilgenommen') || s.startsWith('anwesend')) return 'attended';
+    if (s.startsWith('verteiler') || s === 'verteilung') return 'inDistrib';
+    return null;
+  }
+
+  function mapBool(raw) {
+    return /[xX✓✔☑]/.test(String(raw || '').trim());
+  }
+
+  function mapCategory(raw) {
+    const v = (raw || '').toLowerCase().trim();
+    if (v.startsWith('aufgab')) return 'Aufgabe';
+    if (v.startsWith('info'))   return 'Info';
+    if (v.startsWith('festleg'))return 'Festlegung';
+    if (v.startsWith('freigabe'))return 'Freigabe erfordl';
+    return 'Info';
+  }
+
+  function mapDeadline(raw) {
+    if (!raw) return '';
+    const s = String(raw).trim();
+    if (!s || /^[—–\-]+$/.test(s)) return '';
+    if (/fortlaufend|offen/i.test(s)) return '';
+    // DD.MM.YYYY behalten (KADRA-Format), ISO -> umwandeln
+    if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(s)) return s;
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
+    return s;
+  }
+
+  function mapDone(raw) {
+    if (!raw) return false;
+    const s = String(raw).trim();
+    return /[xX✓✔☑]/.test(s);
+  }
+
+  function stripBoldAndMarkers(content) {
+    let s = String(content || '');
+    // **fett** entfernen
+    s = s.replace(/\*\*([^*]+)\*\*/g, '$1');
+    // *kursiv* entfernen (aber nur, wenn Stern paarweise)
+    s = s.replace(/\*([^*]+)\*/g, '$1');
+    // (neu) und (Update)/(Updated) am Ende entfernen
+    s = s.replace(/\s*\((neu|Update|Updated|aktualisiert)\)\s*$/i, '').trim();
+    return s;
+  }
+
+  // ID kann "#19\|B.1.01 *(neu)*" lauten -> Marker abtrennen, isNew erkennen
+  function parsePointId(idRaw) {
+    let s = String(idRaw || '').trim();
+    // Marker steht am Ende, optional von Sternchen umschlossen: *(neu)*, (neu), _(neu)_
+    const isNew = /[*_]*\(neu\)[*_]*\s*$/i.test(s);
+    s = s.replace(/\s*[*_]*\((neu|Update|Updated|aktualisiert)\)[*_]*\s*$/i, '').trim();
+    s = s.replace(/[*_]/g, '').trim();
+    return { id: s, isNew };
+  }
+
+  function pushIfDataRow(cells) {
+    if (!tableHeader) return;
+    // Falls wir noch keinen Kontext haben, ueberspringen wir
+    if (!curChapter) return;
+
+    const get = (name) => {
+      const idx = tableHeader[name];
+      return idx !== undefined ? (cells[idx] || '') : '';
+    };
+
+    const idRaw = get('id').trim();
+    const contentRaw = get('content').trim();
+    if (!idRaw && !contentRaw) return; // leere Zeile
+
+    let respRaw = (get('responsible') || '').trim();
+    // Leere Marker / Platzhalter ausfiltern
+    if (/^[—–\-]+$/.test(respRaw)) respRaw = '';
+
+    const { id: cleanId, isNew } = parsePointId(idRaw);
+
+    items.push({
+      origId: cleanId || `__noid__${items.length}`,
+      isNew,
+      content: stripBoldAndMarkers(contentRaw),
+      category: mapCategory(get('category')),
+      responsible: respRaw,
+      deadline: mapDeadline(get('deadline')),
+      done: mapDone(get('done')),
+      // Strukturkontext (Keys, fuer den Strukturaufbau in importVoctaMarkdown)
+      chapter: curChapter.key,
+      subchapter: curSubchapter ? curSubchapter.id : null,
+      topic: curTopic ? curTopic.id : null,
+      // Original-Kontextobjekte (vom Stepper genutzt; sourceTopic ist das Label-String)
+      sourceChapter: curChapter,
+      sourceSubchapter: curSubchapter,
+      sourceTopic: curTopic ? curTopic.label : '',
+    });
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const line = raw.trimEnd();
+
+    // H1 (#) -> Dokumenttitel (erstes Vorkommen gewinnt)
+    const h1 = line.match(/^#\s+(.+)$/);
+    if (h1) {
+      resetTable();
+      if (!meta.title) meta.title = h1[1].trim();
+      continue;
+    }
+
+    // ## Abschnittsueberschrift
+    const ch2 = line.match(/^##\s+(.+)$/);
+    if (ch2) {
+      resetTable();
+      const title = ch2[1].trim();
+
+      if (/^Teilnehmer\b/i.test(title)) {
+        mode = 'participants';
+        curChapter = null; curSubchapter = null; curTopic = null;
+        continue;
+      }
+      if (/^Anlagen\b/i.test(title)) {
+        mode = 'attachments';
+        curChapter = null; curSubchapter = null; curTopic = null;
+        continue;
+      }
+      if (/^Abk(ü|ue)rzungsverzeichnis|^Abk(ü|ue)rzungen/i.test(title)) {
+        mode = 'abbrev';
+        curChapter = null; curSubchapter = null; curTopic = null;
+        continue;
+      }
+      if (ignoredHeadings.test(title)) {
+        mode = 'ignored';
+        curChapter = null; curSubchapter = null; curTopic = null;
+        continue;
+      }
+
+      // Kapitel-Header: "A - Organisation | Information"
+      mode = 'content';
+      const m = title.match(/^([A-Z])\s*[—–\-]\s*(.+)$/);
+      if (m) {
+        ensureChapter(m[1], m[2].trim());
+        curChapter = { key: m[1], label: m[2].trim() };
+      } else {
+        ensureChapter('?', title);
+        curChapter = { key: '?', label: title };
+      }
+      curSubchapter = null;
+      curTopic = null;
+      continue;
+    }
+
+    // ### UKAP-Header (z.B. "B.1 - Objektplanung")
+    const ch3 = line.match(/^###\s+(.+)$/);
+    if (ch3 && mode === 'content' && curChapter) {
+      resetTable();
+      const title = ch3[1].trim();
+      const m = title.match(/^([A-Z])\.(\d+)\s*[—–\-]?\s*(.*)$/);
+      if (m) {
+        const subId = `${m[1]}.${m[2]}`;
+        ensureSubchapter(curChapter.key, subId, (m[3] || '').trim());
+        curSubchapter = { id: subId, label: (m[3] || '').trim() };
+      } else {
+        curSubchapter = { id: null, label: title };
+      }
+      curTopic = null;
+      continue;
+    }
+
+    // #### Thema-Header
+    const ch4 = line.match(/^####\s+(.+)$/);
+    if (ch4 && mode === 'content' && curChapter && curSubchapter && curSubchapter.id) {
+      resetTable();
+      const t = ch4[1].trim().replace(/^Thema:\s*/i, '');
+      const topic = ensureTopic(
+        ensureSubchapter(curChapter.key, curSubchapter.id, curSubchapter.label), t);
+      curTopic = { id: topic.id, label: t };
+      continue;
+    }
+
+    // Metadaten-Zeile: **Label:** Wert
+    if (mode === 'meta') {
+      const metaMatch = line.match(/^\*\*([^:*]+):\*\*\s*(.*)$/);
+      if (metaMatch) { applyMetaLine(metaMatch[1].trim(), metaMatch[2].trim()); continue; }
+    }
+
+    // Tabellenzeile?
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      const cells = parseTableRow(line);
+
+      // ── Teilnehmer-Tabelle ──
+      if (mode === 'participants') {
+        if (!tableHeader) {
+          const map = {};
+          cells.forEach((c, idx) => {
+            const key = normalizeParticipantHeader(c);
+            if (key) map[key] = idx;
+          });
+          if (map.name !== undefined) { tableHeader = map; tableActive = true; }
+          continue;
+        }
+        if (isSeparatorRow(cells)) continue;
+        const get = (name) => {
+          const idx = tableHeader[name];
+          return idx !== undefined ? (cells[idx] || '').trim() : '';
+        };
+        const pName = get('name');
+        if (!pName) continue;
+        participants.push({
+          name: pName,
+          company: get('company'),
+          abbr: get('abbr'),
+          email: get('email'),
+          attended:  tableHeader.attended  !== undefined ? mapBool(get('attended'))  : true,
+          inDistrib: tableHeader.inDistrib !== undefined ? mapBool(get('inDistrib')) : true,
+        });
+        continue;
+      }
+
+      // ── Punkte-Tabelle (nur im Content-Modus) ──
+      if (mode === 'content') {
+        if (!tableHeader) {
+          const map = {};
+          cells.forEach((c, idx) => {
+            const key = normalizeHeader(c);
+            if (key) map[key] = idx;
+          });
+          if (map.content !== undefined) { tableHeader = map; tableActive = true; }
+          continue;
+        }
+        if (isSeparatorRow(cells)) continue;
+        pushIfDataRow(cells);
+        continue;
+      }
+
+      // Tabellen in ignorierten Sektionen (Anlagen, Abkuerzungen) ueberspringen
+      continue;
+    }
+
+    // Nicht-Tabellenzeile: ggf. Tabelle beenden
+    if (tableActive && line === '') resetTable();
+  }
+
+  // Punkte aus items ableiten (ohne Stepper-Felder)
+  const points = items.map(it => ({
+    id: it.origId,
+    isNew: it.isNew,
+    content: it.content,
+    category: it.category,
+    responsible: it.responsible,
+    deadline: it.deadline,
+    done: it.done,
+    chapter: it.chapter,
+    subchapter: it.subchapter,
+    topic: it.topic,
+  }));
+
+  return { meta, participants, structure, chapterOrder, points, items };
+}
+
+/**
+ * Stepper-kompatibler Wrapper: liefert nur das Item-Array (wie frueher
+ * parseKadraMarkdown), das vom schrittweisen Drag-Import erwartet wird.
+ */
+function parseKadraMarkdown(text) {
+  return parseVoctaMarkdown(text).items;
+}
+
+/* ── Auswahl-Dialog (Komplett vs. Schrittweise) ─────────────── */
+function openImportModeDialog(file) {
+  const stepBtn = document.getElementById('btnImportModeStepwise');
+  const hint    = document.getElementById('importModeStepwiseHint');
+  const protocolOpen = !!App.currentProtocolId;
+  if (stepBtn) {
+    stepBtn.disabled = !protocolOpen;
+    if (hint) hint.style.display = protocolOpen ? 'none' : '';
+  }
+  document.getElementById('btnImportModeFull').onclick = () => {
+    closeModal('modalImportMode');
+    openVoctaImportModal(file);
+  };
+  if (stepBtn) {
+    stepBtn.onclick = () => {
+      if (stepBtn.disabled) return;
+      closeModal('modalImportMode');
+      openImportStepperPanel(file);
+    };
+  }
+  openModal('modalImportMode');
+}
+
+/* ── Verschiebbares Panel ──────────────────────────────────── */
+async function openImportStepperPanel(file) {
+  let text;
+  try { text = await file.text(); }
+  catch (e) { showToast('Datei konnte nicht gelesen werden.', 'error'); return; }
+
+  const items = parseKadraMarkdown(text);
+  if (!items.length) {
+    showToast('Keine Punkte im Markdown gefunden.', 'error');
+    return;
+  }
+
+  ImportStepper.items = items;
+  ImportStepper.fileName = file.name || '';
+  ImportStepper.imported = new Set();
+
+  const panel = document.getElementById('importStepperPanel');
+  document.getElementById('importStepperFilename').textContent = file.name || '';
+  renderImportStepperPanel();
+
+  // Initialposition (rechts, ca. 60px vom Rand)
+  panel.style.right = '24px';
+  panel.style.top = '88px';
+  panel.style.left = '';
+  panel.classList.remove('hidden');
+
+  setupImportStepperPanelDrag();
+}
+
+function closeImportStepperPanel() {
+  const panel = document.getElementById('importStepperPanel');
+  const fab   = document.getElementById('importStepperFab');
+  if (panel) panel.classList.add('hidden');
+  if (fab)   fab.classList.add('hidden');
+  ImportStepper.items = [];
+  ImportStepper.imported.clear();
+  ImportStepper.draggedItemId = null;
+}
+
+function getCurrentParticipantAbbrs() {
+  // Aus aktuell geoeffnetem Protokoll: alle Teilnehmer-Kuerzel sammeln
+  const rows = document.querySelectorAll('#participantsBody tr');
+  const set = new Set();
+  rows.forEach(tr => {
+    const abbrInput = tr.querySelector('input[data-field="abbr"]');
+    const abbr = abbrInput?.value?.trim();
+    if (abbr) set.add(abbr.toLowerCase());
+  });
+  return set;
+}
+
+function splitResponsibleTokens(raw) {
+  if (!raw) return [];
+  return String(raw)
+    .split(/\s*(?:\/|,| und )\s*/i)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function checkResponsible(rawResponsible, abbrSet) {
+  const tokens = splitResponsibleTokens(rawResponsible);
+  const matched = [];
+  const unknown = [];
+  for (const t of tokens) {
+    if (abbrSet.has(t.toLowerCase())) matched.push(t);
+    else unknown.push(t);
+  }
+  return { tokens, matched, unknown };
+}
+
+function renderImportStepperPanel() {
+  const body = document.getElementById('importStepperBody');
+  body.innerHTML = '';
+
+  const abbrSet = getCurrentParticipantAbbrs();
+  const total = ImportStepper.items.length;
+  const done  = ImportStepper.imported.size;
+
+  // Header-Counter
+  const counter = document.getElementById('importStepperCounter');
+  let unknownItemCount = 0;
+  ImportStepper.items.forEach(it => {
+    const { unknown } = checkResponsible(it.responsible, abbrSet);
+    if (unknown.length) unknownItemCount++;
+  });
+  counter.innerHTML = `${done} / ${total} importiert` +
+    (unknownItemCount ? `<span class="import-stepper-warn-count" title="Punkte mit unbekannten K&uuml;rzeln">&#9888; ${unknownItemCount}</span>` : '');
+
+  // Gruppierung nach Kapitel/UKAP/Thema (nur als Orientierung)
+  const groups = new Map();
+  ImportStepper.items.forEach((it, idx) => {
+    const ch  = it.sourceChapter ? `${it.sourceChapter.key} - ${it.sourceChapter.label}` : '(ohne Kapitel)';
+    const sub = it.sourceSubchapter ? `${it.sourceSubchapter.id || ''} ${it.sourceSubchapter.label || ''}`.trim() : '';
+    const top = it.sourceTopic || '';
+    const key = [ch, sub, top].join('||');
+    if (!groups.has(key)) groups.set(key, { ch, sub, top, items: [] });
+    groups.get(key).items.push({ it, idx });
+  });
+
+  groups.forEach(g => {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'import-stepper-group';
+
+    let header = `<div class="import-stepper-group-ch">${esc(g.ch)}</div>`;
+    if (g.sub) header += `<div class="import-stepper-group-sub">${esc(g.sub)}</div>`;
+    if (g.top) header += `<div class="import-stepper-group-topic">${esc(g.top)}</div>`;
+    groupEl.innerHTML = header;
+
+    g.items.forEach(({ it, idx }) => {
+      const card = document.createElement('div');
+      card.className = 'import-stepper-item';
+      card.dataset.itemIdx = String(idx);
+      const isImported = ImportStepper.imported.has(idx);
+      card.draggable = !isImported;
+      if (isImported) card.classList.add('imported');
+
+      const { unknown } = checkResponsible(it.responsible, abbrSet);
+      const respHtml = it.responsible
+        ? `<span class="isi-resp${unknown.length ? ' isi-resp-warn' : ''}" title="${unknown.length ? 'Unbekannte K&uuml;rzel: ' + esc(unknown.join(', ')) : ''}">${esc(it.responsible)}${unknown.length ? ' &#9888;' : ''}</span>`
+        : '';
+      const deadlineHtml = it.deadline ? `<span class="isi-deadline">${esc(it.deadline)}</span>` : '';
+      const doneHtml = it.done ? `<span class="isi-done">erledigt</span>` : '';
+      const catClass = 'isi-cat-' + it.category.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z\-]/g, '');
+
+      card.innerHTML = `
+        <div class="isi-row1">
+          <span class="isi-id">${esc(it.origId)}</span>
+          <span class="isi-cat ${catClass}">${esc(it.category)}</span>
+        </div>
+        <div class="isi-content">${esc(it.content)}</div>
+        <div class="isi-row2">
+          ${respHtml}
+          ${deadlineHtml}
+          ${doneHtml}
+        </div>
+      `;
+
+      // Drag-Source — Schluessel ist der Item-Index, nicht die origId
+      card.addEventListener('dragstart', e => {
+        if (ImportStepper.imported.has(idx)) { e.preventDefault(); return; }
+        ImportStepper.draggedItemId = idx;
+        e.dataTransfer.effectAllowed = 'copy';
+        const payload = { ...it, _itemIdx: idx };
+        try {
+          e.dataTransfer.setData('application/x-kadra-import', JSON.stringify(payload));
+        } catch (_) {}
+        e.dataTransfer.setData('text/plain', String(idx));
+        card.classList.add('dragging');
+        App._dragType = 'importItem';
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        ImportStepper.draggedItemId = null;
+        if (App._dragType === 'importItem') App._dragType = null;
+        document.querySelectorAll('.drag-over-top, .drag-over-bottom, .import-drop-target').forEach(el => {
+          el.classList.remove('drag-over-top', 'drag-over-bottom', 'import-drop-target');
+        });
+      });
+
+      groupEl.appendChild(card);
+    });
+
+    body.appendChild(groupEl);
+  });
+}
+
+function setupImportStepperPanelDrag() {
+  const panel = document.getElementById('importStepperPanel');
+  const header = document.getElementById('importStepperHeader');
+  if (!panel || !header || header._dragWired) return;
+  header._dragWired = true;
+
+  let dragging = false;
+  let offX = 0, offY = 0;
+
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.import-stepper-close')) return;
+    if (e.target.closest('.import-stepper-min'))   return;
+    dragging = true;
+    const rect = panel.getBoundingClientRect();
+    offX = e.clientX - rect.left;
+    offY = e.clientY - rect.top;
+    panel.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const x = Math.max(0, Math.min(window.innerWidth - 40,  e.clientX - offX));
+    const y = Math.max(0, Math.min(window.innerHeight - 40, e.clientY - offY));
+    panel.style.left = x + 'px';
+    panel.style.top  = y + 'px';
+    panel.style.right = '';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    panel.classList.remove('dragging');
+  });
+
+  // Close-Button
+  const closeBtn = document.getElementById('importStepperClose');
+  if (closeBtn && !closeBtn._wired) {
+    closeBtn._wired = true;
+    closeBtn.addEventListener('click', closeImportStepperPanel);
+  }
+
+  // Minimieren-Button
+  const minBtn = document.getElementById('importStepperMin');
+  if (minBtn && !minBtn._wired) {
+    minBtn._wired = true;
+    minBtn.addEventListener('click', minimizeImportStepperPanel);
+  }
+}
+
+function minimizeImportStepperPanel() {
+  const panel = document.getElementById('importStepperPanel');
+  const fab   = document.getElementById('importStepperFab');
+  if (panel) panel.classList.add('hidden');
+  if (fab) {
+    fab.classList.remove('hidden');
+    setupImportStepperFab();
+  }
+}
+
+function maximizeImportStepperPanel() {
+  const panel = document.getElementById('importStepperPanel');
+  const fab   = document.getElementById('importStepperFab');
+  if (fab) fab.classList.add('hidden');
+  if (panel) panel.classList.remove('hidden');
+}
+
+function setupImportStepperFab() {
+  const fab = document.getElementById('importStepperFab');
+  if (!fab || fab._wired) {
+    // Initialposition: links unten, falls noch nicht gesetzt
+    if (fab && !fab.style.left && !fab.style.right) {
+      fab.style.left = '24px';
+      fab.style.bottom = '24px';
+    }
+    return;
+  }
+  fab._wired = true;
+
+  // Initialposition
+  if (!fab.style.left && !fab.style.right) {
+    fab.style.left = '24px';
+    fab.style.bottom = '24px';
+  }
+
+  let dragging = false;
+  let moved = false;
+  let offX = 0, offY = 0;
+  let downX = 0, downY = 0;
+
+  fab.addEventListener('mousedown', (e) => {
+    dragging = true;
+    moved = false;
+    const rect = fab.getBoundingClientRect();
+    offX = e.clientX - rect.left;
+    offY = e.clientY - rect.top;
+    downX = e.clientX;
+    downY = e.clientY;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    if (Math.abs(e.clientX - downX) > 3 || Math.abs(e.clientY - downY) > 3) {
+      moved = true;
+    }
+    if (!moved) return;
+    const w = fab.offsetWidth;
+    const h = fab.offsetHeight;
+    const x = Math.max(0, Math.min(window.innerWidth  - w, e.clientX - offX));
+    const y = Math.max(0, Math.min(window.innerHeight - h, e.clientY - offY));
+    fab.style.left   = x + 'px';
+    fab.style.top    = y + 'px';
+    fab.style.right  = '';
+    fab.style.bottom = '';
+    fab.classList.add('dragging');
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    fab.classList.remove('dragging');
+  });
+
+  fab.addEventListener('click', (e) => {
+    // Klick nur auswerten, wenn nicht gerade gezogen wurde
+    if (moved) { moved = false; return; }
+    maximizeImportStepperPanel();
+  });
+}
+
+/* ── Drop-Zonen im Hauptprotokoll ──────────────────────────── */
+/**
+ * Wird einmal beim DOMContentLoaded aufgerufen. Haengt am pointsBody einen
+ * delegierten Drop-Listener fuer Items aus dem Import-Stepper an. Die blauen
+ * Linien drag-over-top/-bottom werden auf der Zielzeile gesetzt; Drop fuegt
+ * den Punkt an der entsprechenden Position ein.
+ */
+function setupImportDropZones() {
+  const tbody = document.getElementById('pointsBody');
+  if (!tbody || tbody._importDropWired) return;
+  tbody._importDropWired = true;
+
+  const isImportDrag = (e) => {
+    return App._dragType === 'importItem' || (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('application/x-kadra-import'));
+  };
+
+  function findTargetRow(node) {
+    while (node && node !== tbody) {
+      if (node.dataset && (node.dataset.type === 'point' || node.dataset.type === 'topic' || node.dataset.type === 'subchapter' || node.dataset.type === 'chapter')) {
+        return node;
+      }
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  tbody.addEventListener('dragover', (e) => {
+    if (!isImportDrag(e)) return;
+    const tr = findTargetRow(e.target);
+    if (!tr) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+
+    // Vorher alle anderen Highlights entfernen
+    tbody.querySelectorAll('.drag-over-top, .drag-over-bottom, .import-drop-target').forEach(el => {
+      if (el !== tr) el.classList.remove('drag-over-top', 'drag-over-bottom', 'import-drop-target');
+    });
+
+    if (tr.dataset.type === 'point') {
+      const rect = tr.getBoundingClientRect();
+      const mid  = rect.top + rect.height / 2;
+      tr.classList.toggle('drag-over-top',    e.clientY < mid);
+      tr.classList.toggle('drag-over-bottom', e.clientY >= mid);
+      tr.classList.remove('import-drop-target');
+    } else {
+      // Struktur-Zeile (Kapitel/UKAP/Thema): blaue Linie unten + Bereichsmarkierung
+      tr.classList.add('drag-over-bottom', 'import-drop-target');
+      tr.classList.remove('drag-over-top');
+    }
+  });
+
+  tbody.addEventListener('dragleave', (e) => {
+    const tr = findTargetRow(e.target);
+    if (!tr) return;
+    // Nur entfernen, wenn Maus die Zeile wirklich verlaesst
+    const rect = tr.getBoundingClientRect();
+    if (e.clientY < rect.top || e.clientY > rect.bottom || e.clientX < rect.left || e.clientX > rect.right) {
+      tr.classList.remove('drag-over-top', 'drag-over-bottom', 'import-drop-target');
+    }
+  });
+
+  tbody.addEventListener('drop', async (e) => {
+    if (!isImportDrag(e)) return;
+    const tr = findTargetRow(e.target);
+    if (!tr) return;
+    e.preventDefault();
+
+    // Zieldaten lesen
+    let item = null;
+    let itemIdx = -1;
+    try {
+      const raw = e.dataTransfer.getData('application/x-kadra-import');
+      if (raw) {
+        item = JSON.parse(raw);
+        if (typeof item._itemIdx === 'number') itemIdx = item._itemIdx;
+      }
+    } catch (_) {}
+    if (itemIdx < 0) {
+      // Fallback: numerischer Index in text/plain
+      const tp = e.dataTransfer.getData('text/plain');
+      const n = parseInt(tp, 10);
+      if (!Number.isNaN(n)) itemIdx = n;
+    }
+    if (!item && itemIdx >= 0) item = ImportStepper.items[itemIdx];
+
+    // Aufraeumen
+    tbody.querySelectorAll('.drag-over-top, .drag-over-bottom, .import-drop-target').forEach(el => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom', 'import-drop-target');
+    });
+
+    if (!item) return;
+    await dropImportItemOnRow(item, tr, e.clientY, itemIdx);
+  });
+}
+
+async function dropImportItemOnRow(item, tr, clientY, itemIdx) {
+  if (!App.currentProtocolId) {
+    showToast('Kein Protokoll geöffnet.', 'error');
+    return;
+  }
+
+  // Scrollposition merken (Hauptdokument + scrollender Container)
+  const scrollContainer = document.querySelector('.workspace-content');
+  const savedScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+  const savedWindowY = window.scrollY || 0;
+
+  await saveCurrentProtocol();
+  const protocol = await DB.Protocols.get(App.currentProtocolId);
+  if (!protocol) return;
+
+  // Ziel-Kontext aus der Drop-Zeile
+  const targetType = tr.dataset.type;
+  const chKey = tr.dataset.chapter || null;
+  let subId = tr.dataset.subchapter || null;
+  let topicId = tr.dataset.topic || null;
+
+  if (!chKey) { showToast('Drop-Ziel ohne Kapitelkontext.', 'error'); return; }
+
+  // Bei Drop auf Kapitel: subchapter/topic null
+  if (targetType === 'chapter') { subId = null; topicId = null; }
+  // Bei Drop auf UKAP: topic null
+  if (targetType === 'subchapter') { topicId = null; }
+  // Bei Drop auf Thema: chapter/sub aus tr.dataset uebernommen
+  // Bei Drop auf Punkt: chapter/sub/topic der Zielzeile uebernehmen
+
+  // Validierung der Zielstruktur
+  const chapter = protocol.structure?.[chKey];
+  if (!chapter) { showToast('Zielkapitel nicht gefunden.', 'error'); return; }
+  if (subId) {
+    const sub = (chapter.subchapters || []).find(s => s.id === subId);
+    if (!sub) { showToast('Ziel-Unterkapitel nicht gefunden.', 'error'); return; }
+    if (topicId) {
+      const top = (sub.topics || []).find(t => t.id === topicId);
+      if (!top) topicId = null;
+    }
+  } else {
+    topicId = null;
+  }
+
+  // Kuerzel filtern: nur bekannte uebernehmen
+  const abbrSet = getCurrentParticipantAbbrs();
+  const { matched, unknown } = checkResponsible(item.responsible, abbrSet);
+  const responsible = matched.join('/');
+
+  // Kategorie validieren
+  const validCats = new Set(['Aufgabe', 'Info', 'Festlegung', 'Freigabe erfordl']);
+  const category = validCats.has(item.category) ? item.category : 'Info';
+
+  // ID-Vergabe
+  const subNum = subId ? subId.split('.')[1] : null;
+  const seq = getNextPointSeq(protocol, chKey, subId);
+  const akNum = protocol.type === 'Aktennotiz' ? _getAkSectionNum(protocol, chKey) : undefined;
+  const newId = DB.generatePointId(protocol.number, chKey, subNum, seq, akNum);
+
+  const newPoint = {
+    id: newId,
+    chapter: chKey,
+    subchapter: subId,
+    topic: topicId,
+    content: item.content || '',
+    category,
+    responsible,
+    deadline: item.deadline || '',
+    done: !!item.done,
+    isNew: true,
+    doneLastProtocol: false,
+    createdInProtocol: protocol.number,
+  };
+
+  // Einfuegeposition: bei Drop auf Punkt-Zeile vor/nach Zielpunkt; sonst ans Ende der Zielgruppe
+  const points = protocol.points || (protocol.points = []);
+  let insertIdx = points.length;
+
+  if (targetType === 'point') {
+    const targetPointId = tr.dataset.pointId;
+    const targetIdx = points.findIndex(p => p.id === targetPointId);
+    if (targetIdx >= 0) {
+      const rect = tr.getBoundingClientRect();
+      const insertAfter = clientY >= rect.top + rect.height / 2;
+      insertIdx = insertAfter ? targetIdx + 1 : targetIdx;
+    }
+  } else {
+    // Struktur-Zeile: hinter dem letzten Punkt der gleichen Gruppe einfuegen
+    let lastIdx = -1;
+    points.forEach((p, idx) => {
+      if (p.chapter !== chKey) return;
+      if ((p.subchapter || null) !== (subId || null)) return;
+      if (topicId && p.topic !== topicId) return;
+      if (!topicId && targetType === 'subchapter' && p.topic) {
+        // Drop auf UKAP: nur Punkte ohne Thema beruecksichtigen, sonst ans Ende der UKAP-Gruppe
+      }
+      lastIdx = idx;
+    });
+    insertIdx = lastIdx >= 0 ? lastIdx + 1 : points.length;
+  }
+
+  points.splice(insertIdx, 0, newPoint);
+  await DB.Protocols.save(protocol);
+  renderPoints(protocol);
+
+  // Scrollposition wiederherstellen — nach renderPoints, im naechsten Frame
+  requestAnimationFrame(() => {
+    if (scrollContainer) scrollContainer.scrollTop = savedScrollTop;
+    if (savedWindowY) window.scrollTo(window.scrollX || 0, savedWindowY);
+  });
+
+  // Stepper updaten — Schluessel ist der Item-Index, nicht die origId
+  if (typeof itemIdx === 'number' && itemIdx >= 0) {
+    ImportStepper.imported.add(itemIdx);
+  }
+  renderImportStepperPanel();
+
+  // Toast
+  if (unknown.length) {
+    showToast(`Punkt übernommen. Fehlende Kürzel: ${unknown.join(', ')} — bitte Teilnehmer manuell ergänzen.`, 'warning');
+  } else {
+    showToast('Punkt aus Import übernommen.', 'success');
+  }
+}
+
+// Bei DOMContentLoaded: Drop-Zonen-Listener am pointsBody anhaengen
+document.addEventListener('DOMContentLoaded', () => {
+  setupImportDropZones();
+});
+
+// Protokoll-Item-Menü bei Klick außerhalb schließen
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.protocol-item-menu-wrap') &&
+      !e.target.closest('.protocol-item-menu-panel')) {
+    closeAllProtocolMenus();
+  }
+});
 
