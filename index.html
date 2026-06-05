@@ -189,6 +189,21 @@
     <!-- Sidebar Resize Handle -->
     <div id="sidebarResizeHandle" class="sidebar-resize-handle"></div>
 
+    <!-- -- DOKUMENTENSTRUKTUR --------------------------------- -->
+    <aside id="docStructure" class="doc-structure">
+      <div class="doc-structure-header">
+        <span class="doc-structure-title">Dokumentenstruktur</span>
+        <button id="btnToggleDocStructure" class="doc-structure-toggle"
+                title="Dokumentenstruktur ein-/ausklappen" aria-label="Dokumentenstruktur ein-/ausklappen"></button>
+      </div>
+      <div id="docStructureBody" class="doc-structure-body">
+        <div class="doc-structure-empty">Kein Protokoll geöffnet</div>
+      </div>
+    </aside>
+
+    <!-- Doc-Structure Resize Handle -->
+    <div id="docStructureResizeHandle" class="doc-structure-resize-handle"></div>
+
     <!-- -- HAUPTBEREICH ---------------------------------------- -->
     <main id="workspace" class="workspace">
 
@@ -257,43 +272,40 @@
 
           <!-- Reload -->
           <button id="btnReload" class="toolbar-btn-icon" title="Seite neu laden">
-            
+
           </button>
 
+          <!-- Export-Dropdown (PDF / Markdown) -->
+          <div class="export-menu-wrap">
+            <button id="btnExportMenu" class="toolbar-btn-icon" title="Exportieren" aria-label="Exportieren">
+            </button>
+            <div id="exportMenuPanel" class="export-menu-panel hidden">
+              <div class="export-menu-header">Exportieren als</div>
+              <button id="btnExportPdf" class="export-menu-item" type="button">PDF</button>
+              <button id="btnExportMd" class="export-menu-item" type="button">Markdown</button>
+              <button id="btnExportHtml" class="export-menu-item" type="button" disabled
+                      title="Noch nicht verfügbar">HTML</button>
+            </div>
+          </div>
+
+          <!-- Protokoll löschen -->
+          <button id="btnDeleteProtocol" class="toolbar-btn-icon toolbar-btn-icon-danger" title="Protokoll löschen" aria-label="Protokoll löschen">
+
+          </button>
+
+          <!-- Suchfeld (ganz rechts) -->
           <div class="toolbar-search-wrap">
-            
+
             <input type="text" id="searchBarInput" class="toolbar-search-input"
                    placeholder="Suche..." autocomplete="off" />
             <span id="searchBarCount" class="toolbar-search-count hidden"></span>
             <button id="searchBarPrev" class="toolbar-search-nav hidden" title="Vorheriger Treffer (Shift+Enter)">
-              
+
             </button>
             <button id="searchBarNext" class="toolbar-search-nav hidden" title="Naechster Treffer (Enter)">
-              
+
             </button>
           </div>
-
-          <div class="toolbar-divider-v"></div>
-
-          <!-- Export -->
-          <button id="btnExportPdf" class="toolbar-btn" title="PDF exportieren">
-            
-            <span>PDF</span>
-          </button>
-          <button id="btnExportMd" class="toolbar-btn" title="Markdown exportieren">
-            
-            <span>MD</span>
-          </button>
-
-          <!-- Kontext-Anzeige -->
-          <span id="selectionHint" class="selection-hint"></span>
-        </div>
-
-        <!-- Protokoll löschen (rechts) -->
-        <div class="toolbar-danger-group">
-          <button id="btnDeleteProtocol" class="toolbar-btn-icon toolbar-btn-icon-danger" title="Protokoll löschen" aria-label="Protokoll löschen">
-            
-          </button>
         </div>
 
       </div><!-- /workspace-toolbar -->

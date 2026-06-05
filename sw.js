@@ -5,7 +5,7 @@
  * ErmÃ¶glicht Offline-Nutzung der App.
  */
 
-const CACHE_NAME    = 'protokoll-app-v2.44';
+const CACHE_NAME    = 'protokoll-app-v2.50';
 const SHELL_ASSETS  = [
   './index.html',
   './css/style.css',

@@ -68,6 +68,8 @@
   --sidebar-gap-md: 20px;
   --sidebar-gap-lg: 24px;
   --sidebar-collapsed-width: 34px;
+  /* Gemeinsame eingeklappte Breite fuer Sidebar UND Strukturleiste (~30% schmaler). */
+  --collapsed-rail-width: 35px;
   --sidebar-control-gap: 16px;
   --sidebar-control-radius: 8px;
   --sidebar-control-font-size: 14px;
@@ -215,9 +217,9 @@ body {
 
 /* Collapsed state */
 .sidebar.collapsed {
-  width: calc(var(--sidebar-collapsed-width) + var(--sidebar-margin));
-  min-width: calc(var(--sidebar-collapsed-width) + var(--sidebar-margin));
-  max-width: calc(var(--sidebar-collapsed-width) + var(--sidebar-margin));
+  width: var(--collapsed-rail-width);
+  min-width: var(--collapsed-rail-width);
+  max-width: var(--collapsed-rail-width);
   overflow: hidden;
 }
 .sidebar.collapsed .sidebar-project-section,
@@ -746,6 +748,205 @@ body {
 .workspace:has(.workspace-toolbar.hidden) + .sidebar-resize-handle::before,
 .sidebar-resize-handle:has(+ .workspace .workspace-toolbar.hidden)::before { display: none; }
 
+/* Resize-Handle, das vor der Dokumentenstruktur liegt: behaelt seine Funktion,
+   aber optisch Teil der weissen Sidebar (kein beiger Streifen) und ohne den
+   Toolbar-Fade. Die graue Trennlinie liefert das border-left der .doc-structure. */
+.sidebar-resize-handle:has(+ .doc-structure) {
+  background: var(--bg-sidebar);
+}
+.sidebar-resize-handle:has(+ .doc-structure):hover { background: var(--accent-blue-20); }
+.sidebar-resize-handle:has(+ .doc-structure)::before { display: none; }
+
+/* Sidebar-Schlagschatten entfernen, wenn die Strukturleiste rechts angrenzt —
+   sonst doppelte Linie (Schatten + graue Trennlinie der .doc-structure). */
+.sidebar:has(+ .sidebar-resize-handle + .doc-structure) {
+  box-shadow: none;
+}
+
+/* ============================================================
+   DOKUMENTENSTRUKTUR-LEISTE
+   Eigene Spalte zwischen Sidebar und Workspace.
+============================================================ */
+.doc-structure {
+  --ds-width: 256px;
+  width: var(--ds-width);
+  min-width: var(--ds-width);
+  max-width: var(--ds-width);
+  height: 100vh;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  /* Trennlinie links zur Sidebar; rechts zum Workspace bewusst keine
+     (Hintergrund laeuft optisch in den Workspace durch). */
+  border-left: 1px solid var(--border);
+  overflow: hidden;
+  z-index: 250;
+}
+.doc-structure.collapsed {
+  --ds-width: var(--collapsed-rail-width);
+}
+.doc-structure.collapsed .doc-structure-title,
+.doc-structure.collapsed .doc-structure-body { display: none; }
+.doc-structure.collapsed + .doc-structure-resize-handle { pointer-events: none; }
+
+.doc-structure-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* Hoehe = Sidebar-Topbar (2 * gap-md + Logo 40px), damit die Trennlinie
+     auf gleicher Hoehe wie die Sidebar-Trennlinie unter dem Logo sitzt. */
+  height: calc((2 * var(--sidebar-gap-md)) + 40px);
+  flex-shrink: 0;
+  padding: 0 8px 0 var(--sidebardistance);
+  position: relative;
+}
+/* Trennlinie wie .sidebar-divider-top: 1px, grau, mit Randabstand links/rechts. */
+.doc-structure-header::after {
+  content: '';
+  position: absolute;
+  left: var(--sidebardistance);
+  right: var(--sidebardistance);
+  bottom: 0;
+  height: 1px;
+  background: var(--border);
+}
+.doc-structure.collapsed .doc-structure-header::after { display: none; }
+.doc-structure-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doc-structure-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.doc-structure-toggle:hover { background: var(--accent-blue-10); }
+.doc-structure-toggle .kadra-icon { width: 18px; height: 18px; }
+.doc-structure.collapsed .doc-structure-header {
+  justify-content: center;
+  padding: 0;
+}
+
+.doc-structure-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 8px 24px;
+  scrollbar-width: thin;
+}
+.doc-structure-empty {
+  padding: 24px 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* Struktur-Eintraege (Typografie/Hierarchie nach Claude-Design-Handoff:
+   docs/future_features/260605_Claude Design handoff_KADRA-Strukturleiste) */
+.ds-item {
+  --ds-chapter-color: var(--text-tertiary);
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1.3;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background .15s, color .15s;
+}
+
+/* KAP: schwarzer, fetter Text + farbiger Dot (Kapitelfarbe) mit Navy-Glow. */
+.ds-chapter {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 6px;
+  padding: 9px 20px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+.ds-chapter:first-child { margin-top: 0; }
+.ds-chapter::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ds-chapter-color);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(14, 45, 88, .07);
+}
+.ds-chapter:hover { background: rgba(14, 45, 88, .05); }
+
+/* UKAP: zurueckhaltender, mit kraeftigem Strich in Kapitelfarbe. */
+.ds-subchapter {
+  padding: 5px 20px 5px 38px;
+  margin-left: 24px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--ds-chapter-color);
+}
+.ds-subchapter:hover { color: var(--accent-blue-dark); background: rgba(14, 45, 88, .04); }
+
+/* THEMA: kleinste Stufe, ausgegraut, schwacher Strich. */
+.ds-topic {
+  padding: 3px 20px 3px 50px;
+  margin-left: 24px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  border-left: 2px solid var(--border-light);
+}
+.ds-topic:hover { color: var(--text-secondary); background: rgba(14, 45, 88, .04); }
+
+/* Aktiver/hervorgehobener Eintrag (Scrollspy oder Klick):
+   kein Schatten, keine Umrandung.
+   UKAP/Thema: einheitliches Hellblau. KAP: transparente Toenung der eigenen
+   Kapitelfarbe (passend zum Dot). */
+.ds-item.ds-active {
+  /* Aktiv: dunkles Grau, deutlich kraeftiger als das Hover. */
+  background: rgba(0, 0, 0, 0.12);
+  color: var(--accent-blue);
+}
+.ds-chapter.ds-active {
+  background: color-mix(in srgb, var(--ds-chapter-color) 14%, transparent);
+  color: var(--text-primary);
+}
+.ds-subchapter.ds-active,
+.ds-topic.ds-active {
+  color: var(--accent-blue);
+}
+
+/* Resize-Handle der Dokumentenstruktur */
+.doc-structure-resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  flex-shrink: 0;
+  z-index: 15;
+  position: relative;
+}
+.doc-structure-resize-handle:hover { background: var(--accent-blue-20); }
+
 /* Hamburger-MenÃ¼ Panel */
 .sidebar-menu-wrap { position: relative; }
 .project-menu-panel {
@@ -979,7 +1180,6 @@ body {
    WORKSPACE / HAUPTBEREICH
 ============================================================ */
 .workspace {
-  --toolbar-fade-h: 110px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -987,18 +1187,6 @@ body {
   min-width: 0;
   position: relative;
 }
-.workspace::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: var(--toolbar-fade-h);
-  background: linear-gradient(180deg, rgba(204,203,200,0.40) 0%, rgba(255,255,255,0) 100%);
-  pointer-events: none;
-  z-index: 20;
-}
-.workspace:has(.workspace-toolbar.hidden)::before { display: none; }
 
 /* â”€â”€ Toolbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Figma: 64px hoch, border-radius 32px (Pill), floating mit margin 16px
@@ -1010,7 +1198,7 @@ body {
   align-items: center;
   height: var(--toolbar-h);
   background: var(--bg-surface);
-  border: 1px solid var(--border);
+  border: 1px solid #9A9A9A;   /* dunkleres Grau fuer die Toolbar-Umrandung */
   border-radius: 32px;
   box-shadow: var(--shadow-toolbar);
   margin: 0;
@@ -1030,15 +1218,15 @@ body {
   align-items: center;
   gap: 4px;
   flex: 1;
+  /* min-width:0 verhindert, dass die Gruppe ueber die Toolbar hinauswaechst
+     (Flexbox-Default waere auto). So schrumpft zuerst das Suchfeld; reicht das
+     nicht, wird der Ueberlauf real messbar (scrollWidth > clientWidth). */
+  min-width: 0;
+  overflow: hidden;
 }
 .toolbar-search-group {
   display: flex;
   align-items: center;
-}
-.toolbar-danger-group {
-  display: flex;
-  align-items: center;
-  margin-left: 8px;
 }
 .toolbar-divider-v {
   width: 1px;
@@ -1181,6 +1369,49 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* Export-Dropdown (Optik wie .chapter-filter-panel) */
+.export-menu-wrap { position: relative; }
+.export-menu-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  background: var(--bg-surface);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+  z-index: 100;
+  padding: 8px;
+}
+.export-menu-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  padding: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.export-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.export-menu-item:hover:not(:disabled) { background: var(--accent-blue-10); }
+.export-menu-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* Punkt-Filter Dropdown */
 .point-filter-wrap { position: relative; }
 .point-filter-panel {
@@ -1253,10 +1484,15 @@ body {
   gap: 4px;
   height: 32px;
   background: var(--bg-input);
-  border-radius: 8px;
+  border-radius: 16px;   /* gleiche Pillen-Rundung wie .toolbar-btn */
   border: 1px solid transparent;
   padding: 0 8px;
-  min-width: 220px;
+  /* Faellt den verbleibenden Platz rechts in der Toolbar: waechst mit breiterem
+     Workspace mit und schrumpft bei Platzmangel (bis minimal ~70px, etwa
+     KAP-Pillen-Breite), statt herauszurutschen. (Kein margin-left:auto — das
+     wuerde das Wachsen blockieren.) */
+  flex: 1 1 70px;
+  min-width: 70px;
   transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 .toolbar-search-wrap:hover { background: var(--bg-hover); border-color: var(--accent-blue-20); }
@@ -1268,6 +1504,7 @@ body {
 .toolbar-search-icon { color: var(--text-tertiary); flex-shrink: 0; }
 .toolbar-search-input {
   flex: 1;
+  min-width: 0;   /* erlaubt dem Suchfeld zu schrumpfen (Flexbox-Default waere auto) */
   border: none;
   background: none;
   font-size: 14px;
@@ -1284,8 +1521,6 @@ body {
   border-radius: 4px; padding: 0;
 }
 .toolbar-search-nav:hover { background: var(--border); color: var(--text-primary); }
-.selection-hint { font-size: 12px; color: var(--text-tertiary); margin-left: 8px; white-space: nowrap; }
-
 
 /* â”€â”€ Workspace Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .workspace-content {

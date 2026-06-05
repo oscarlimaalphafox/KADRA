@@ -4,10 +4,10 @@
 
 ## BUGS
 
-- [ ] verschieben per drag\&drop: wenn in Thema verschoben kann nicht wieder zurückschieben in "nicht Thema" oder "leeres Thema" oder so ähnlich nochmal testen
+- [x] verschieben per drag\&drop: wenn in Thema verschoben kann nicht wieder zurückschieben in "nicht Thema" oder "leeres Thema" oder so ähnlich nochmal testen
 - [ ] Wenn ein Thema angewählt ist, lassen sich keine neuen Punkte darin erzeugen.Sondern der neue Punkt entsteht immer nur dann, wenn man einen bereits bestehenden Punkt angewählt hat.
 - [ ] Ein neues Thema lässt sich nicht erzeugen, wenn ein UKAP angewählt ist.
-- [ ] Ein Punkt lässt sich nicht mehr aus einem Thema herausschieben - nur noch in ein anderes Thema innerhalb des UKAP.
+- [x] Ein Punkt lässt sich nicht mehr aus einem Thema herausschieben - nur noch in ein anderes Thema innerhalb des UKAP.
 - [ ] Ein neuer Punkt soll immer direkt unter dem bereits angewählten Punkt erzeugt werden, nicht am Ende der Liste.
 - [ ] Der letzte und vorletzte Punkt von INHALTE hat folgendes Problem: Das Auswahlmenü unter Aufgabe wird nicht vollständig angezeigt, sondern verschwindet hinter dem nächsten Frame. In diesem Fall ANLAGEN.
 - [x] Wenn ein PKT als erledigt abgehakt wird, soll auch "zuständig" in grauer Schrift dargestellt werden
@@ -27,7 +27,7 @@
 - [x] grip-vertical verwendet / Büroklammer aus lucide?
 - [x] Protokollpunkte anpinnen "ID/Inhalt/Kat./Zuständig/Termin/erledigt" ? sodass Inhalte drunter durchscrollen // NEIN
 - [ ] Tabs (mehrere Protokolle gleichzeitig offen)
-- [ ] Hamburger Menü: "Zuletzt verwendet" mit Untermenü unter "Datenbank öffnen"
+- [x] Hamburger Menü: "Zuletzt verwendet" mit Untermenü unter "Datenbank öffnen"
 
 ## FEATURES
 

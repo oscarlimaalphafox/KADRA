@@ -145,8 +145,7 @@ function initStaticIcons() {
   setOnlyIcon('#btnChapterFilter', iconEye);
   setOnlyIcon('#btnPointFilter', iconFilter);
   setOnlyIcon('#btnReload', iconRefreshCw);
-  setLeadingIcon('#btnExportPdf', iconFileText);
-  setLeadingIcon('#btnExportMd', iconFileText);
+  setOnlyIcon('#btnExportMenu', iconFileUp);
   setOnlyIcon('#btnDeleteProtocol', iconShredder);
   setLeadingIcon('.toolbar-search-wrap', iconSearch);
   setOnlyIcon('#searchBarPrev', iconChevronUp);
@@ -1461,9 +1460,374 @@ function renderPoints(protocol) {
   applyChapterFilter();
   syncSelectionAfterRender();
   syncCollapseAllButtonState();
+  renderDocStructure(protocol);
 
   // Scroll-Position wiederherstellen (nach autoResizeAll, da dieses die Hoehe beeinflusst)
   if (scrollContainer) scrollContainer.scrollTop = savedScrollTop;
+}
+
+/* ============================================================
+   DOKUMENTENSTRUKTUR-LEISTE
+   Eigene Spalte links vom Workspace. Spiegelt KAP/UKAP/THEMA,
+   navigiert per Klick, hebt beim Scrollen die aktuelle Stelle hervor.
+============================================================ */
+
+// Kapitel-Farbpalette (VOCTA tag-1..tag-8, danach zyklisch).
+const DOC_STRUCTURE_TAGS = [
+  '#E88E5A', '#F4BD48', '#968B79', '#99BDB8',
+  '#96B4C9', '#E199AA', '#94AF83', '#CDAD96',
+];
+
+// Stabile Kapitel-Farbe anhand der Reihenfolge im Strukturobjekt.
+function docStructureChapterColor(index) {
+  return DOC_STRUCTURE_TAGS[index % DOC_STRUCTURE_TAGS.length];
+}
+
+const DocStructure = {
+  _scrollHandler: null,
+  _scrollContainer: null,
+  _spySuppressUntil: 0,   // unterdrueckt Scrollspy kurz nach Klick-Navigation
+  _activeKey: null,
+};
+
+function clearDocStructure() {
+  const body = document.getElementById('docStructureBody');
+  if (body) body.innerHTML = '<div class="doc-structure-empty">Kein Protokoll geöffnet</div>';
+  DocStructure._activeKey = null;
+}
+
+// Eindeutiger Schluessel pro Struktur-Element fuer Spy/Highlight-Abgleich.
+function docStructureKey(type, ids) {
+  if (type === 'chapter')    return 'c:' + ids.chapter;
+  if (type === 'subchapter') return 's:' + ids.subchapter;
+  return 't:' + ids.topic;
+}
+
+function renderDocStructure(protocol) {
+  const body = document.getElementById('docStructureBody');
+  if (!body) return;
+  if (!protocol || !protocol.structure) { clearDocStructure(); return; }
+
+  const isAk = protocol.type === 'Aktennotiz';
+  const frag = document.createDocumentFragment();
+  let akSectionNum = 0;
+  let chIndex = -1;
+
+  Object.entries(protocol.structure).forEach(([chKey, chapter]) => {
+    chIndex++;
+    const color = docStructureChapterColor(chIndex);
+
+    // Kapitel-Label (Aktennotiz nummeriert, sonst "A - Label")
+    let chLabel;
+    if (isAk) {
+      const isFixed = chKey === 'P' || chKey === 'N';
+      if (isFixed) {
+        chLabel = chapter.label;
+      } else {
+        akSectionNum++;
+        chLabel = akSectionNum + '. ' + chapter.label;
+      }
+    } else {
+      chLabel = chKey + ' – ' + chapter.label;
+    }
+
+    const chEl = document.createElement('button');
+    chEl.type = 'button';
+    chEl.className = 'ds-item ds-chapter';
+    chEl.style.setProperty('--ds-chapter-color', color);
+    chEl.dataset.key       = docStructureKey('chapter', { chapter: chKey });
+    chEl.dataset.type      = 'chapter';
+    chEl.dataset.chapter   = chKey;
+    chEl.textContent = chLabel;
+    frag.appendChild(chEl);
+
+    (chapter.subchapters || []).forEach(sub => {
+      const subEl = document.createElement('button');
+      subEl.type = 'button';
+      subEl.className = 'ds-item ds-subchapter';
+      subEl.style.setProperty('--ds-chapter-color', color);
+      subEl.dataset.key        = docStructureKey('subchapter', { subchapter: sub.id });
+      subEl.dataset.type       = 'subchapter';
+      subEl.dataset.chapter    = chKey;
+      subEl.dataset.subchapter = sub.id;
+      subEl.textContent = isAk ? sub.label : (sub.id + ' ' + sub.label);
+      frag.appendChild(subEl);
+
+      (sub.topics || []).forEach(topic => {
+        const tEl = document.createElement('button');
+        tEl.type = 'button';
+        tEl.className = 'ds-item ds-topic';
+        tEl.style.setProperty('--ds-chapter-color', color);
+        tEl.dataset.key        = docStructureKey('topic', { topic: topic.id });
+        tEl.dataset.type       = 'topic';
+        tEl.dataset.chapter    = chKey;
+        tEl.dataset.subchapter = sub.id;
+        tEl.dataset.topic      = topic.id;
+        tEl.textContent = topic.label;
+        frag.appendChild(tEl);
+      });
+    });
+  });
+
+  body.innerHTML = '';
+  body.appendChild(frag);
+
+  // Aktive Markierung nach Re-Render wiederherstellen (falls bekannt).
+  if (DocStructure._activeKey) setDocStructureActive(DocStructure._activeKey, false);
+
+  ensureDocStructureScrollSpy();
+}
+
+// Zugehoerige Workspace-Zeile zu einem Struktur-Eintrag finden.
+function docStructureFindRow(el) {
+  const type = el.dataset.type;
+  if (type === 'chapter') {
+    return document.querySelector('#pointsBody tr.row-chapter[data-chapter="' + cssEscape(el.dataset.chapter) + '"]');
+  }
+  if (type === 'subchapter') {
+    return document.querySelector('#pointsBody tr.row-subchapter[data-subchapter="' + cssEscape(el.dataset.subchapter) + '"]');
+  }
+  return document.querySelector('#pointsBody tr.row-topic[data-topic="' + cssEscape(el.dataset.topic) + '"]');
+}
+
+// Minimaler CSS-Attribut-Escaper (IDs koennen Punkte/Sonderzeichen enthalten).
+function cssEscape(str) {
+  if (window.CSS && CSS.escape) return CSS.escape(String(str));
+  return String(str).replace(/["\\]/g, '\\$&');
+}
+
+// Aktives Struktur-Element markieren und in Sicht scrollen.
+// Gibt true zurueck, wenn ein passendes Struktur-Element gefunden wurde.
+function setDocStructureActive(key, scrollIntoView) {
+  const body = document.getElementById('docStructureBody');
+  if (!body) return false;
+  let activeEl = null;
+  body.querySelectorAll('.ds-item').forEach(el => {
+    const on = el.dataset.key === key;
+    el.classList.toggle('ds-active', on);
+    if (on) activeEl = el;
+  });
+  DocStructure._activeKey = activeEl ? key : null;
+  if (activeEl && scrollIntoView) {
+    activeEl.scrollIntoView({ block: 'nearest' });
+  }
+  return !!activeEl;
+}
+
+// Strukturleiste auf die aktuelle Workspace-Auswahl ausrichten.
+// PKT -> Thema (falls vorhanden), sonst UKAP, sonst KAP. Mit Fallback,
+// falls die bevorzugte Ebene in der Struktur nicht (mehr) existiert.
+function highlightStructureForSelection(ctx) {
+  if (!ctx) return;
+  const candidates = [];
+  if (ctx.topicId)      candidates.push('t:' + ctx.topicId);
+  if (ctx.subchapterId) candidates.push('s:' + ctx.subchapterId);
+  if (ctx.chapterKey)   candidates.push('c:' + ctx.chapterKey);
+
+  for (const key of candidates) {
+    if (setDocStructureActive(key, true)) return;
+  }
+}
+
+// Klick-Navigation: Workspace hinscrollen + Zeile selektieren.
+function navigateToStructure(el) {
+  // Kapitel ggf. aufklappen, damit das Ziel sichtbar ist.
+  if (el.dataset.type !== 'chapter') {
+    const chId = 'chapter-' + el.dataset.chapter;
+    if (App.collapsedSections.has(chId)) toggleCollapse(chId);
+  }
+  if (el.dataset.type === 'topic' || el.dataset.type === 'point') {
+    const subId = 'subchapter-' + el.dataset.subchapter;
+    if (App.collapsedSections.has(subId)) toggleCollapse(subId);
+  }
+
+  const row = docStructureFindRow(el);
+  if (!row) return;
+
+  // Spy kurz unterdruecken, damit das programmatische Scrollen nicht
+  // sofort eine andere Stelle aktiviert.
+  DocStructure._spySuppressUntil = Date.now() + 600;
+
+  scrollRowIntoWorkspace(row);
+  setDocStructureActive(el.dataset.key, true);
+
+  // Konsistente Auswahl wie beim direkten Klick im Workspace.
+  const ctx = buildSelectionCtx(el);
+  if (ctx) selectRow(ctx, row);
+}
+
+// Zeile in den Workspace scrollen: Ziel landet im oberen Drittel,
+// unterhalb der sticky Toolbar (nicht direkt darunter).
+function scrollRowIntoWorkspace(row) {
+  const container = document.querySelector('.workspace-content');
+  if (!container) { row.scrollIntoView({ block: 'start' }); return; }
+  const toolbar    = document.getElementById('workspaceToolbar');
+  const toolbarH   = (toolbar && !toolbar.classList.contains('hidden')) ? toolbar.offsetHeight : 0;
+  const cRect      = container.getBoundingClientRect();
+  // Sichtbare Hoehe unterhalb der Toolbar; Ziel ~1/3 davon nach unten einrücken.
+  const visibleH   = cRect.height - toolbarH;
+  const offset     = toolbarH + Math.round(visibleH / 3);
+  const rRect      = row.getBoundingClientRect();
+  const delta      = (rRect.top - cRect.top) - offset;
+  container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' });
+}
+
+// Auswahl-Kontext analog zu makeRowSelectable() rekonstruieren.
+function buildSelectionCtx(el) {
+  const type = el.dataset.type;
+  if (type === 'chapter') {
+    return { type: 'chapter', chapterKey: el.dataset.chapter, label: el.textContent.trim() };
+  }
+  if (type === 'subchapter') {
+    return { type: 'subchapter', subchapterId: el.dataset.subchapter, chapterKey: el.dataset.chapter, label: el.textContent.trim() };
+  }
+  if (type === 'topic') {
+    return { type: 'topic', topicId: el.dataset.topic, subchapterId: el.dataset.subchapter, chapterKey: el.dataset.chapter, label: el.textContent.trim() };
+  }
+  return null;
+}
+
+// Scrollspy: oberstes sichtbares Struktur-Element ermitteln + spiegeln.
+function ensureDocStructureScrollSpy() {
+  const container = document.querySelector('.workspace-content');
+  if (!container) return;
+  if (DocStructure._scrollContainer === container && DocStructure._scrollHandler) return;
+
+  // Alten Listener loesen (Container kann nach Re-Render derselbe sein).
+  if (DocStructure._scrollContainer && DocStructure._scrollHandler) {
+    DocStructure._scrollContainer.removeEventListener('scroll', DocStructure._scrollHandler);
+  }
+
+  let raf = null;
+  const handler = () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = null;
+      updateDocStructureSpy();
+    });
+  };
+  container.addEventListener('scroll', handler, { passive: true });
+  DocStructure._scrollContainer = container;
+  DocStructure._scrollHandler   = handler;
+}
+
+function updateDocStructureSpy() {
+  if (Date.now() < DocStructure._spySuppressUntil) return;
+  const container = document.querySelector('.workspace-content');
+  const body = document.getElementById('docStructureBody');
+  if (!container || !body) return;
+
+  const toolbar  = document.getElementById('workspaceToolbar');
+  const toolbarH = (toolbar && !toolbar.classList.contains('hidden')) ? toolbar.offsetHeight : 0;
+  const cRect    = container.getBoundingClientRect();
+  // Spy-Linie auf das obere Drittel legen — deckungsgleich mit der Klick-Scrollposition.
+  const lineY    = cRect.top + toolbarH + Math.round((cRect.height - toolbarH) / 3);
+
+  // Letzte Struktur-Zeile, die noch oberhalb der Linie beginnt = aktuelle Stelle.
+  const rows = container.querySelectorAll('#pointsBody tr.row-chapter, #pointsBody tr.row-subchapter, #pointsBody tr.row-topic');
+  let current = null;
+  rows.forEach(r => {
+    if (r.classList.contains('row-hidden')) return;
+    if (r.getBoundingClientRect().top <= lineY) current = r;
+  });
+  if (!current) {
+    // Vor der ersten Struktur-Zeile: erstes Element aktiv lassen.
+    current = Array.from(rows).find(r => !r.classList.contains('row-hidden')) || null;
+  }
+  if (!current) return;
+
+  let key;
+  if (current.classList.contains('row-chapter'))         key = 'c:' + current.dataset.chapter;
+  else if (current.classList.contains('row-subchapter')) key = 's:' + current.dataset.subchapter;
+  else                                                   key = 't:' + current.dataset.topic;
+
+  if (key !== DocStructure._activeKey) setDocStructureActive(key, true);
+}
+
+// Prueft, ob die Toolbar mit ihrem aktuellen Inhalt ueberlaeuft. Direkt
+// gemessen am realen Layout: scrollWidth (= benoetigte Inhaltsbreite, inkl.
+// herausragender Teile) vs. clientWidth (= sichtbarer Innenraum). Dadurch
+// unabhaengig davon, ob/wie weit das Suchfeld schon geschrumpft ist.
+function toolbarOverflows() {
+  const tools = document.querySelector('#workspaceToolbar .toolbar-tools-group');
+  if (!tools) return false;
+  return tools.scrollWidth > tools.clientWidth + 0.5;
+}
+
+// Toggle + Resize der Dokumentenstruktur-Leiste (einmalig binden).
+function initDocStructureControls() {
+  const panel  = document.getElementById('docStructure');
+  const handle = document.getElementById('docStructureResizeHandle');
+  const toggle = document.getElementById('btnToggleDocStructure');
+  const body   = document.getElementById('docStructureBody');
+  if (!panel || !toggle || !body) return;
+
+  // Toggle-Icon (Panel-Open/Close aus dem Icon-System).
+  const setToggleIcon = () => {
+    toggle.innerHTML = panel.classList.contains('collapsed') ? iconPanelLeftOpen() : iconPanelLeftClose();
+  };
+
+  // Persistierten Zustand wiederherstellen.
+  if (localStorage.getItem('kadra_docStructureCollapsed') === '1') {
+    panel.classList.add('collapsed');
+  }
+  const savedWidth = parseInt(localStorage.getItem('kadra_docStructureWidth') || '', 10);
+  if (savedWidth >= 180 && savedWidth <= 480) {
+    panel.style.width = savedWidth + 'px';
+    panel.style.minWidth = savedWidth + 'px';
+  }
+  setToggleIcon();
+
+  toggle.addEventListener('click', () => {
+    // Inline-Breite zuruecksetzen, damit die collapsed-Breite aus dem CSS greift
+    // (analog zur Sidebar). Sonst ueberschreibt eine gespeicherte Breite das Einklappen.
+    panel.style.width = '';
+    panel.style.minWidth = '';
+    panel.classList.toggle('collapsed');
+    localStorage.setItem('kadra_docStructureCollapsed', panel.classList.contains('collapsed') ? '1' : '0');
+    setToggleIcon();
+  });
+
+  // Klick-Navigation (delegiert).
+  body.addEventListener('click', (e) => {
+    const item = e.target.closest('.ds-item');
+    if (item) navigateToStructure(item);
+  });
+
+  // Resize.
+  if (handle) {
+    let resizing = false;
+    handle.addEventListener('mousedown', (e) => {
+      if (panel.classList.contains('collapsed')) return;
+      e.preventDefault();
+      resizing = true;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!resizing) return;
+      const left = panel.getBoundingClientRect().left;
+      const newWidth = Math.min(480, Math.max(180, e.clientX - left));
+      const prevWidth = panel.getBoundingClientRect().width;
+
+      // Provisorisch setzen ...
+      panel.style.width = newWidth + 'px';
+      panel.style.minWidth = newWidth + 'px';
+      // ... und wieder zuruecknehmen, wenn die Toolbar dadurch ueberlaeuft
+      // (nur beim Verbreitern; Verschmaelern ist immer erlaubt).
+      if (newWidth > prevWidth && toolbarOverflows()) {
+        panel.style.width = prevWidth + 'px';
+        panel.style.minWidth = prevWidth + 'px';
+      }
+    });
+    document.addEventListener('mouseup', () => {
+      if (!resizing) return;
+      resizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('kadra_docStructureWidth', String(parseInt(panel.style.width, 10) || ''));
+    });
+  }
 }
 
 /* Punkt verschieben: ID bleibt fix (Herkunft), nur Position (chapter/subchapter/topic)
@@ -1956,7 +2320,9 @@ function addRowClick(row, ctx) {
     if (e.target.closest('.collapse-btn') || e.target.closest('.btn-delete-row') || e.target.closest('.btn-delete-structure')) return;
     // [cleanup]
     if (e.target.closest('textarea') || e.target.closest('input') || e.target.closest('select')) return;
-    if (e.target.closest('[contenteditable="true"]')) return;
+    // Klick ins editierbare Label startet die Bearbeitung (keine volle
+    // Zeilenauswahl), markiert aber dennoch die Stelle in der Strukturleiste.
+    if (e.target.closest('[contenteditable="true"]')) { highlightStructureForSelection(ctx); return; }
     selectRow(ctx, row);
   });
 }
@@ -1966,6 +2332,12 @@ function selectRow(ctx, rowEl) {
   App.selectedRow = ctx;
   if (rowEl) rowEl.classList.add('row-selected');
   updateSelectionHint();
+
+  // Strukturleiste an der Auswahl ausrichten (PKT -> Thema/UKAP/KAP).
+  // Spy kurz unterdruecken, damit ein nachfolgendes Scroll-Event die
+  // gerade gesetzte Markierung nicht sofort ueberschreibt.
+  DocStructure._spySuppressUntil = Date.now() + 600;
+  highlightStructureForSelection(ctx);
 }
 
 function updateSelectionHint() {
@@ -2365,6 +2737,29 @@ function setupChapterFilter() {
     const wasHidden = panel.classList.contains('hidden');
     panel.classList.toggle('hidden');
     if (wasHidden) populateChapterFilter();
+  });
+
+  document.addEventListener('click', e => {
+    if (!panel.classList.contains('hidden') && !panel.contains(e.target) && !btn.contains(e.target)) {
+      panel.classList.add('hidden');
+    }
+  });
+}
+
+function setupExportMenu() {
+  const btn   = document.getElementById('btnExportMenu');
+  const panel = document.getElementById('exportMenuPanel');
+  if (!btn || !panel) return;
+
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    panel.classList.toggle('hidden');
+  });
+
+  // Klick auf ein Export-Item schliesst das Menue (die Export-Handler haengen
+  // separat an den Item-Buttons).
+  panel.querySelectorAll('.export-menu-item').forEach(item => {
+    item.addEventListener('click', () => panel.classList.add('hidden'));
   });
 
   document.addEventListener('click', e => {
@@ -3642,6 +4037,7 @@ function bindGlobalEvents() {
   document.querySelector('#sectionPoints .proto-card-header').addEventListener('click', toggleCollapseAll);
   setupPointFilter();
   setupChapterFilter();
+  setupExportMenu();
   setupFulltextSearch();
 
   // KAP / UKAP / THEMA Modals
@@ -3763,6 +4159,7 @@ function bindGlobalEvents() {
     document.getElementById('emptyState').classList.remove('hidden');
     document.getElementById('protocolView').classList.add('hidden');
     document.getElementById('workspaceToolbar').classList.add('hidden');
+    clearDocStructure();
     App.protocols = await DB.Protocols.getActiveByProject(App.currentProjectId);
     renderProtocolList();
     showToast('Protokoll in den Papierkorb verschoben.', '');
@@ -3793,6 +4190,9 @@ function bindGlobalEvents() {
     }
   });
 
+  // Dokumentenstruktur-Leiste (Toggle, Resize, Klick-Navigation)
+  initDocStructureControls();
+
   // Sidebar Resize (Drag am rechten Rand)
   const resizeHandle = document.getElementById('sidebarResizeHandle');
   const sidebar      = document.getElementById('sidebar');
@@ -3807,8 +4207,17 @@ function bindGlobalEvents() {
   document.addEventListener('mousemove', (e) => {
     if (!_resizing) return;
     const newWidth = Math.min(500, Math.max(200, e.clientX));
+    const prevWidth = sidebar.getBoundingClientRect().width;
+
+    // Provisorisch setzen ...
     sidebar.style.width    = newWidth + 'px';
     sidebar.style.minWidth = newWidth + 'px';
+    // ... und zuruecknehmen, wenn die Toolbar dadurch ueberlaeuft
+    // (nur beim Verbreitern; Verschmaelern ist immer erlaubt).
+    if (newWidth > prevWidth && toolbarOverflows()) {
+      sidebar.style.width    = prevWidth + 'px';
+      sidebar.style.minWidth = prevWidth + 'px';
+    }
   });
   document.addEventListener('mouseup', () => {
     if (!_resizing) return;
@@ -4232,6 +4641,7 @@ async function confirmDeleteProject() {
   document.getElementById('emptyState').classList.remove('hidden');
   document.getElementById('protocolView').classList.add('hidden');
   document.getElementById('workspaceToolbar').classList.add('hidden');
+  clearDocStructure();
   document.getElementById('btnNewProtocol').disabled = true;
   document.getElementById('btnImportVoctaSidebar').disabled = true;
 
@@ -4277,6 +4687,7 @@ async function confirmCloseDatabase() {
   document.getElementById('emptyState').classList.remove('hidden');
   document.getElementById('protocolView').classList.add('hidden');
   document.getElementById('workspaceToolbar').classList.add('hidden');
+  clearDocStructure();
   document.getElementById('btnNewProtocol').disabled = true;
   document.getElementById('btnImportVoctaSidebar').disabled = true;
 
