@@ -848,8 +848,11 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 8px 8px 24px;
-  scrollbar-width: thin;
+  /* Scrollbar optisch ausblenden, Mausrad-Scroll bleibt aktiv */
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* alte Edge/IE */
 }
+.doc-structure-body::-webkit-scrollbar { display: none; }  /* Chrome/Edge/WebKit */
 .doc-structure-empty {
   padding: 24px 12px;
   font-size: 12px;
