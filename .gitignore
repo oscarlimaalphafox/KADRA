@@ -32,3 +32,19 @@ npm-debug.log*
 .agents/
 skills-lock.json
 
+# ====================================================================
+# DATENSCHUTZ: Exportierte Datenbanken / Backups NIEMALS ins (oeffentliche)
+# Repo. Diese enthalten echte Protokoll-/Projektdaten.
+# (manifest.json / package*.json sind explizit ausgenommen.)
+# ====================================================================
+*Testdatenbank*.json
+*Datenbank*.json
+*FullBackup*.json
+*-Backup*.json
+*_Backup*.json
+*[Bb]ackup*.json
+*.kadra-backup
+# Falls du Backups bewusst in einem Ordner sammelst:
+backups/
+_backups/
+
