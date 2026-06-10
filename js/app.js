@@ -1109,11 +1109,7 @@ function renderPoints(protocol) {
       } else if (App._dragType === 'topic') {
         // Thema braucht ein UKAP als Container -> Anlage-Modal, danach Thema hineinverschieben
         App._pendingTopicMove = draggedId;
-        App._pendingChapter    = chKey;
-        document.getElementById('modalSubchapterTitle').textContent = `Neues Unterkapitel in Kapitel ${chKey}`;
-        document.getElementById('subchapterLabel').value = '';
-        openModal('modalSubchapter');
-        setTimeout(() => document.getElementById('subchapterLabel').focus(), 80);
+        openAddSubchapterModal(chKey);
       }
     });
 
@@ -1513,6 +1509,36 @@ function renderDocStructure(protocol) {
   let akSectionNum = 0;
   let chIndex = -1;
 
+  // Header-Plus an den Protokolltyp anpassen.
+  const addChapterBtn = document.getElementById('btnDsAddChapter');
+  if (addChapterBtn) {
+    const t = isAk ? 'Neuer Abschnitt' : 'Neues Kapitel';
+    addChapterBtn.title = t;
+    addChapterBtn.setAttribute('aria-label', t);
+  }
+
+  // Eintrag bauen: Label-Span + Hover-Aktionen (Plus = Kind anlegen, Grip = Drag-Handle).
+  const makeItem = (cls, label, color, addTitle, gripTitle) => {
+    const el = document.createElement('div');
+    el.className = 'ds-item ' + cls;
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.style.setProperty('--ds-chapter-color', color);
+    const lbl = document.createElement('span');
+    lbl.className = 'ds-label';
+    lbl.textContent = label;
+    el.appendChild(lbl);
+    if (addTitle || gripTitle) {
+      const actions = document.createElement('span');
+      actions.className = 'ds-actions';
+      actions.innerHTML =
+        (addTitle  ? `<button type="button" class="ds-action ds-add" title="${esc(addTitle)}" aria-label="${esc(addTitle)}">${iconPlus()}</button>` : '') +
+        (gripTitle ? `<span class="ds-action ds-grip" title="${esc(gripTitle)}">${iconGrip()}</span>` : '');
+      el.appendChild(actions);
+    }
+    return el;
+  };
+
   Object.entries(protocol.structure).forEach(([chKey, chapter]) => {
     chIndex++;
     const color = docStructureChapterColor(chIndex);
@@ -1531,46 +1557,43 @@ function renderDocStructure(protocol) {
       chLabel = chKey + ' – ' + chapter.label;
     }
 
-    const chEl = document.createElement('button');
-    chEl.type = 'button';
-    chEl.className = 'ds-item ds-chapter';
-    chEl.style.setProperty('--ds-chapter-color', color);
+    // Gleiche Regel wie im Workspace: nur Nutzer-Kapitel (F+, nicht Aktennotiz) sind umsortierbar.
+    const reorderable = !isAk && !DEFAULT_CHAPTERS.includes(chKey);
+    const chEl = makeItem('ds-chapter', chLabel, color,
+      'Neues Unterkapitel',
+      reorderable ? 'Kapitel verschieben' : null);
     chEl.dataset.key       = docStructureKey('chapter', { chapter: chKey });
     chEl.dataset.type      = 'chapter';
     chEl.dataset.chapter   = chKey;
-    chEl.textContent = chLabel;
+    if (reorderable) chEl.dataset.reorderable = '1';
     frag.appendChild(chEl);
 
     (chapter.subchapters || []).forEach(sub => {
-      const subEl = document.createElement('button');
-      subEl.type = 'button';
-      subEl.className = 'ds-item ds-subchapter';
-      subEl.style.setProperty('--ds-chapter-color', color);
+      const subEl = makeItem('ds-subchapter', isAk ? sub.label : (sub.id + ' ' + sub.label), color,
+        'Neues Thema', 'Unterkapitel verschieben');
       subEl.dataset.key        = docStructureKey('subchapter', { subchapter: sub.id });
       subEl.dataset.type       = 'subchapter';
       subEl.dataset.chapter    = chKey;
       subEl.dataset.subchapter = sub.id;
-      subEl.textContent = isAk ? sub.label : (sub.id + ' ' + sub.label);
       frag.appendChild(subEl);
 
       (sub.topics || []).forEach(topic => {
-        const tEl = document.createElement('button');
-        tEl.type = 'button';
-        tEl.className = 'ds-item ds-topic';
-        tEl.style.setProperty('--ds-chapter-color', color);
+        const tEl = makeItem('ds-topic', topic.label, color, null, 'Thema verschieben');
         tEl.dataset.key        = docStructureKey('topic', { topic: topic.id });
         tEl.dataset.type       = 'topic';
         tEl.dataset.chapter    = chKey;
         tEl.dataset.subchapter = sub.id;
         tEl.dataset.topic      = topic.id;
-        tEl.textContent = topic.label;
         frag.appendChild(tEl);
       });
     });
   });
 
+  // Scroll-Position erhalten (Re-Render nach Move soll die Leiste nicht zurueckspringen lassen).
+  const prevScroll = body.scrollTop;
   body.innerHTML = '';
   body.appendChild(frag);
+  body.scrollTop = prevScroll;
 
   // Aktive Markierung nach Re-Render wiederherstellen (falls bekannt).
   if (DocStructure._activeKey) setDocStructureActive(DocStructure._activeKey, false);
@@ -1674,15 +1697,16 @@ function scrollRowIntoWorkspace(row) {
 
 // Auswahl-Kontext analog zu makeRowSelectable() rekonstruieren.
 function buildSelectionCtx(el) {
-  const type = el.dataset.type;
+  const type  = el.dataset.type;
+  const label = (el.querySelector('.ds-label') || el).textContent.trim();
   if (type === 'chapter') {
-    return { type: 'chapter', chapterKey: el.dataset.chapter, label: el.textContent.trim() };
+    return { type: 'chapter', chapterKey: el.dataset.chapter, label };
   }
   if (type === 'subchapter') {
-    return { type: 'subchapter', subchapterId: el.dataset.subchapter, chapterKey: el.dataset.chapter, label: el.textContent.trim() };
+    return { type: 'subchapter', subchapterId: el.dataset.subchapter, chapterKey: el.dataset.chapter, label };
   }
   if (type === 'topic') {
-    return { type: 'topic', topicId: el.dataset.topic, subchapterId: el.dataset.subchapter, chapterKey: el.dataset.chapter, label: el.textContent.trim() };
+    return { type: 'topic', topicId: el.dataset.topic, subchapterId: el.dataset.subchapter, chapterKey: el.dataset.chapter, label };
   }
   return null;
 }
@@ -1788,10 +1812,174 @@ function initDocStructureControls() {
     setToggleIcon();
   });
 
-  // Klick-Navigation (delegiert).
+  // Header-Plus: neues Kapitel (bzw. Abschnitt bei Aktennotiz).
+  const addChapterBtn = document.getElementById('btnDsAddChapter');
+  if (addChapterBtn) {
+    addChapterBtn.innerHTML = iconPlus();
+    addChapterBtn.addEventListener('click', startAddChapter);
+  }
+
+  // Klick: Plus-Buttons (Anlage) und Grip abfangen, sonst Navigation (delegiert).
   body.addEventListener('click', (e) => {
+    if (e.target.closest('.ds-grip')) return;
     const item = e.target.closest('.ds-item');
-    if (item) navigateToStructure(item);
+    if (!item) return;
+    if (e.target.closest('.ds-add')) {
+      if (item.dataset.type === 'chapter')         openAddSubchapterModal(item.dataset.chapter);
+      else if (item.dataset.type === 'subchapter') openAddTopicModal(item.dataset.subchapter);
+      return;
+    }
+    navigateToStructure(item);
+  });
+
+  // Tastatur-Navigation (Eintraege sind Divs mit role="button").
+  body.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const item = e.target.closest('.ds-item');
+    if (item && e.target === item) { e.preventDefault(); navigateToStructure(item); }
+  });
+
+  /* --- Drag & Drop in der Leiste ---------------------------------------
+     Gleiche Drag-Typen, dataTransfer-Daten und Restriktionen wie die
+     Workspace-Zeilen -> Cross-Drop in beide Richtungen funktioniert ueber
+     die vorhandenen Move-Funktionen. Drag nur per Grip (Handle-Mousedown
+     setzt draggable, wie im Workspace). */
+
+  body.addEventListener('mousedown', (e) => {
+    const grip = e.target.closest('.ds-grip');
+    const item = grip && grip.closest('.ds-item');
+    if (item) item.draggable = true;
+  });
+  body.addEventListener('touchstart', (e) => {
+    const grip = e.target.closest('.ds-grip');
+    const item = grip && grip.closest('.ds-item');
+    if (item) item.draggable = true;
+  }, { passive: true });
+  const dsResetDraggable = () => {
+    body.querySelectorAll('.ds-item[draggable="true"]').forEach(el => { el.draggable = false; });
+  };
+  document.addEventListener('mouseup',  dsResetDraggable);
+  document.addEventListener('touchend', dsResetDraggable);
+
+  // Cleanup direkt am Eintrag (nicht delegiert): nach einem Drop re-rendert
+  // die Leiste und der Quell-Eintrag haengt nicht mehr im DOM — dragend
+  // wuerde den Body-Listener dann nicht mehr erreichen.
+  const dsOnDragEnd = (e) => {
+    e.currentTarget.classList.remove('drag-active');
+    App._dragType  = null;
+    App._dragGroup = null;
+    stopDragAutoScroll();
+    document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-into').forEach(el => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
+    });
+    document.querySelectorAll('.drag-child-hidden').forEach(el => {
+      el.classList.remove('drag-child-hidden');
+    });
+  };
+
+  body.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.ds-item');
+    if (!item || !item.draggable) { e.preventDefault(); return; }
+    const type = item.dataset.type;
+    let id;
+    if (type === 'chapter') {
+      if (item.dataset.reorderable !== '1') { e.preventDefault(); return; }
+      id = item.dataset.chapter;
+    } else if (type === 'subchapter') {
+      id = item.dataset.subchapter;
+      App._dragGroup = item.dataset.chapter;
+    } else if (type === 'topic') {
+      id = item.dataset.topic;
+      App._dragGroup = [item.dataset.chapter, item.dataset.subchapter].join('|');
+    } else { e.preventDefault(); return; }
+
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.setData('application/x-dragtype', type);
+    e.dataTransfer.effectAllowed = 'move';
+    item.classList.add('drag-active');
+    item.addEventListener('dragend', dsOnDragEnd, { once: true });
+    App._dragType = type;
+    startDragAutoScroll();
+  });
+
+  body.addEventListener('dragover', (e) => {
+    const item = e.target.closest('.ds-item');
+    if (!item || !App._dragType) return;
+    const tType = item.dataset.type;
+    const dType = App._dragType;
+
+    // Davor/danach-Indikator (Reorder auf gleicher Ebene).
+    const markBeforeAfter = () => {
+      const rect = item.getBoundingClientRect();
+      const mid  = rect.top + rect.height / 2;
+      item.classList.toggle('drag-over-top',    e.clientY < mid);
+      item.classList.toggle('drag-over-bottom', e.clientY >= mid);
+    };
+    const accept = () => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+
+    if (dType === 'chapter') {
+      // Kapitel-Reorder nur zwischen Nutzer-Kapiteln (F+), A-E keine gueltigen Ziele.
+      if (tType !== 'chapter' || item.dataset.reorderable !== '1') return;
+      accept(); markBeforeAfter();
+    } else if (dType === 'subchapter') {
+      if (tType === 'subchapter')   { accept(); markBeforeAfter(); }
+      else if (tType === 'chapter') { accept(); item.classList.add('drag-over-into'); }
+    } else if (dType === 'topic') {
+      if (tType === 'topic')        { accept(); markBeforeAfter(); }
+      else if (tType === 'subchapter' || tType === 'chapter') { accept(); item.classList.add('drag-over-into'); }
+    } else if (dType === 'point') {
+      // Cross-Drop aus dem Workspace: Punkt ans Ende von Kapitel/UKAP/Thema.
+      accept(); item.classList.add('drag-over-into');
+    }
+  });
+
+  body.addEventListener('dragleave', (e) => {
+    const item = e.target.closest('.ds-item');
+    if (item) item.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
+  });
+
+  body.addEventListener('drop', async (e) => {
+    const item = e.target.closest('.ds-item');
+    if (!item || !App._dragType) return;
+    e.preventDefault();
+    item.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
+
+    const draggedId = e.dataTransfer.getData('text/plain');
+    const tType  = item.dataset.type;
+    const chKey  = item.dataset.chapter;
+    const rect   = item.getBoundingClientRect();
+    const after  = e.clientY >= rect.top + rect.height / 2;
+
+    if (App._dragType === 'chapter') {
+      if (tType !== 'chapter' || item.dataset.reorderable !== '1' || draggedId === chKey) return;
+      await reorderUserChapter(draggedId, chKey, after);
+    } else if (App._dragType === 'subchapter') {
+      if (tType === 'subchapter') {
+        if (draggedId === item.dataset.subchapter) return;
+        await moveSubchapterTo(draggedId, { chapter: chKey, anchorSubId: item.dataset.subchapter, after });
+      } else if (tType === 'chapter') {
+        await moveSubchapterTo(draggedId, { chapter: chKey, anchorSubId: null });
+      }
+    } else if (App._dragType === 'topic') {
+      if (tType === 'topic') {
+        if (draggedId === item.dataset.topic) return;
+        await moveTopicTo(draggedId, { chapter: chKey, subchapter: item.dataset.subchapter, anchorTopicId: item.dataset.topic, after });
+      } else if (tType === 'subchapter') {
+        await moveTopicTo(draggedId, { chapter: chKey, subchapter: item.dataset.subchapter, anchorTopicId: null });
+      } else if (tType === 'chapter') {
+        // Thema braucht ein UKAP als Container -> Anlage-Modal, danach Thema hineinverschieben
+        App._pendingTopicMove = draggedId;
+        openAddSubchapterModal(chKey);
+      }
+    } else if (App._dragType === 'point') {
+      if (tType === 'chapter') {
+        await movePointTo(draggedId, { chapter: chKey, subchapter: null, topic: null });
+      } else if (tType === 'subchapter') {
+        await movePointTo(draggedId, { chapter: chKey, subchapter: item.dataset.subchapter, topic: null });
+      } else if (tType === 'topic') {
+        await movePointTo(draggedId, { chapter: chKey, subchapter: item.dataset.subchapter, topic: item.dataset.topic });
+      }
+    }
   });
 
   // Resize.
@@ -1996,24 +2184,30 @@ async function moveTopicTo(draggedTopicId, target) {
    Noetig, weil natives HTML5-Drag den inneren Scroll-Container nicht selbst scrollt. */
 let _dragScrollRAF = null;
 let _dragScrollY   = 0;
-function _onDragScrollMove(e) { _dragScrollY = e.clientY; }
+let _dragScrollX   = 0;
+function _onDragScrollMove(e) { _dragScrollY = e.clientY; _dragScrollX = e.clientX; }
 function startDragAutoScroll() {
   if (_dragScrollRAF) return;
   document.addEventListener('dragover', _onDragScrollMove);
   const EDGE = 64;        // Randzone in px
   const MAX_SPEED = 18;   // max. px pro Frame
-  const step = () => {
-    const container = document.querySelector('.workspace-content');
-    if (container) {
-      const rect = container.getBoundingClientRect();
-      const yTop = _dragScrollY - rect.top;
-      const yBot = rect.bottom - _dragScrollY;
-      if (yTop >= 0 && yTop < EDGE) {
-        container.scrollTop -= Math.ceil(MAX_SPEED * (1 - yTop / EDGE));
-      } else if (yBot >= 0 && yBot < EDGE) {
-        container.scrollTop += Math.ceil(MAX_SPEED * (1 - yBot / EDGE));
-      }
+  // Scrollt einen Container, wenn der Cursor horizontal darueber und vertikal
+  // in dessen Randzone steht (Workspace und Strukturleiste unabhaengig).
+  const scrollContainer = (container) => {
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    if (_dragScrollX < rect.left || _dragScrollX > rect.right) return;
+    const yTop = _dragScrollY - rect.top;
+    const yBot = rect.bottom - _dragScrollY;
+    if (yTop >= 0 && yTop < EDGE) {
+      container.scrollTop -= Math.ceil(MAX_SPEED * (1 - yTop / EDGE));
+    } else if (yBot >= 0 && yBot < EDGE) {
+      container.scrollTop += Math.ceil(MAX_SPEED * (1 - yBot / EDGE));
     }
+  };
+  const step = () => {
+    scrollContainer(document.querySelector('.workspace-content'));
+    scrollContainer(document.getElementById('docStructureBody'));
     _dragScrollRAF = requestAnimationFrame(step);
   };
   _dragScrollRAF = requestAnimationFrame(step);
@@ -2920,7 +3114,14 @@ async function saveChapter() {
 
   App._busy = true;
   try {
-    const protocol = await DB.Protocols.get(App.currentProtocolId);
+    const protocolId = App.currentProtocolId;
+    // DOM-Inhalte sichern bevor DB gelesen wird — flusht auch den Save-Task,
+    // den der globale Click-Handler beim Klick auf "Erstellen" anstoesst
+    // (sonst ueberschreibt dessen stale Struktur das neue Kapitel).
+    await saveCurrentProtocol();
+    if (App.currentProtocolId !== protocolId) return;
+
+    const protocol = await DB.Protocols.get(protocolId);
     if (!protocol) return;
 
     const isAk = protocol.type === 'Aktennotiz';
@@ -3012,6 +3213,11 @@ async function deleteChapter(chKey) {
 function startAddSubchapter() {
   const chKey = App.selectedRow?.chapterKey;
   if (!chKey) { showToast('Bitte zuerst eine Zeile auswÃ¤hlen.', 'error'); return; }
+  openAddSubchapterModal(chKey);
+}
+
+// UKAP-Anlage-Modal fuer ein konkretes Kapitel oeffnen (Toolbar, Strukturleiste, Thema-Drop).
+function openAddSubchapterModal(chKey) {
   App._pendingChapter = chKey;
   document.getElementById('modalSubchapterTitle').textContent = `Neues Unterkapitel in Kapitel ${chKey}`;
   document.getElementById('subchapterLabel').value = '';
@@ -3069,6 +3275,11 @@ async function saveSubchapter() {
 function startAddTopic() {
   const subId = App.selectedRow?.subchapterId;
   if (!subId) { showToast('Bitte zuerst ein Unterkapitel oder eine Zeile darin auswÃ¤hlen.', 'error'); return; }
+  openAddTopicModal(subId);
+}
+
+// Thema-Anlage-Modal fuer ein konkretes UKAP oeffnen (Toolbar, Strukturleiste).
+function openAddTopicModal(subId) {
   App._pendingSubchapter = subId;
   document.getElementById('topicLabel').value = '';
   openModal('modalTopic');
