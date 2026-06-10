@@ -1248,8 +1248,8 @@ button.ds-action:hover { color: var(--accent-blue); background: var(--accent-blu
   display: flex;
   align-items: center;
   height: var(--toolbar-h);
-  background: var(--bg-surface);
-  border: 1px solid #9A9A9A;   /* dunkleres Grau fuer die Toolbar-Umrandung */
+  background: var(--bg-app);   /* gleicher Ton wie der Workspace (#F5F4F0) */
+  border: 1px solid var(--border);
   border-radius: 32px;
   box-shadow: var(--shadow-toolbar);
   margin: 0;
@@ -1274,6 +1274,15 @@ button.ds-action:hover { color: var(--accent-blue); background: var(--accent-blu
      nicht, wird der Ueberlauf real messbar (scrollWidth > clientWidth). */
   min-width: 0;
   overflow: hidden;
+}
+/* overflow:hidden (Messbarkeit fuer toolbarOverflows) wuerde die Dropdown-
+   Panels abschneiden, da deren Anker (position:relative-Wraps) innerhalb der
+   Gruppe liegen. Bei offenem Panel daher Clipping aufheben — gemessen wird
+   nur waehrend des Leisten-Resizes, wenn kein Dropdown offen ist. */
+.toolbar-tools-group:has(.chapter-filter-panel:not(.hidden)),
+.toolbar-tools-group:has(.point-filter-panel:not(.hidden)),
+.toolbar-tools-group:has(.export-menu-panel:not(.hidden)) {
+  overflow: visible;
 }
 .toolbar-search-group {
   display: flex;
@@ -1534,7 +1543,7 @@ button.ds-action:hover { color: var(--accent-blue); background: var(--accent-blu
   align-items: center;
   gap: 4px;
   height: 32px;
-  background: var(--bg-input);
+  background: var(--bg-app);   /* gleicher Ton wie die Toolbar, hebt sich erst bei Hover/Fokus ab */
   border-radius: 16px;   /* gleiche Pillen-Rundung wie .toolbar-btn */
   border: 1px solid transparent;
   padding: 0 8px;

@@ -1825,8 +1825,8 @@ button.ds-action:hover {
   display: flex;
   align-items: center;
   height: var(--toolbar-h);
-  background: var(--bg-surface);
-  border: 1px solid #9A9A9A;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
   border-radius: 32px;
   box-shadow: var(--shadow-toolbar);
   margin: 0;
@@ -1846,6 +1846,9 @@ button.ds-action:hover {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+}
+.toolbar-tools-group:has(.chapter-filter-panel:not(.hidden)), .toolbar-tools-group:has(.point-filter-panel:not(.hidden)), .toolbar-tools-group:has(.export-menu-panel:not(.hidden)) {
+  overflow: visible;
 }
 .toolbar-search-group {
   display: flex;
@@ -2078,7 +2081,7 @@ button.ds-action:hover {
   align-items: center;
   gap: 4px;
   height: 32px;
-  background: var(--bg-input);
+  background: var(--bg-app);
   border-radius: 16px;
   border: 1px solid transparent;
   padding: 0 8px;
