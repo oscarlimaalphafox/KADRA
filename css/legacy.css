@@ -1970,8 +1970,8 @@ input[type="date"].meta-input { color: var(--text-primary); }
 .points-table .col-id         { width: 132px; }
 .points-table .col-content    { /* flex */ }
 .points-table .col-category   { width: 132px; }
-.points-table .col-responsible{ width: 132px; }
-.points-table .col-deadline   { width: 132px; }
+.points-table .col-responsible{ width: 100px; } /* max. 3 Kuerzel (z.B. BI/HOP/RSE), schmaler zugunsten der Sachverhalts-Spalte */
+.points-table .col-deadline   { width: 100px; } /* DD.MM.YYYY + Kalender-Button, Button rueckt ans Datum heran */
 .points-table .col-done       { width: 92px; text-align: center; }
 .points-table .col-action     { width: 44px; }
 
@@ -2277,7 +2277,8 @@ input[type="date"].meta-input { color: var(--text-primary); }
 .points-table .resp-trigger:focus-visible {
   background: var(--accent-blue-20);
 }
-.resp-chevron { color: var(--text-tertiary); margin-left: auto; }
+.resp-display { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resp-chevron { color: var(--text-tertiary); margin-left: auto; flex-shrink: 0; }
 .resp-panel {
   position: absolute;
   top: calc(100% + 4px);

@@ -2449,6 +2449,14 @@ function autoResizeAll() {
   document.querySelectorAll('.table-textarea').forEach(autoResize);
 }
 
+// Nur sichtbare Textareas neu messen: versteckte (row-hidden etc.) liefern
+// scrollHeight 0 und wuerden auf 0px kollabieren.
+function autoResizeVisible() {
+  document.querySelectorAll('.table-textarea').forEach(ta => {
+    if (ta.offsetParent !== null) autoResize(ta);
+  });
+}
+
 /* [cleanup] */
 /**
  * [cleanup]
@@ -2616,6 +2624,9 @@ function toggleCollapse(sectionId) {
       tr.style.opacity    = '0';
       tr.style.transition = '';
       tr.classList.remove('row-hidden');
+      // Hoehe neu messen: war die Zeile bei einer Breitenaenderung versteckt,
+      // stimmt die fixe Textarea-Hoehe nicht mehr.
+      tr.querySelectorAll('.table-textarea').forEach(autoResize);
       requestAnimationFrame(() => {
         tr.style.transition = 'opacity 150ms ease';
         tr.style.opacity    = '1';
@@ -2721,6 +2732,7 @@ function toggleCollapseAll() {
       tr.style.opacity    = '0';
       tr.style.transition = '';
       tr.classList.remove('row-hidden');
+      tr.querySelectorAll('.table-textarea').forEach(autoResize);
       requestAnimationFrame(() => {
         tr.style.transition = 'opacity 150ms ease';
         tr.style.opacity    = '1';
@@ -4403,6 +4415,26 @@ function bindGlobalEvents() {
 
   // Dokumentenstruktur-Leiste (Toggle, Resize, Klick-Navigation)
   initDocStructureControls();
+
+  // Textarea-Hoehen folgen der Workspace-Breite: autoResize setzt fixe
+  // Pixelhoehen; aendert sich die Spaltenbreite (Leisten-Toggle/-Resize,
+  // Fenstergroesse), bricht der Text neu um und die alte Hoehe schneidet
+  // ihn ab bzw. laesst Leerflaeche. Bei Breitenwechsel daher neu messen.
+  const wsContent = document.querySelector('.workspace-content');
+  if (wsContent && 'ResizeObserver' in window) {
+    let wsLastWidth = wsContent.clientWidth;
+    let wsResizeRaf = null;
+    new ResizeObserver(() => {
+      const w = wsContent.clientWidth;
+      if (w === wsLastWidth) return;
+      wsLastWidth = w;
+      if (wsResizeRaf) return;
+      wsResizeRaf = requestAnimationFrame(() => {
+        wsResizeRaf = null;
+        autoResizeVisible();
+      });
+    }).observe(wsContent);
+  }
 
   // Sidebar Resize (Drag am rechten Rand)
   const resizeHandle = document.getElementById('sidebarResizeHandle');

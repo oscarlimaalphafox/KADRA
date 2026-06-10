@@ -2507,10 +2507,10 @@ input[type="date"].meta-input {
   width: 132px;
 }
 .points-table .col-responsible {
-  width: 132px;
+  width: 100px;
 }
 .points-table .col-deadline {
-  width: 132px;
+  width: 100px;
 }
 .points-table .col-done {
   width: 92px;
@@ -2820,9 +2820,15 @@ input[type="date"].meta-input {
 .points-table .resp-trigger:hover, .points-table .resp-trigger:focus-visible {
   background: var(--accent-blue-20);
 }
+.resp-display {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .resp-chevron {
   color: var(--text-tertiary);
   margin-left: auto;
+  flex-shrink: 0;
 }
 .resp-panel {
   position: absolute;
