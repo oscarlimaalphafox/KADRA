@@ -148,6 +148,7 @@ function initStaticIcons() {
   setOnlyIcon('#btnExportMenu', iconFileUp);
   setOnlyIcon('#btnDeleteProtocol', iconShredder);
   setLeadingIcon('.toolbar-search-wrap', iconSearch);
+  setOnlyIcon('#searchBarClear', iconX);
   setOnlyIcon('#searchBarPrev', iconChevronUp);
   setOnlyIcon('#searchBarNext', iconChevronDown);
 
@@ -5964,14 +5965,22 @@ const Search = {
 };
 
 function setupFulltextSearch() {
-  const input   = document.getElementById('searchBarInput');
+  const input    = document.getElementById('searchBarInput');
   if (!input) return;
-  const btnPrev = document.getElementById('searchBarPrev');
-  const btnNext = document.getElementById('searchBarNext');
-  if (btnPrev) btnPrev.addEventListener('click', () => jumpToMatch(-1));
-  if (btnNext) btnNext.addEventListener('click', () => jumpToMatch(1));
+  const btnClear = document.getElementById('searchBarClear');
+  const btnPrev  = document.getElementById('searchBarPrev');
+  const btnNext  = document.getElementById('searchBarNext');
+  if (btnPrev)  btnPrev.addEventListener('click', () => jumpToMatch(-1));
+  if (btnNext)  btnNext.addEventListener('click', () => jumpToMatch(1));
+  if (btnClear) btnClear.addEventListener('click', () => {
+    input.value = '';
+    input.focus();
+    btnClear.classList.add('hidden');
+    executeSearch('');
+  });
 
   input.addEventListener('input', () => {
+    if (btnClear) btnClear.classList.toggle('hidden', !input.value);
     clearTimeout(Search._debounceTimer);
     Search._debounceTimer = setTimeout(() => executeSearch(input.value), 150);
   });
@@ -6017,13 +6026,15 @@ function closeSearch() {
 
   const input = document.getElementById('searchBarInput');
   const count = document.getElementById('searchBarCount');
-  const prev = document.getElementById('searchBarPrev');
-  const next = document.getElementById('searchBarNext');
+  const clear = document.getElementById('searchBarClear');
+  const prev  = document.getElementById('searchBarPrev');
+  const next  = document.getElementById('searchBarNext');
 
   if (input) input.value = '';
   if (count) { count.textContent = ''; count.classList.add('hidden'); }
-  if (prev) prev.classList.add('hidden');
-  if (next) next.classList.add('hidden');
+  if (clear) clear.classList.add('hidden');
+  if (prev)  prev.classList.add('hidden');
+  if (next)  next.classList.add('hidden');
 
   document.querySelectorAll('#pointsBody .search-hidden').forEach(tr => tr.classList.remove('search-hidden'));
   document.querySelectorAll('#pointsBody .search-match').forEach(tr => tr.classList.remove('search-match'));
