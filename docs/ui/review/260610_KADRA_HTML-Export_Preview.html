@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HIS · Planer JFx 24 · 03.06.2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* KADRA Tokens (themes/kadra.css) */
+  --primary:#0E2D58; --secondary:#154384; --tertiary:#CC4933;
+  --accent-blue:#154384; --accent-blue-dark:#0E2D58; --accent-blue-10:#EDF1F7;
+  --bg-app:#F5F4F0; --bg-surface:#FFFFFF; --bg-hover:#F5F5F5; --bg-input:#F2F2F2;
+  --text-primary:#000000; --text-secondary:#6E6E6E; --text-tertiary:#AEAEAE; --text-inverted:#FFFFFF;
+  --border:#D2D2D2; --border-light:#E5E5E5;
+  --success:#94AF83; --warning:#E88E5A; --danger:#CC4933;
+  /* Tag-Palette (VOCTA Design Tokens) — Kapitelfarben + Kuerzel */
+  --tag-1:#E88E5A; --tag-2:#F4BD48; --tag-3:#968B79; --tag-4:#99BDB8;
+  --tag-5:#96B4C9; --tag-6:#E199AA; --tag-7:#94AF83; --tag-8:#CDAD96;
+  /* Kategorien (KADRA Standard, Vollton + weisser Text) */
+  --kat-info:#968B79; --kat-aufgabe:#154384; --kat-festlegung:#94AF83; --kat-freigabe:#E88E5A;
+  --font-ui:'Nunito Sans',-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --radius-sm:4px; --radius-md:8px; --radius-lg:12px;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:#E9ECF2;font-family:var(--font-ui);color:var(--text-primary);font-size:15px;line-height:1.5;}
+a{color:inherit;text-decoration:none;}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.app{display:flex;min-height:100vh;max-width:1500px;margin:0 auto;background:var(--bg-surface);
+  box-shadow:0 30px 80px rgba(14,45,88,.16);}
+
+/* ── Seitenleiste = KADRA Dokumentenstruktur-Leiste ─────── */
+.doc-structure{--ds-width:307px;width:var(--ds-width);flex-shrink:0;background:var(--bg-app);
+  position:sticky;top:0;align-self:flex-start;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.doc-structure.collapsed{width:44px;}
+/* Resize-Handle: schmale Greifzone an der rechten Kante der Leiste. */
+.ds-resize{width:5px;flex-shrink:0;cursor:col-resize;background:transparent;position:sticky;top:0;height:100vh;
+  align-self:flex-start;transition:background .15s;}
+.ds-resize:hover,.ds-resize.dragging{background:var(--accent-blue-20);}
+.doc-structure.collapsed + .ds-resize{pointer-events:none;}
+.doc-structure.collapsed .ds-title,
+.doc-structure.collapsed .ds-body{display:none;}
+.doc-structure.collapsed .ds-header{justify-content:center;padding:0;}
+.doc-structure.collapsed .ds-header::after{display:none;}
+.ds-header{display:flex;align-items:center;justify-content:space-between;gap:8px;height:60px;
+  flex-shrink:0;padding:0 8px 0 24px;position:relative;}
+.ds-header::after{content:'';position:absolute;left:24px;right:24px;bottom:0;height:1px;background:var(--border);}
+.ds-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ds-toggle{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex-shrink:0;
+  border:none;background:transparent;border-radius:6px;cursor:pointer;color:var(--text-secondary);}
+.ds-toggle:hover{background:var(--accent-blue-10);}
+.ds-toggle svg{width:18px;height:18px;}
+.ds-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 8px 24px;scrollbar-width:none;-ms-overflow-style:none;}
+.ds-body::-webkit-scrollbar{display:none;}
+
+.ds-item{--kc:var(--text-tertiary);display:flex;align-items:center;gap:8px;width:100%;
+  line-height:1.3;color:var(--text-secondary);white-space:nowrap;overflow:hidden;user-select:none;
+  transition:background .15s,color .15s;}
+.ds-label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+/* KAP: schwarzer, fetter Text + farbiger Dot mit Navy-Glow */
+.ds-chapter{gap:9px;margin-top:6px;padding:9px 12px 9px 16px;font-weight:700;font-size:13.5px;color:var(--text-primary);}
+.ds-chapter:first-child{margin-top:0;}
+.ds-chapter::before{content:'';width:9px;height:9px;border-radius:50%;background:var(--kc);flex-shrink:0;
+  box-shadow:0 0 0 3px rgba(14,45,88,.07);}
+.ds-chapter:hover{background:rgba(14,45,88,.05);}
+/* UKAP: Strich in Kapitelfarbe */
+.ds-subchapter{padding:5px 12px 5px 38px;margin-left:24px;font-size:12.5px;color:var(--text-secondary);
+  border-left:2px solid var(--kc);}
+.ds-subchapter:hover{color:var(--accent-blue-dark);background:rgba(14,45,88,.04);}
+/* THEMA: ausgegraut, schwacher Strich */
+.ds-topic{padding:3px 12px 3px 50px;margin-left:24px;font-size:11.5px;color:var(--text-tertiary);
+  border-left:2px solid var(--border-light);}
+.ds-topic:hover{color:var(--text-secondary);background:rgba(14,45,88,.04);}
+/* Aktiv (Scrollspy) */
+.ds-chapter.ds-active{background:color-mix(in srgb, var(--kc) 14%, transparent);color:var(--text-primary);}
+.ds-subchapter.ds-active,.ds-topic.ds-active{background:rgba(0,0,0,.12);color:var(--accent-blue);}
+.ds-divider{margin:10px 16px 4px;height:1px;background:var(--border);}
+
+/* ── Content ────────────────────────────────────────────── */
+.content{flex:1;min-width:0;padding:0 0 60px;background:var(--bg-app);}
+.doc-header{padding:22px 54px 34px;border-bottom:1px solid var(--border-light);}
+.dh-eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--tertiary);margin-bottom:10px;}
+.dh-title{font-size:30px;font-weight:800;line-height:1.15;margin:0 0 22px;color:var(--primary);}
+.dh-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 28px;margin-bottom:14px;}
+.dh-item{display:flex;flex-direction:column;gap:2px;}
+.dh-lbl{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-tertiary);}
+.dh-val{font-size:14px;font-weight:600;}
+.dh-aufgestellt{font-size:12px;color:var(--text-secondary);margin-bottom:28px;}
+
+/* ── Teilnehmer: tabellarisch wie im KADRA-UI ───────────── */
+.pt-label{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text-secondary);margin-bottom:10px;}
+.pt-grid{display:grid;grid-template-columns:1.1fr 1.6fr 100px 1.4fr 96px 96px;
+  background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius-md);overflow:hidden;
+  box-shadow:0 1px 3px rgba(14,45,88,.05);}
+.pt-h{font-size:11px;color:var(--text-tertiary);padding:10px 14px 7px;background:var(--bg-app);}
+.pt-h.pt-c{text-align:center;}
+.pt-cell{padding:9px 14px;font-size:13.5px;border-top:1px solid var(--border-light);display:flex;align-items:center;}
+.pt-cell.pt-c{justify-content:center;}
+.pt-name{font-weight:600;}
+.pt-muted{color:var(--text-tertiary);}
+
+/* ── Kuerzel-Pille: tag-Farbe, 25% Deckkraft, eingefaerbter Text ── */
+.ktag{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.02em;
+  color:var(--tc);background:color-mix(in srgb, var(--tc) 25%, transparent);
+  padding:3px 10px;border-radius:32px;white-space:nowrap;}
+
+/* ── Kategorie-Badge: Vollton, weisser Text ─────────────── */
+.kat{font-family:var(--font-mono);font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:var(--radius-sm);
+  text-transform:uppercase;letter-spacing:.04em;color:var(--text-inverted);}
+.kat-info{background:var(--kat-info);}
+.kat-aufgabe{background:var(--kat-aufgabe);}
+.kat-festlegung{background:var(--kat-festlegung);}
+.kat-freigabe{background:var(--kat-freigabe);}
+
+/* ── Kapitel ────────────────────────────────────────────── */
+.kap{margin:0 54px;border-bottom:1px solid var(--border-light);}
+.kap-head{display:flex;align-items:center;gap:14px;padding:26px 0 22px;cursor:pointer;user-select:none;}
+.kap-bar{width:5px;height:26px;border-radius:3px;background:var(--kc);}
+.kap-title{font-size:21px;font-weight:800;margin:0;color:var(--primary);}
+.chev{width:14px;height:14px;flex-shrink:0;color:var(--text-secondary);transition:transform .2s;}
+.kap-head.collapsed .chev,.ukap-head.collapsed .chev{transform:rotate(-90deg);}
+.kap-body.collapsed,.ukap-body.collapsed{display:none;}
+.kap-hinweis{background:var(--bg-app);border-left:3px solid var(--kc);border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  padding:12px 16px;font-size:13px;color:var(--text-secondary);margin:0 0 20px;}
+
+/* ── UKAP ───────────────────────────────────────────────── */
+.ukap{margin:0 0 14px;border:1px solid var(--border-light);border-radius:var(--radius-lg);overflow:hidden;
+  background:var(--bg-surface);box-shadow:0 1px 3px rgba(14,45,88,.05);}
+.ukap-head{display:flex;align-items:center;gap:10px;padding:13px 18px;cursor:pointer;user-select:none;
+  background:var(--bg-app);border-left:4px solid var(--kc);}
+.ukap-title{font-size:15px;font-weight:700;margin:0;color:var(--secondary);}
+.ukap-body{padding:8px 18px 16px;}
+.thema{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text-primary);
+  margin:18px 0 8px;font-family:var(--font-mono);letter-spacing:.01em;}
+.thema::before{content:'';width:7px;height:7px;border-radius:2px;background:var(--kc);flex-shrink:0;}
+.entries{display:flex;flex-direction:column;gap:8px;}
+
+/* ── Eintrag ────────────────────────────────────────────── */
+.entry{display:grid;grid-template-columns:88px 1fr;gap:14px;padding:12px 14px;border-radius:var(--radius-md);
+  background:var(--bg-app);border:1px solid transparent;transition:border .15s;}
+.entry:hover{border-color:var(--border);}
+/* erledigt: deutlich staerker ausgegraut */
+.entry-done{opacity:.42;filter:grayscale(.55);}
+.entry-done .entry-text{color:var(--text-secondary);}
+.entry-id{font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);padding-top:3px;word-break:break-all;}
+.entry-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;}
+.row-tags{display:inline-flex;gap:5px;flex-wrap:wrap;}
+.entry-frist{font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);}
+.entry-status{margin-left:auto;display:inline-flex;align-items:center;}
+.entry-text{font-size:13.5px;line-height:1.55;}
+/* Status: Checkbox fuer Aufgabe/Freigabe, Strich fuer Info/Festlegung */
+.chk{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;
+  border:1.5px solid var(--text-tertiary);border-radius:3px;background:var(--bg-surface);}
+.chk svg{width:11px;height:11px;color:var(--text-inverted);}
+.chk-done{background:var(--success);border-color:var(--success);}
+.erl-none{color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;}
+
+/* ── Aufgabenuebersicht ─────────────────────────────────── */
+.filterbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 22px;}
+.pill{font-family:var(--font-mono);font-size:11.5px;font-weight:600;border:1px solid var(--border);
+  background:var(--bg-surface);color:var(--text-secondary);padding:6px 13px;border-radius:32px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;transition:all .15s;}
+.pill .pill-dot{width:9px;height:9px;border-radius:50%;background:var(--tc);}
+.pill:hover{border-color:var(--tc,var(--secondary));}
+.pill.active{background:color-mix(in srgb, var(--tc) 25%, transparent);color:var(--tc);border-color:transparent;}
+.pill.active .pill-dot{background:var(--tc);}
+.pill-all.active{background:var(--primary);color:var(--text-inverted);border-color:var(--primary);}
+.show-done{font-size:12.5px;color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin-left:4px;}
+.show-done input{accent-color:var(--success);}
+/* Sortier-Dropdown (Optik wie das Export-/Einblenden-Menü) */
+.sort-wrap{position:relative;}
+.sort-btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-ui);font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--bg-surface);color:var(--text-secondary);
+  padding:6px 13px;border-radius:32px;cursor:pointer;transition:all .15s;}
+.sort-btn svg{width:14px;height:14px;}
+.sort-btn:hover,.sort-btn[aria-expanded="true"]{border-color:var(--secondary);color:var(--secondary);}
+.sort-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:150px;z-index:300;
+  background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius-md);
+  box-shadow:0 8px 24px rgba(14,45,88,.14);padding:4px;}
+.sort-menu[hidden]{display:none;}
+.sort-item{display:block;width:100%;text-align:left;font-family:var(--font-ui);font-size:13px;color:var(--text-primary);
+  background:transparent;border:none;border-radius:6px;padding:8px 10px;cursor:pointer;}
+.sort-item:hover{background:var(--bg-hover);}
+.sort-item.active{color:var(--secondary);font-weight:700;background:var(--accent-blue-10);}
+.save-btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-ui);font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--bg-surface);color:var(--secondary);
+  padding:6px 13px;border-radius:32px;cursor:pointer;margin-left:auto;transition:all .15s;}
+.save-btn svg{width:14px;height:14px;}
+.save-btn:hover{background:var(--bg-hover);border-color:var(--secondary);color:var(--secondary);}
+.save-btn.saved{background:var(--success);border-color:var(--success);color:var(--text-inverted);}
+/* Dunkler Hover-Tooltip (Stil wie VOCTA-Hotkey-Hinweis) */
+.tip{position:relative;}
+.tip::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);right:0;
+  max-width:240px;width:max-content;background:#1a1a1a;color:#fff;font-family:var(--font-ui);
+  font-size:12px;font-weight:400;line-height:1.4;text-align:left;padding:8px 11px;border-radius:8px;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:normal;
+  opacity:0;visibility:hidden;transform:translateY(-3px);transition:opacity .15s,transform .15s,visibility .15s;
+  pointer-events:none;z-index:400;}
+.tip:hover::after{opacity:1;visibility:visible;transform:translateY(0);}
+.todo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.todo-card{background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius-lg);
+  padding:14px;display:flex;flex-direction:column;gap:9px;cursor:grab;position:relative;
+  box-shadow:0 1px 3px rgba(14,45,88,.05);transition:box-shadow .15s,opacity .15s;}
+.todo-card:hover{box-shadow:0 6px 18px rgba(14,45,88,.12);}
+.todo-card.dragging{opacity:.4;cursor:grabbing;}
+.todo-card.drop-target{outline:2px dashed var(--secondary);outline-offset:2px;}
+.todo-card.done{opacity:.42;filter:grayscale(.55);background:var(--bg-app);}
+.todo-card.done .todo-text{text-decoration:line-through;}
+/* Frisch abgehakt: kurz sichtbar bleiben, voll deckend (Häkchen erkennbar) bevor sie wandert. */
+.todo-card.settling{opacity:1;filter:none;outline:2px solid var(--success);outline-offset:1px;
+  transition:outline-color .3s;}
+.todo-top{display:flex;align-items:center;gap:9px;}
+.todo-handle{color:var(--text-tertiary);font-size:14px;cursor:grab;}
+.todo-check{width:16px;height:16px;accent-color:var(--success);cursor:pointer;}
+.todo-ref{font-family:var(--font-mono);font-size:10.5px;color:var(--text-tertiary);margin-left:auto;}
+.todo-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.todo-text{font-size:13px;line-height:1.5;flex:1;}
+.todo-foot{display:flex;align-items:center;}
+.todo-frist{font-family:var(--font-mono);font-size:11px;color:var(--secondary);background:var(--bg-app);
+  padding:2px 8px;border-radius:var(--radius-sm);}
+.todo-frist-none{color:var(--text-tertiary);background:transparent;padding-left:0;}
+.todo-empty{padding:30px;text-align:center;color:var(--text-secondary);font-size:14px;}
+
+/* Aufgaben-Sektion: mehr Luft zwischen Karten-Grid und Trennstrich. */
+#aufgaben .kap-body{padding-bottom:30px;}
+
+/* ── Anlagen (Tabelle wie KADRA-UI) ─────────────────────── */
+.an-grid{display:grid;grid-template-columns:110px 1.4fr 1.4fr 44px;
+  background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius-md);overflow:hidden;
+  box-shadow:0 1px 3px rgba(14,45,88,.05);}
+.an-h{font-size:11px;color:var(--text-tertiary);padding:10px 14px 7px;background:var(--bg-app);}
+.an-cell{padding:9px 14px;font-size:13.5px;border-top:1px solid var(--border-light);
+  display:flex;align-items:center;min-width:0;}
+.an-cell.an-num{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);}
+.an-cell.an-file{color:var(--text-secondary);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block;line-height:1.9;}
+.an-cell.an-dl{justify-content:center;padding:9px 8px;}
+.an-download{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+  border-radius:6px;color:var(--text-tertiary);transition:all .15s;}
+.an-download svg{width:16px;height:16px;}
+.an-download:hover{color:var(--secondary);background:var(--bg-hover);}
+
+/* ── Legende (Abkürzungen + Hinweis) ────────────────────── */
+.kap-legende{border-bottom:none;}
+.kap-legende .kap-title{font-size:16px;}
+/* Text-Überschrift im Stil von TEILNEHMER (.pt-label) */
+.lg-label{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text-secondary);margin-bottom:12px;}
+.lg-hinweis-label{margin-top:26px;}
+.lg-hinweis{font-size:12.5px;line-height:1.6;color:var(--text-secondary);margin:0;max-width:880px;}
+.abk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px 18px;padding-bottom:4px;}
+.abk-item{display:flex;gap:8px;font-size:11px;line-height:1.4;padding:1px 0;}
+.abk-k{font-family:var(--font-mono);font-weight:600;color:var(--secondary);min-width:74px;flex-shrink:0;}
+.abk-v{color:var(--text-secondary);}
+
+.doc-footer{margin:36px 54px 0;padding-top:18px;border-top:1px solid var(--border-light);
+  font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);text-align:right;}
+
+@media (max-width:1100px){
+  .dh-grid{grid-template-columns:repeat(2,1fr);}
+  .abk-grid{grid-template-columns:repeat(2,1fr);}
+  .pt-grid{grid-template-columns:1.1fr 1.4fr 90px 96px;}
+  .pt-email{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── Seitenleiste (KADRA Dokumentenstruktur-Optik) ── -->
+<nav class="doc-structure" id="docStructure">
+<div class="ds-header">
+  <span class="ds-title">Dokumentenstruktur</span>
+  <button class="ds-toggle" id="dsToggle" title="Leiste ein-/ausklappen" aria-label="Leiste ein-/ausklappen">
+    <!-- lucide: panel-left-close -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>
+  </button>
+</div>
+<div class="ds-body">
+  <a class="ds-item ds-chapter" style="--kc:var(--text-tertiary)" href="#teilnehmer"><span class="ds-label">Teilnehmer</span></a>
+  <div class="ds-divider"></div>
+  <div class="ds-group" style="--kc:var(--tag-1)">
+    <a class="ds-item ds-chapter" style="--kc:var(--tag-1)" href="#kap-A"><span class="ds-label">A – Organisation | Information</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-1)" href="#ukap-A.s1"><span class="ds-label">Sitzungsorganisation / Fortführung der Planer-JFx-Reihe</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-1)" href="#ukap-A.s2"><span class="ds-label">Statik-Unterlagen / Archivrecherche</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-1)" href="#ukap-A.s3"><span class="ds-label">Werbeanlage Sudarshan (Nordfassade)</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-1)" href="#ukap-A.s4"><span class="ds-label">Ressourcen- / Projektstrukturplanung Bestandsthemen</span></a>
+  </div>
+  <div class="ds-group">
+    <a class="ds-item ds-chapter" style="--kc:var(--tag-2)" href="#kap-B"><span class="ds-label">B – Qualitäten | Planung</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-2)" href="#ukap-B.1"><span class="ds-label">B.1 – Objektplanung / Bauablauf</span></a>
+    <a class="ds-item ds-topic" href="#thema-B.1-66189"><span class="ds-label">Plan-Doku Sudarshan-Fläche</span></a>
+    <a class="ds-item ds-topic" href="#thema-B.1-2965"><span class="ds-label">Mängel und Restleistungen Sudarshan-Fläche</span></a>
+    <a class="ds-item ds-topic" href="#thema-B.1-47084"><span class="ds-label">Materialeigenschaften Teppichboden (Brandschutz)</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-2)" href="#ukap-B.2"><span class="ds-label">B.2 – Fachplanung ELT | IT</span></a>
+    <a class="ds-item ds-topic" href="#thema-B.2-9306"><span class="ds-label">IT-Dosen Druckerraum (Sudarshan)</span></a>
+    <a class="ds-item ds-topic" href="#thema-B.2-48910"><span class="ds-label">Tischsprechstelle / Türsprechanlage</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-2)" href="#ukap-B.3"><span class="ds-label">B.3 – Genehmigung / Brandschutz</span></a>
+    <a class="ds-item ds-topic" href="#thema-B.3-34337"><span class="ds-label">Baugenehmigung Bauaufsicht MTK</span></a>
+    <a class="ds-item ds-topic" href="#thema-B.3-3504"><span class="ds-label">Brandschutz-Dokumentation Sudarshan / Liste JZ</span></a>
+    <a class="ds-item ds-topic" href="#thema-B.3-1547"><span class="ds-label">Feuerwehrpläne / Aktualisierung gebäudeweit</span></a>
+  </div>
+  <div class="ds-group">
+    <a class="ds-item ds-chapter" style="--kc:var(--tag-3)" href="#kap-C"><span class="ds-label">C – Kosten</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-3)" href="#ukap-C.s1"><span class="ds-label">Schlussabrechnung Jaeger</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-3)" href="#ukap-C.s2"><span class="ds-label">Abrechnung / Dokumentation Klein</span></a>
+  </div>
+  <div class="ds-group">
+    <a class="ds-item ds-chapter" style="--kc:var(--tag-4)" href="#kap-D"><span class="ds-label">D – Termine</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-4)" href="#ukap-D.s1"><span class="ds-label">Schlüsseltermine kommende Wochen</span></a>
+  </div>
+  <div class="ds-group">
+    <a class="ds-item ds-chapter" style="--kc:var(--tag-5)" href="#kap-E"><span class="ds-label">E – Vertragswesen | Rechtliche Themen</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-5)" href="#ukap-E.s1"><span class="ds-label">Bauleistungsversicherung AXA</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-5)" href="#ukap-E.s2"><span class="ds-label">Mietvertragspflicht Ladestation Sudarshan</span></a>
+  </div>
+  <div class="ds-group">
+    <a class="ds-item ds-chapter" style="--kc:var(--tag-6)" href="#kap-F"><span class="ds-label">F – Property Themen</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-6)" href="#ukap-F.1"><span class="ds-label">F.1 – Betonsanierung Tiefgarage</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-6)" href="#ukap-F.2"><span class="ds-label">F.2 – Fassade / Fenstertausch</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-6)" href="#ukap-F.3"><span class="ds-label">F.3 – Ladeinfrastruktur</span></a>
+    <a class="ds-item ds-topic" href="#thema-F.3-14721"><span class="ds-label">Wallboxen / Angebot Klein (Status)</span></a>
+    <a class="ds-item ds-topic" href="#thema-F.3-15279"><span class="ds-label">Zähler-/Leitungsweg Außen-Wallboxen</span></a>
+    <a class="ds-item ds-topic" href="#thema-F.3-24235"><span class="ds-label">Zählerkonzept / Energieversorgungsschema L2</span></a>
+    <a class="ds-item ds-topic" href="#thema-F.3-96425"><span class="ds-label">Zugang / Web-Anbindung / Betreibermodell</span></a>
+    <a class="ds-item ds-topic" href="#thema-F.3-37683"><span class="ds-label">Vertrags-/Tarifmodell Ladeinfrastruktur</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-6)" href="#ukap-F.4"><span class="ds-label">F.4 – Zähler-Ummeldung Sudarshan</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-6)" href="#ukap-F.5"><span class="ds-label">F.5 – Klimatisierung Samsung C&amp;T</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-6)" href="#ukap-F.6"><span class="ds-label">F.6 – Gebäudeautomation (GLT) / DGNB</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-6)" href="#ukap-F.7"><span class="ds-label">F.7 – Vermietung / Bestandsmieter (nachrichtlich)</span></a>
+    <a class="ds-item ds-subchapter" style="--kc:var(--tag-6)" href="#ukap-F.8"><span class="ds-label">F.8 – Erweiterung Fitseveneleven (L2, 1. OG)</span></a>
+  </div>
+  <div class="ds-divider"></div>
+  <a class="ds-item ds-chapter" style="--kc:var(--tertiary)" href="#aufgaben"><span class="ds-label">Aufgabenübersicht</span></a>
+  <a class="ds-item ds-chapter" style="--kc:var(--tag-7)" href="#anlagen"><span class="ds-label">Anlagen</span></a>
+  <a class="ds-item ds-chapter" style="--kc:var(--text-tertiary)" href="#legende"><span class="ds-label">Legende</span></a>
+</div>
+</nav>
+<div class="ds-resize" id="dsResize" title="Breite ziehen"></div>
+
+<!-- ── Content ── -->
+<main class="content" id="content">
+<header class="doc-header">
+<div class="dh-eyebrow">Planer Jour Fixe · HIS</div>
+<h1 class="dh-title">Protokoll zum Planer Jour Fixe Nr. 24</h1>
+<div class="dh-grid">
+<div class="dh-item"><span class="dh-lbl">Projekt</span><span class="dh-val">hillsite Schwalbach</span></div>
+<div class="dh-item"><span class="dh-lbl">Mieterin</span><span class="dh-val">Sudarshan Germany Horizons GmbH</span></div>
+<div class="dh-item"><span class="dh-lbl">Vermieterin</span><span class="dh-val">RSE Grundbesitz und Beteiligungs-GmbH</span></div>
+<div class="dh-item"><span class="dh-lbl">Datum</span><span class="dh-val">03.06.2026</span></div>
+<div class="dh-item"><span class="dh-lbl">Zeit</span><span class="dh-val">12:31 – 13:49</span></div>
+<div class="dh-item"><span class="dh-lbl">Ort</span><span class="dh-val">per Teams</span></div>
+</div>
+<div class="dh-aufgestellt">Aufgestellt: Olaf Schüler, Hopro GmbH &amp; Co. KG, 03.06.2026</div>
+
+<div class="pt-label" id="teilnehmer" style="scroll-margin-top:18px;">Teilnehmer</div>
+<div class="pt-grid">
+  <div class="pt-h">Name</div>
+  <div class="pt-h">Firma / Organisation</div>
+  <div class="pt-h">Kürzel</div>
+  <div class="pt-h pt-email">Email-Adresse</div>
+  <div class="pt-h pt-c">Teilnehmer</div>
+  <div class="pt-h pt-c">Verteiler</div>
+
+  <div class="pt-cell pt-name">Niels Ohlsen</div>
+  <div class="pt-cell">RSE Grundbesitz und Beteiligungs-GmbH</div>
+  <div class="pt-cell"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></div>
+  <div class="pt-cell pt-muted pt-email">—</div>
+  <div class="pt-cell pt-c"><span class="chk chk-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+  <div class="pt-cell pt-c"><span class="chk chk-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+
+  <div class="pt-cell pt-name">Klaus Hannappel</div>
+  <div class="pt-cell">Klaus Hannappel Architekt</div>
+  <div class="pt-cell"><span class="ktag" style="--tc:var(--tag-2)">KH</span></div>
+  <div class="pt-cell pt-muted pt-email">—</div>
+  <div class="pt-cell pt-c"><span class="chk chk-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+  <div class="pt-cell pt-c"><span class="chk chk-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+
+  <div class="pt-cell pt-name">Leon Paul</div>
+  <div class="pt-cell">Brendel Ingenieure GmbH</div>
+  <div class="pt-cell"><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="pt-cell pt-muted pt-email">—</div>
+  <div class="pt-cell pt-c"><span class="chk chk-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+  <div class="pt-cell pt-c"><span class="chk chk-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+
+  <div class="pt-cell pt-name">Olaf Schüler</div>
+  <div class="pt-cell">Hopro GmbH &amp; Co. KG</div>
+  <div class="pt-cell"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></div>
+  <div class="pt-cell pt-muted pt-email">—</div>
+  <div class="pt-cell pt-c"><span class="chk chk-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+  <div class="pt-cell pt-c"><span class="chk chk-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+</div>
+</header>
+<section class="kap" id="kap-A" style="--kc:var(--tag-1)">
+<div class="kap-head" data-toggle="kap" data-target="kapbody-A">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <span class="kap-bar"></span>
+  <h2 class="kap-title">A – Organisation | Information</h2>
+</div>
+<div class="kap-body" id="kapbody-A">
+<div class="ukap" id="ukap-A.s1">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-A.s1">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">Sitzungsorganisation / Fortführung der Planer-JFx-Reihe</h3>
+</div>
+<div class="ukap-body" id="ukapbody-A.s1">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#21|A.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">RSE bittet, die Planer-JFx-Reihe nach Abschluss des Mieterausbaus Sudarshan fortzuführen. Hintergrund: anschließend stehen Themen in der Bestandsfläche auf L4 sowie ggf. Umsortierungen im EG L2 und ein möglicher Umzug eines Bestandsmieters an.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-A.s2">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-A.s2">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">Statik-Unterlagen / Archivrecherche</h3>
+</div>
+<div class="ukap-body" id="ukapbody-A.s2">
+<div class="entries">
+<div class="entry entry-done">
+  <div class="entry-id">#23|A.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></span>
+      <span class="entry-frist">28.05.2026</span>
+      <span class="entry-status"><span class="chk chk-done" title="erledigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span>
+    </div>
+    <div class="entry-text">Suche nach den Statik-Ordnern: RSE prüft in den eigenen Unterlagen; Hr. Noy ist sich sicher, dass die Statik vorhanden sein müsste. RSE gibt bis morgen Vormittag (28.05.2026) Rückmeldung. Im RSE-Archiv (Keller) liegt zudem Material zur Ursprungsstatik; RSE leitet dies nachrichtlich weiter.</div>
+  </div>
+</div>
+<div class="entry entry-done">
+  <div class="entry-id">#23|A.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-1)">RSE</span></span>
+      <span class="entry-frist">28.05.2026</span>
+      <span class="entry-status"><span class="chk chk-done" title="erledigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span>
+    </div>
+    <div class="entry-text">Vorgehensweise: Vorhandene Statik-Ordner werden eingescannt, um Verzögerungen zu vermeiden. HOP nimmt die Ordner mit, sofern die Übergabe bis spätestens 11:30 Uhr erfolgt (Theis-Termin auf morgen 11:00 Uhr verschoben). Dienstleister Reproplan (Schmidstraße) wird genutzt; RSE hat dort ein Kundenkonto (noch auf „Phoenix" gelistet, ggf. umzustellen). Abgleich der von Fr. Lissner fotografierten Ordnerrücken mit dem tatsächlichen Inhalt ist noch zu klären.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-A.s3">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-A.s3">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">Werbeanlage Sudarshan (Nordfassade)</h3>
+</div>
+<div class="ukap-body" id="ukapbody-A.s3">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#23|A.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Nachrichtlich: Die Werbeanlage für Sudarshan wurde an der Nordfassade montiert; an der Werbetafel zur Landstraße wurde die Box für die spätere Logomontage abgenommen. Eine Rückfrage von HEICO zur Stromzuleitung hatte HOP erreicht. RSE bestätigt: Beleuchtung der Werbeanlage läuft auf Allgemeinstrom (RSE), nicht auf den Mieterzähler; Wahl des Stromkabels unkritisch. Kein Handlungsbedarf für HOP.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-A.s4">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-A.s4">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">Ressourcen- / Projektstrukturplanung Bestandsthemen</h3>
+</div>
+<div class="ukap-body" id="ukapbody-A.s4">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#24|A.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-festlegung">Festlegung</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Mit Abschluss des Mieterausbaus Sudarshan rücken die übergeordneten Property-Themen (Ladeinfrastruktur, Zählerkonzept/Energieversorgungsschema L2, GLT, DGNB, Klimatisierung Samsung C&amp;T) in die Bearbeitung. BI weist darauf hin, dass die einzelnen Vorgänge zunächst aufzudröseln und mit Projektnummern zu hinterlegen sind. Verfahren: Abstimmung zu Projektzuordnung und Kapazitäten zwischen BI (Hr. Schubert/Hr. Paul), RSE (Hr. Noy) und HOP.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|A.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">BI stellt eine Auflistung der offenen Property-/Bestandsaufgaben zusammen als Grundlage für die Kapazitäts- und Projektnummern-Abstimmung.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|A.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Hinweis BI: Kapazität BI im Juni/Juli ca. ein Tag pro Woche; zusammenhängende Blöcke sind schwierig. Ressourcenplanung im Dreieck BI/RSE/HOP abzustimmen.</div>
+  </div>
+</div>
+</div>
+</div></div>
+</div></section>
+
+<section class="kap" id="kap-B" style="--kc:var(--tag-2)">
+<div class="kap-head" data-toggle="kap" data-target="kapbody-B">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <span class="kap-bar"></span>
+  <h2 class="kap-title">B – Qualitäten | Planung</h2>
+</div>
+<div class="kap-body" id="kapbody-B">
+<div class="ukap" id="ukap-B.1">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-B.1">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">B.1 – Objektplanung / Bauablauf</h3>
+</div>
+<div class="ukap-body" id="ukapbody-B.1">
+<h4 class="thema" id="thema-B.1-66189">Plan-Doku Sudarshan-Fläche</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#21|B.1.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-festlegung">Festlegung</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Der von KH übergebene Plan mit den Raumnummern ist abschließend für die Doku. Alle Decken-Änderungen sind übernommen. Zwei vor Ort verschobene Bodentanks fließen nach Sichtung durch KH ggf. nach.</div>
+  </div>
+</div>
+</div>
+<h4 class="thema" id="thema-B.1-2965">Mängel und Restleistungen Sudarshan-Fläche</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#23|B.1.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-7)">HEICO</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Beschilderung Fluchtweg: HOP hat HEICO (Hr. Jungermann) die noch fehlenden Schilder mitgeteilt (Wartebereich/Sammelpunkt, behindertengerechte Fluchtwegschilder an der Tür, inkl. Link/Bezugsquelle). KH weist auf ein zusätzlich anzubringendes (unbeleuchtetes) Fluchtwegschild im Bereich des Fingers hin — Position im Brandschutzplan an der Stelle, an der die Fenster in die Brandwand eingebaut wurden; Pfeilrichtung in Türöffnungsrichtung (Fluchtweg nach unten). Anbringung an der Decke (Kettchen/Haken).</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#23|B.1.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-1)">RSE</span><span class="ktag" style="--tc:var(--tag-7)">HEICO</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Jalousie mit mechanischem Defekt: Eine Jalousie reagiert auf die Steuerung (kippt), fährt aber nicht hoch — mechanisches Problem an der Außenseite. Bearbeitung über HEICO (Steigereinsatz). RSE prüft, ob mit weiteren noch offenen Jalousie-Arbeiten kombinierbar. HOP übermittelt Hr. Jungermann (HEICO) die Ortsbeschreibung.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#23|B.1.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Jalousiesteuerung KNX: HOP war mit Hr. Grabowski (Elektro Klein) vor Ort. Defekte Aktoren wurden bestellt. Laut Hr. Rücker-Klapper (Sudarshan) sind die Aktoren zwischenzeitlich vor Ort gewesen und bereits eingebaut. HOP klärt mit Hr. Grabowski, ob die Jalousie-Funktion getestet wurde und ordnungsgemäß läuft.</div>
+  </div>
+</div>
+</div>
+<h4 class="thema" id="thema-B.1-47084">Materialeigenschaften Teppichboden (Brandschutz)</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#23|B.1.04</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-2)">KH</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">JZ hat eine Leistungserklärung nach Bauproduktverordnung bzw. ein Prüfzeugnis (mindestens „normal entflammbar") für den eingebauten Teppichboden angefordert. KH hat das Produktblatt geprüft: Der Teppichboden ist gemäß genannter Normierung als „schwer entflammbar" klassifiziert (entspricht damit einem höheren Niveau). KH stellt JZ den Nachweis zur Verfügung.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-B.2">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-B.2">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">B.2 – Fachplanung ELT | IT</h3>
+</div>
+<div class="ukap-body" id="ukapbody-B.2">
+<h4 class="thema" id="thema-B.2-9306">IT-Dosen Druckerraum (Sudarshan)</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#23|B.2.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span><span class="ktag" style="--tc:var(--tag-5)">Klein</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Im Druckerraum ist der Bestands-Bodentank zwar vorhanden, führt jedoch nur Strom und keine IT-Dosen. Der Mangel wurde bei der Mängelbegehung nicht erkannt (nicht alle Bodentanks geöffnet). Vorgehensweise: Aus dem Bodentank des benachbarten Garderobenraums (vier Dosen) werden zwei IT-Dosen unter der Wand in den Druckerraum gezogen. Hr. Guja (Klein) hatte dies als aufwändig eingeschätzt. Interimslösung: Drucker steht derzeit in der Garderobe. BI spricht den Punkt mit Hr. Guja (Klein) an.</div>
+  </div>
+</div>
+</div>
+<h4 class="thema" id="thema-B.2-48910">Tischsprechstelle / Türsprechanlage</h4>
+<div class="entries">
+<div class="entry entry-done">
+  <div class="entry-id">#23|B.2.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk chk-done" title="erledigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span>
+    </div>
+    <div class="entry-text">Status Tischsprechstelle: Hr. Schubert (BI) hatte Klein die Unterlagen zugesandt; eine Rückmeldung von Klein liegt bisher nicht vor. Hr. Baron (Klein) hat die Bearbeitung an einen Kollegen weitergegeben — vermutlich Hr. Grabowski (Klein), der die Türsprechanlage seinerzeit ausgeführt hat. Zu klären ist die Ausführung der Sprechstelle (mit/ohne Videomodul); offen, ob die Sprechstelle in der Säule nach der Drehtür (Besucheranmeldung) ein Videomodul erhält. BI hakt bei Klein nach.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|B.2.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Status Klingel-/Sprechanlage: HOP ist bei Hr. Baron (Klein) nachgefasst (Hr. Baron reagiert nicht auf E-Mails). Hr. Baron kümmert sich und prüft ein alternatives Klingelmodul mit mehr Tasten für die Säule. Hintergrund: vorhandene Klingelfelder sind groß; ein Ausbau auf mehr Tasten ist sinnvoll, da im L4 theoretisch sieben Einheiten bestehen und mit weiteren Mietern zu rechnen ist. Die Sprechstelle selbst hat Hr. Baron vermutlich auf Lager.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|B.2.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Vorschlag BI: Module von Elcom verfügbar als 2-/4-Tasten-Variante, ggf. auch ältere Touch-Display-Lösung (im Bestand des hillsite teils vorhanden), die ein Durchsuchen mehrerer Einheiten erlaubt. Tendenz: Umstellung von der 4er- auf eine 8er-Lösung, ggf. mit Aufschaltung Haustechnik. BI sucht beim Hersteller passende Module heraus.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|B.2.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-5)">Klein</span></span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Umsetzung: Hr. Guja (Klein) ist diese Woche im Urlaub; Bearbeitung frühestens nächste Woche möglich.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-B.3">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-B.3">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">B.3 – Genehmigung / Brandschutz</h3>
+</div>
+<div class="ukap-body" id="ukapbody-B.3">
+<h4 class="thema" id="thema-B.3-34337">Baugenehmigung Bauaufsicht MTK</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#23|B.3.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-2)">KH</span></span>
+      <span class="entry-frist">fortlaufend</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">KH war in der Vorwoche bei Hr. Bank (Bauaufsicht) und hat den Stand der Genehmigung erfragt. Hr. Bank sagte zu, den Vorgang vor seinem Urlaub (Beginn in ca. zwei bis drei Wochen) abzuarbeiten. Aktueller Stand: Eine Inbetriebnahme erfolgt derzeit ohne vorliegende Genehmigung; alle Beteiligten — insbesondere der Brandschutz (JZ) — haben bestätigt, dass über die bereits besprochenen Restpunkte hinaus nichts zu beanstanden ist. Dieser Umstand ist allen Beteiligten bewusst.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|B.3.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-2)">KH</span></span>
+      <span class="entry-frist">KW24-26</span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Status Genehmigung Sudarshan-Fläche: weiterhin offen. KH sieht für diese Woche keine erneute Nachfrage vor, will in der nächsten Woche erneut bei der Bauaufsicht nachhalten.</div>
+  </div>
+</div>
+</div>
+<h4 class="thema" id="thema-B.3-3504">Brandschutz-Dokumentation Sudarshan / Liste JZ</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#23|B.3.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span><span class="ktag" style="--tc:var(--tag-5)">Klein</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Durchsprache der JZ-Dokumentationsliste (Sudarshan), Einzelpositionen: 1. Brandmeldeanlage (BMA): Errichtererklärung von Klein liegt vor — akzeptiert. 2. Aufschaltung neuer Linien: laut BI in der Errichterbescheinigung enthalten; Laufkarten aktualisiert; Bestätigung bei Hr. Baron (Klein) nachgehalten. 3. Sprachalarmierung (SAA/ELA): Klein bestätigt „funktionsfähigen Zustand"; Messprotokoll Lautstärke/Schall fehlt — laut LV geschuldet, nachzufordern. 4. Sicherheitsbeleuchtung: keine Änderung; Errichterbescheinigung genügt; Prüfbericht 02/2026 liegt vor. 5. Sicherheitsstromversorgung (Keller): keine Änderung; kein Prüfbericht erforderlich. 6. Brandfallsteuermatrix: keine baulichen Änderungen, nur Linien erweitert. 7. Innerer Blitzschutz / Potenzialausgleich: neue Stromkreise aufgelegt — Errichterbescheinigung Klein erforderlich, fehlt. 8. Rettungszeichenleuchten: vorhanden, funktionsfähig. 9. Kabelschott: Verwendbarkeitsnachweis/Übereinstimmungserklärung fehlen; Schottbuch von Klein zu übersenden.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#23|B.3.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">HOP übersendet BI die aktualisierte JZ-Liste erneut (auch als SharePoint-Link mit Unterlagen). BI geht mit der Liste auf Hr. Baron (Klein) zu und dringt auf zeitnahe Lieferung der fehlenden Nachweise. Ziel: Sobald die Genehmigung vorliegt (in ca. zwei bis drei Wochen), kann das vollständige Paket an JZ übergeben werden.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|B.3.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Status Konformitätsbescheinigungsliste: Es fehlen weiterhin einzelne Nachweise. JZ muss noch nachliefern; die Unterlagen vom Elektriker (Klein) sind weiterhin zu dünn. HOP hatte auf einen aktuellen Sachstand von BI gehofft; BI war zu Beginn der Sitzung nicht zugeschaltet.</div>
+  </div>
+</div>
+</div>
+<h4 class="thema" id="thema-B.3-1547">Feuerwehrpläne / Aktualisierung gebäudeweit</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#23|B.3.04</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span><span class="ktag" style="--tc:var(--tag-4)">HOP</span></span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Die Feuerwehrpläne (vorgehalten im HEICO-Raum) sind alle zwei Jahre auf Übereinstimmung mit dem Bestand zu prüfen. Im Bereich Sudarshan stimmen sie durch den Umbau nicht mehr; JZ weist darauf hin, dass auch andere Bereiche veraltet sind. Eine gebäudeweite Aktualisierung ist aufwändig (JZ schätzt ca. eine Woche). Vorgehensweise zu klären: mindestens Geschoss Sudarshan aktualisieren; Fitseveneleven ggf. in Eigenverantwortung; übriger Bestand prüfen. RSE hält Rücksprache mit Hr. Noy. JZ ist grundsätzlich bereit.</div>
+  </div>
+</div>
+</div>
+</div></div>
+</div></section>
+<section class="kap" id="kap-C" style="--kc:var(--tag-3)">
+<div class="kap-head" data-toggle="kap" data-target="kapbody-C">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <span class="kap-bar"></span>
+  <h2 class="kap-title">C – Kosten</h2>
+</div>
+<div class="kap-body" id="kapbody-C">
+<div class="ukap" id="ukap-C.s1">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-C.s1">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">Schlussabrechnung Jaeger</h3>
+</div>
+<div class="ukap-body" id="ukapbody-C.s1">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#21|C.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></span>
+      <span class="entry-frist">offen</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Liste der Nachträge/offenen Positionen Jaeger ist noch nicht vollständig und mit Jaeger noch nicht durchgesprochen. HOP greift nicht ein, bevor die Liste vollständig ist.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-C.s2">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-C.s2">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">Abrechnung / Dokumentation Klein</h3>
+</div>
+<div class="ukap-body" id="ukapbody-C.s2">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#23|C.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span><span class="ktag" style="--tc:var(--tag-5)">Klein</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Dokumentation Klein (Hr. Baron) ist bisher zu dünn (einige DIN-A4-Blätter); BI hat dies bereits rückgemeldet. Die Funktionsbestätigung wurde vor Einbau der Lautsprecher verschickt. Es fehlt zudem die Werk-/Montageplanung (Wechsel-/Revisionsplanung). BI erwartet die Unterlagen spätestens zum Termin am Freitag (Klein bei BI im Büro, Aufmaß).</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#23|C.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Angebotsverfolgung Klein: Rückmeldung Klein auf die Angebotsprüfung (Anmerkungen BI) fehlt weiterhin; Fitseveneleven wurde in CC informiert und hat nachgefragt. BI hakt bei Hr. Baron (Klein) nach, sobald telefonisch erreichbar.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#23|C.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-frist">Fr (29.05.2026)</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Aufmaß-/Abrechnungstermin Klein/BI: Hr. Baron (Klein) ist am Freitag bei BI im Büro in Frankfurt zur Abstimmung des Aufmaßes.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|C.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span><span class="ktag" style="--tc:var(--tag-5)">Klein</span></span>
+      <span class="entry-frist">KW24-26</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Aufmaß-/Abrechnungstermin Klein/BI steht für die kommende Woche an (Verschiebung gegenüber dem ursprünglich für 29.05. geplanten Termin).</div>
+  </div>
+</div>
+</div>
+</div></div>
+</div></section>
+
+<section class="kap" id="kap-D" style="--kc:var(--tag-4)">
+<div class="kap-head" data-toggle="kap" data-target="kapbody-D">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <span class="kap-bar"></span>
+  <h2 class="kap-title">D – Termine</h2>
+</div>
+<div class="kap-body" id="kapbody-D">
+<div class="ukap" id="ukap-D.s1">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-D.s1">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">Schlüsseltermine kommende Wochen</h3>
+</div>
+<div class="ukap-body" id="ukapbody-D.s1">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#24|D.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-frist">KW24-26</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Kommende Woche: Aufmaß-/Abrechnungstermin Klein bei BI (siehe C.01).</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|D.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-frist">KW24-26</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Kommende Woche: BI plant Vor-Ort-Termin (ca. halber Tag) zur Aufnahme des Energieversorgungs-/Zählerschemas, der Leitungsabgänge sowie der LAN-Anbindung der Wallboxen (siehe F.3).</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|D.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-frist">16.06.2026</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">RP-Prüfung BI (Hr. Paul) am 16.06.2026; danach DGNB Registered Professional (siehe F.6).</div>
+  </div>
+</div>
+</div>
+</div></div>
+</div></section>
+
+<section class="kap" id="kap-E" style="--kc:var(--tag-5)">
+<div class="kap-head" data-toggle="kap" data-target="kapbody-E">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <span class="kap-bar"></span>
+  <h2 class="kap-title">E – Vertragswesen | Rechtliche Themen</h2>
+</div>
+<div class="kap-body" id="kapbody-E">
+<div class="ukap" id="ukap-E.s1">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-E.s1">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">Bauleistungsversicherung AXA</h3>
+</div>
+<div class="ukap-body" id="ukapbody-E.s1">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#21|E.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-festlegung">Festlegung</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></span>
+      <span class="entry-frist">29.05.2026</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Vertraglich keine Verlängerung der Bauleistungsversicherung erforderlich; Endabrechnung mit Stand Bausumme an AXA. Versicherung endet zum 29.05.2026.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-E.s2">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-E.s2">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">Mietvertragspflicht Ladestation Sudarshan</h3>
+</div>
+<div class="ukap-body" id="ukapbody-E.s2">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#22|B.5.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Laut Mietvertrag schuldet RSE dem Mieter Sudarshan eine Elektroladestation (Außenbereich). Die vorhandenen Wallboxen waren ursprünglich auf die Wandlerzählung des Mieters Samsung aufgelegt; seit dessen Auszug nicht mehr aktiv. Servicebericht zur Inbetriebnahme liegt vor. Zugangskonfiguration unklar. Umsetzungsstand und Optionen siehe F.3.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#23|E.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Der für Sudarshan geschuldete Außenstellplatz mit Lademöglichkeit ist noch nicht beschildert/aktiviert (RSE hat dies bei Sudarshan angesprochen). Sudarshan nimmt den Betrieb zum 01.06.2026 auf; eine rasche Übergangslösung ist anzustreben. Technische/abrechnungsseitige Umsetzung siehe F.3.</div>
+  </div>
+</div>
+</div>
+</div></div>
+</div></section>
+<section class="kap" id="kap-F" style="--kc:var(--tag-6)">
+<div class="kap-head" data-toggle="kap" data-target="kapbody-F">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <span class="kap-bar"></span>
+  <h2 class="kap-title">F – Property Themen</h2>
+</div>
+<div class="kap-body" id="kapbody-F">
+<div class="kap-hinweis">Übergeordnete, nicht Sudarshan-spezifische Bestands- und Objektthemen (Gebäude hillsite gesamt). Punkte mit konkretem Bezug auf den Mietbereich Sudarshan (L4-2.OG) verbleiben in A–E.</div>
+<div class="ukap" id="ukap-F.1">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-F.1">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">F.1 – Betonsanierung Tiefgarage</h3>
+</div>
+<div class="ukap-body" id="ukapbody-F.1">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#24|F.1.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Aktueller Stand: Hr. Beresheim hat die Maßnahme geprüft und sein Okay gegeben. Statik ist übergeben; keine negativen Rückmeldungen. RSE (Fr. Lissner) hat die Unterlagen zur Verfügung. Angebot steht aus. Der Vorgang läuft.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-F.2">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-F.2">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">F.2 – Fassade / Fenstertausch</h3>
+</div>
+<div class="ukap-body" id="ukapbody-F.2">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#24|F.2.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">In dieser Sitzung keine Einzelpunkte besprochen.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-F.3">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-F.3">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">F.3 – Ladeinfrastruktur</h3>
+</div>
+<div class="ukap-body" id="ukapbody-F.3">
+<h4 class="thema" id="thema-F.3-14721">Wallboxen / Angebot Klein (Status)</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#20|B.2.05</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-frist">13.05.2026</span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Angebot Klein für die Ladeboxen liegt weiterhin nicht vor (Begründung Klein: Schneider Electric liefere keine Grundlage; von BI als nicht plausibel bewertet). RSE telefoniert direkt mit Hr. Baron.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#21|B.2.08</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-festlegung">Festlegung</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></span>
+      <span class="entry-frist">offen</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Mieter wird das Angebot offen gelegt (Open Book) — entspricht bisheriger Umgangspraxis bei Umbauten.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#21|B.2.09</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Risiko: Sollte Klein/Schneider weiterhin keine Grundlage liefern, Installation auch ohne finales Angebot vorbereiten. Alternativszenario (OCPP-konformer Fremdhersteller) halten.</div>
+  </div>
+</div>
+</div>
+<h4 class="thema" id="thema-F.3-15279">Zähler-/Leitungsweg Außen-Wallboxen</h4>
+<div class="entries">
+<div class="entry entry-done">
+  <div class="entry-id">#23|F.3.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-5)">Klein</span><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-frist">30.05.2026</span>
+      <span class="entry-status"><span class="chk chk-done" title="erledigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span>
+    </div>
+    <div class="entry-text">Klärung Zähler-/Leitungsweg: Endpunkt und Zählerzuordnung der Wallbox-Zuleitung sind festzustellen. Elektro Klein klärt bzw. baut am Samstag (vsl. 30.05.2026) so um, dass der Leitungsendpunkt feststeht. BI recherchiert parallel die Bestandsunterlagen (Anlagenschema; verteilt über drei Projekte, Hr. Schubert hat Überblick). Hr. Noy (RSE): Ladepunkte an zwei Unterverteilungen, ein Zähler; Zusammenhang mit L2/Wandlerzählung Samsung unklar.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.3.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Ergebnis Zählerklärung: Die zehn Ladepunkte (zwei Unterverteilungen) laufen aktuell auf die Wandlermessung des ehemaligen Mieters Samsung im leerstehenden L2; kein separater Zähler, voll mit aufgelegt. Bezeichnungen „Ladestation 1/2" im Schaltschrank meinen Gruppe 1/Gruppe 2, nicht Einzelsäulen — beide Gruppen laufen über die Wandlermessung. Der Strom wird derzeit von RSE getragen.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.3.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-festlegung">Festlegung</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Vorgehensweise Interimslösung: Da der Strom bereits über die (RSE-getragene) Wandlermessung läuft, kann eine Wallbox kurzfristig dort betrieben werden; im ersten Schritt ist die Zählerzuordnung zweitrangig („Hauptsache Strom drauf"). Die spätere Umstellung auf einen eigenen RSE-Zähler erfolgt an einem Samstag (Umbau ca. 3–4 Std.; kritisch ist Anmeldung/Setzen des Zählers, nicht der Umbau selbst). Die Abrechnung gegenüber Mietern läuft perspektivisch über das Süwag-Modell (Hr. Krämer).</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.3.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-frist">KW24-26</span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Risiko: Endpunkt/LAN-Anbindung der Wallboxen vor Ort noch nicht aufgenommen — BI war beim Samstagstermin wegen laufender Grundreinigung nicht im Parkhaus. Zudem ist das gesamte Energieversorgungs-/Zählerschema veraltet (letzter Stand BI 2019, zwischenzeitliche Arbeiten Fa. Bär); Beschriftung und Abgänge sind unklar. Aufnahme bei Vor-Ort-Termin kommende Woche (siehe D.02).</div>
+  </div>
+</div>
+</div>
+<h4 class="thema" id="thema-F.3-24235">Zählerkonzept / Energieversorgungsschema L2</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#24|F.3.04</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-festlegung">Festlegung</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Übergeordnetes Thema: Das Zählerkonzept/Energieversorgungsschema für L2 ist aufzubrechen. L2 war komplett Samsung; aktuell läuft auch der Verbrauch von Fitseveneleven (L1/L2, 4. OG) vermutlich noch über den ehemaligen Samsung-Zähler (auf RSE). Zieldefinition: jede Etage einzeln zählbar machen, statt nur das 4. OG abzuzweigen. Abstimmung mit Samsung läuft; eine Stromschenkung soll vermieden werden.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.3.05</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-frist">KW24-26</span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">BI nimmt bei Vor-Ort-Termin kommende Woche die Leitungsabgänge im Detail auf, um das Schema aufzuräumen (siehe D.02). Priorität: zunächst Funktionsfähigkeit der Boxen herstellen; das Gesamtschema ist „nice to have" und muss nicht im Juni fertig sein.</div>
+  </div>
+</div>
+</div>
+<h4 class="thema" id="thema-F.3-96425">Zugang / Web-Anbindung / Betreibermodell</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#23|F.3.04</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Zugang/Programmierung Wallboxen: Bei vorhandener Web-Anbindung kann der Haustechniker (HEICO) die Freischaltung selbst vornehmen; andernfalls muss Schneider die Box nach Kundenwunsch umprogrammieren (gesonderte Position). RSE recherchiert intern bei HEICO und im Rückgabevorgang Samsung, ob Zugriff/Zugangsdaten zur Web-Anwendung (Schneider/Wallbox) übergeben wurden oder mit Samsung verloren gingen; ggf. direkte Rückfrage bei Samsung.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.3.06</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Stand Zugangsdaten: HEICO hat keinen Zugang zur Wallbox-Steuerung; die Steuerung lief seinerzeit über den Mieter Samsung. Es gibt weiterhin guten Kontakt zu Samsung. RSE fragt bei Samsung nach den Zugangsdaten/Kennwörtern zur Schneider-Web-Anbindung (noch nicht erfolgt). Bei vorhandenen Zugangsdaten kann Süwag (Hr. Krämer) die Boxen übernehmen/umstellen; andernfalls ist zu prüfen, ob ein Werksreset möglich ist (Wallboxen gehören inzwischen RSE, nicht mehr Samsung).</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.3.07</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-frist">KW24-26</span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">LAN-/Internet-Anbindung: Es muss ein Anbindungskabel der Wallboxen geben (Endpunkt unbekannt). Anschlussmöglichkeit vermutlich im Hausmeisterraum (RSE-Internetzugang / zusätzlicher DSL-Anschluss, dessen Verlauf intern unklar ist). BI prüft vor Ort, wohin das Kabel führt. Master-Slave-Prinzip der Säulen (eine Master, je vier Slaves); ggf. zwei LAN-Anschlüsse oder Lösung über Switch. Alternativ SIM-Karten-Lösung möglich; HOP/BI tendieren zur Kabelanbindung.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.3.08</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Bedarf Süwag (Hr. Krämer) von RSE/HOP: (1) Abstimmung/Bestätigung, ob Betrieb über die Wandlermessung für ihn in Ordnung ist; (2) Info, ob Zugang zur Web-Anbindung vorhanden ist bzw. ob er diese zwingend benötigt; (3) Vertrags-/Lademodell. BI telefoniert mit Hr. Krämer und stellt diese Fragen, inkl. benötigter Komponenten für die Wieder-Inbetriebnahme. Hr. Krämer hatte aktualisierte Folie geschickt; auf Okay folgt ein konkretes Angebot.</div>
+  </div>
+</div>
+</div>
+<h4 class="thema" id="thema-F.3-37683">Vertrags-/Tarifmodell Ladeinfrastruktur</h4>
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#24|F.3.09</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-freigabe">Freigabe erfordl</span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Tendenz Tarifmodell: Nutzergruppen-Tarif (RSE-intern), für alle Mieter bevorzugt, so justiert, dass keine Rückvergütung entsteht (kein Verdienst, steuerlich risikoarm). Inhaber des Stromliefervertrags bleibt in allen Varianten RSE. Freischaltung je Nutzer über RFID-Karte oder App, ausgegeben durch das Facility Management. Optional Roaming/Flottenkarten (z. B. ADAC, IONITY) parallel möglich — als reine Option gegenüber Sudarshan anzufragen, nicht zwingend umzusetzen.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.3.10</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">RSE stimmt das Tarifmodell intern (mit Hr. Noy) ab und übermittelt es der Steuerabteilung nur noch zur Kenntnisnahme („funktionierende Lösung, kein Verdienst"), um das Thema zügig abzuschließen. RSE/HOP sprechen das Vorgehen im Nachgang der Sitzung nochmals ab. Zähler wird in die laufende Stromausschreibung (Allgemeinstrom) eingebunden; offen, ob Einbindung in den Tarif oder eigener Tarif für E-Ladeinfrastruktur.</div>
+  </div>
+</div>
+<div class="entry entry-done">
+  <div class="entry-id">#24|F.3.11</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></span>
+      <span class="entry-status"><span class="chk chk-done" title="erledigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span>
+    </div>
+    <div class="entry-text">HOP geht auf Sudarshan zu und fragt, ob als Übergangslösung eine RFID-Karte bzw. ein App-Zugang vom Hausmeister ausreichend ist. Ergebnis fließt an Hr. Krämer (Süwag) zurück; dieser soll Vertrag vorlegen und die Mindestvertragslaufzeit klären.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-F.4">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-F.4">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">F.4 – Zähler-Ummeldung Sudarshan</h3>
+</div>
+<div class="ukap-body" id="ukapbody-F.4">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#24|F.4.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Sachstand: Die Wandlermessung Sudarshan wurde außer Betrieb genommen und durch neue Zähler ersetzt (drei Zähler Sudarshan plus ein vierter für USV/Serverraum = vier neue Zähler; zudem ein Zähler für RSE-Bereich). Zählerstände wurden beim Umbau fotografiert. Im Normalfall meldet Syna An-/Abmeldung automatisch.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.4.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">BI übermittelt HOP/RSE die Fotos der Zählerstände (Endstand alte Wandlermessung sowie neue Zähler).</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.4.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">RSE teilt Sudarshan die neuen Zählernummern und -stände mit (Foto plus textliche Aufstellung), mit dem Hinweis, dass die Ab-/Anmeldung bei Syna automatisch erfolgt sein sollte; Sudarshan kann sich beim Stromlieferanten rückversichern.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-F.5">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-F.5">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">F.5 – Klimatisierung Samsung C&amp;T</h3>
+</div>
+<div class="ukap-body" id="ukapbody-F.5">
+<div class="entries">
+<div class="entry entry-done">
+  <div class="entry-id">#23|F.5.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="chk chk-done" title="erledigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></span>
+    </div>
+    <div class="entry-text">Thermografie-Messung im Bereich Samsung C&amp;T war vorgesehen; der Termin mit der Wärmebildkamera konnte nicht wie geplant stattfinden. Durchführung wird nachgeholt.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.5.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Ergebnis Vor-Ort-Aufnahme (L4-4.OG, „114", zwei Geschosse über Sudarshan): In mehreren Räumen kommt keine bzw. zu wenig Kälteleistung an; eine komplette Deckenfläche im innenliegenden Bereich (Teeküche, rechts vom K5) ist inaktiv. Fr. Deibele (Samsung C&amp;T) hatte die Haustechnik wiederholt auf die nicht funktionierende Kühlung hingewiesen; eine Prüfung war bislang nur per Blick auf den GLT-Bildschirm erfolgt („alles läuft").</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.5.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Vorgehensweise: HOP hat Hr. Schubert (BI) gebeten, die letzten Bestandspläne des Vormieters Cheil (nicht Samsung C&amp;T, da Fläche 1:1 übernommen) herauszusuchen, um Volumenstromregler (Lüftung), Absperrventile (Kälte) und Pumpen zu lokalisieren und vor Ort einzeln abzuklopfen (möglicher hydraulischer Abgleich o. ä.).</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.5.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-festlegung">Festlegung</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Festlegung: Begutachtung/Instandsetzung mit Wartungsfirma Kaya (ohnehin im Haus, reaktionsschnell) durchführen; Hr. Jungermann (HEICO) direkt einbinden. Hinweis: Die Wartung durch Kaya hat offenbar nicht zuverlässig funktioniert.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.5.04</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Nachrichtlich: Ein zusätzliches Umluftkühlgerät für Samsung C&amp;T ist zunächst vom Tisch — der CEO möchte keine Sonderbehandlung gegenüber anderen Mietern. Zunächst wird die bestehende Kühlung instand gesetzt und das Verhalten beobachtet; ein Zusatzgerät bleibt nur als Rückfalloption.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.5.05</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">BI hat den Deckenbelegungsplan (Fa. Schmid) für den betroffenen Bereich gefunden und sendet ihn HOP vorab zu. Der zugehörige Plan des Fingers (4. OG; Plannummer-Verwirrung „003" vs. OG-Bezeichnung) wird noch herausgesucht und nachgereicht.</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-F.6">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-F.6">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">F.6 – Gebäudeautomation (GLT) / DGNB</h3>
+</div>
+<div class="ukap-body" id="ukapbody-F.6">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#22|B.2.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span><span class="ktag" style="--tc:var(--tag-8)">Sauter</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">GLT-Dokumentation: Für die geplante Weiterentwicklung der GLT ist eine Dokumentation des Status quo erforderlich (Was kann die GLT aktuell? Welche Erweiterungsmöglichkeiten bestehen?). Vorgehen: Status quo — Ziel — Möglichkeiten.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.6.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Das GLT-Thema kann nun angegangen werden; Zuständigkeit bei BI (Hr. Paul).</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.6.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-frist">16.06.2026</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">DGNB ist weiterhin nicht vom Tisch und zu gegebener Zeit erneut aufzunehmen. Hr. Paul (BI) hat am 16.06.2026 die RP-Prüfung und ist anschließend DGNB Registered Professional (erster Schritt; Auditor-Qualifikation separat, ca. 15.000 €).</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-F.7">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-F.7">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">F.7 – Vermietung / Bestandsmieter (nachrichtlich)</h3>
+</div>
+<div class="ukap-body" id="ukapbody-F.7">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#24|F.7.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Nachrichtlich: Panduit hat gekündigt und verlässt das hillsite; RSE plant eine Vorbegehung der Fläche. Ebenso zieht GMS Ende August aus (Fläche wird als gut vermietbar eingeschätzt).</div>
+  </div>
+</div>
+</div>
+</div></div>
+<div class="ukap" id="ukap-F.8">
+<div class="ukap-head" data-toggle="ukap" data-target="ukapbody-F.8">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <h3 class="ukap-title">F.8 – Erweiterung Fitseveneleven (L2, 1. OG)</h3>
+</div>
+<div class="ukap-body" id="ukapbody-F.8">
+<div class="entries">
+<div class="entry">
+  <div class="entry-id">#24|F.8.01</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-info">Info</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">RSE hat eine mögliche Erweiterung des Fitnessstudios Fitseveneleven im 1. OG (L2, Fingerbereich) eingebracht. Die ursprünglich mit Fitseveneleven abgestimmte Grenze (bis „rote Linie", Tageslichteinfall für die verbleibende Bürofläche) reicht deren Planung nicht; Fitseveneleven plant bis an den Riegel. Die Fläche ist aktuell nicht vermietet und wird für Fitseveneleven vorgehalten. Nicht zeitkritisch — Umsetzung frühestens 2027.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.8.02</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></span>
+      <span class="entry-frist">KW24-26</span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Aufgabenstellung an HOP: Brainstorming/Variantenbetrachtung Flächenzuschnitt unter Berücksichtigung Brandschutz, Rettungswege (zweiter Rettungsweg) und verbleibender Bürofläche. Erste Einschätzung HOP: Fluchtwege darstellbar; zweiter Rettungsweg vermutlich über das benachbarte Treppenhaus bzw. über die Fassade (Anleiterung). Überlegung, den Erweiterungsbereich bis an den Kernrand (Aufzugsvorraum/Treppenhaus, Bereich unterhalb WC-Anlage) zu ziehen, um eine funktionsfähige Büroeinheit mit Treppenhausanbindung zu erhalten.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.8.03</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-6)">JZ</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">HOP holt das bestehende Brandschutzkonzept für diesen Bereich ein und stimmt die Restriktionen mit JZ ab, bevor Flächenvarianten festgelegt werden.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.8.04</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-aufgabe">Aufgabe</span>
+      <span class="row-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></span>
+      <span class="entry-status"><span class="chk" title="offen"></span></span>
+    </div>
+    <div class="entry-text">Risiko: Geplanter Kursraum erzeugt Schall/Erschütterung. Räume darüber sind aktuell leer (4. OG), unter dem fraglichen Bereich liegt teils Luftraum/Magistrale. Bauphysik (Lärmschutz nach oben/unten/seitlich, ggf. Schallschutzdecke und Spezialboden gegen Trittschall/Hohlbodenbelastung) ist vorab zu klären, um Überraschungen zu vermeiden.</div>
+  </div>
+</div>
+<div class="entry">
+  <div class="entry-id">#24|F.8.05</div>
+  <div class="entry-main">
+    <div class="entry-meta">
+      <span class="kat kat-festlegung">Festlegung</span>
+      <span class="entry-status"><span class="erl-none">–</span></span>
+    </div>
+    <div class="entry-text">Verfahren: RSE will als öffentlich-rechtlicher Bauherr auftreten; eine Bauantragsplanung ist erforderlich. Mieterausbaukosten trägt Fitseveneleven (wie bisher: eigenständiger Ausbau auf eigene Kosten, Begleitung durch KH/JZ im Auftrag RSE). HOP regt an, den Vorgang frühzeitig genehmigen zu lassen (Genehmigungszeiträume, Hr. Bank), auch wenn die Umsetzung erst 2027 erfolgt.</div>
+  </div>
+</div>
+</div>
+</div></div>
+</div></section>
+<section class="kap" id="aufgaben" style="--kc:var(--tertiary)">
+<div class="kap-head" data-toggle="kap" data-target="kapbody-aufgaben">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <span class="kap-bar"></span>
+  <h2 class="kap-title">Aufgabenübersicht</h2>
+</div>
+<div class="kap-body" id="kapbody-aufgaben">
+<div class="filterbar">
+<button class="pill pill-all" data-tag="__all__">Alle</button>
+<button class="pill" data-tag="HOP" style="--tc:var(--tag-4)"><span class="pill-dot"></span>HOP</button>
+<button class="pill" data-tag="RSE" style="--tc:var(--tag-1)"><span class="pill-dot"></span>RSE</button>
+<button class="pill" data-tag="BI" style="--tc:var(--tag-3)"><span class="pill-dot"></span>BI</button>
+<button class="pill" data-tag="KH" style="--tc:var(--tag-2)"><span class="pill-dot"></span>KH</button>
+<button class="pill" data-tag="Klein" style="--tc:var(--tag-5)"><span class="pill-dot"></span>Klein</button>
+<button class="pill" data-tag="JZ" style="--tc:var(--tag-6)"><span class="pill-dot"></span>JZ</button>
+<button class="pill" data-tag="HEICO" style="--tc:var(--tag-7)"><span class="pill-dot"></span>HEICO</button>
+<button class="pill" data-tag="Sauter" style="--tc:var(--tag-8)"><span class="pill-dot"></span>Sauter</button>
+<div class="sort-wrap">
+  <button class="sort-btn" id="sortBtn" aria-haspopup="true" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="m3 17 3 3 3-3"/><path d="M6 18V4"/></svg>
+    <span id="sortBtnLabel">Sortieren</span>
+  </button>
+  <div class="sort-menu" id="sortMenu" hidden>
+    <button class="sort-item" data-sort="frist" type="button">nach Frist</button>
+    <button class="sort-item" data-sort="id" type="button">nach ID</button>
+  </div>
+</div>
+<label class="show-done"><input type="checkbox" id="toggleDone"> Erledigte ausblenden</label>
+<button class="save-btn tip" id="saveBtn" data-tip="Aktuellen Bearbeitungsstand der Aufgaben als neue Datei speichern">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
+  Stand sichern
+</button>
+</div>
+<div class="todo-grid" id="todoGrid">
+<article class="todo-card" draggable="true" data-id="#24|A.02" data-tags="BI" data-order="0">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|A.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Auflistung der offenen Property-/Bestandsaufgaben für Kapazitäts-/Projektnummern-Abstimmung erstellen</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#23|B.1.01" data-tags="HOP,HEICO" data-order="1">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#23|B.1.01</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-7)">HEICO</span></div>
+  <div class="todo-text">Fehlende Fluchtweg-/Sammelpunkt-Schilder anbringen, inkl. Schild im Finger (Decke)</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#23|B.1.02" data-tags="HOP,RSE,HEICO" data-order="2">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#23|B.1.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-1)">RSE</span><span class="ktag" style="--tc:var(--tag-7)">HEICO</span></div>
+  <div class="todo-text">Mechanisch defekte Jalousie über HEICO (Steiger) instand setzen, Ortsbeschreibung übermitteln</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#23|B.1.03" data-tags="HOP" data-order="3">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#23|B.1.03</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></div>
+  <div class="todo-text">Mit Hr. Grabowski (Klein) Funktionstest der KNX-Jalousiesteuerung klären</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#23|B.1.04" data-tags="KH" data-order="4">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#23|B.1.04</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-2)">KH</span></div>
+  <div class="todo-text">Nachweis „schwer entflammbar" Teppichboden an JZ übergeben</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#23|B.2.01" data-tags="BI,Klein" data-order="5">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#23|B.2.01</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span><span class="ktag" style="--tc:var(--tag-5)">Klein</span></div>
+  <div class="todo-text">Zwei IT-Dosen aus Garderoben-Bodentank in Druckerraum ziehen (mit Hr. Guja)</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|B.2.02" data-tags="BI" data-order="6">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|B.2.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Alternatives Klingelmodul (Elcom 2-/4-Tasten bzw. 8er-/Touch-Lösung) beim Hersteller heraussuchen</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|B.3.01" data-tags="KH" data-order="7">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|B.3.01</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-2)">KH</span></div>
+  <div class="todo-text">Genehmigungsstand Sudarshan-Fläche bei Bauaufsicht (Hr. Bank) nachhalten</div>
+  <div class="todo-foot"><span class="todo-frist">KW24-26</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#23|B.3.02" data-tags="BI,Klein" data-order="8">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#23|B.3.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span><span class="ktag" style="--tc:var(--tag-5)">Klein</span></div>
+  <div class="todo-text">Fehlende Brandschutz-Nachweise abarbeiten (SAA-Messprotokoll, Errichterbescheinigung Potenzialausgleich, Schottbuch, Linien-Aufschaltung)</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#23|B.3.03" data-tags="HOP,BI" data-order="9">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#23|B.3.03</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Aktualisierte JZ-Liste an BI; BI dringt bei Hr. Baron (Klein) auf Lieferung; Paket-Übergabe an JZ bei Genehmigungseingang</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|B.3.02" data-tags="HOP,BI" data-order="10">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|B.3.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Konformitätsbescheinigungsliste vervollständigen (Nachlieferung JZ + Klein)</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#23|C.01" data-tags="BI,Klein" data-order="11">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#23|C.01</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span><span class="ktag" style="--tc:var(--tag-5)">Klein</span></div>
+  <div class="todo-text">Dokumentation Klein (inkl. W+M-Planung) vervollständigen</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#23|C.02" data-tags="BI" data-order="12">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#23|C.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Angebotsverfolgung Klein, Rückmeldung zur Angebotsprüfung nachhalten</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#20|B.2.05" data-tags="RSE,BI" data-order="13">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#20|B.2.05</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Angebot Klein für Wallboxen einfordern</div>
+  <div class="todo-foot"><span class="todo-frist">13.05.2026</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.3.03" data-tags="BI" data-order="14">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.3.03</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Endpunkt/LAN-Anbindung Wallboxen und Energieversorgungsschema vor Ort aufnehmen</div>
+  <div class="todo-foot"><span class="todo-frist">KW24-26</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.3.06" data-tags="RSE" data-order="15">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.3.06</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></div>
+  <div class="todo-text">Zugangsdaten Schneider-Web-Anbindung bei Samsung erfragen; Werksreset-Option prüfen</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.3.08" data-tags="BI" data-order="16">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.3.08</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Mit Hr. Krämer (Süwag) Wandlermessung, Web-Anbindung und Vertrags-/Lademodell klären</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#22|B.2.02" data-tags="BI,Sauter" data-order="17">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#22|B.2.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span><span class="ktag" style="--tc:var(--tag-8)">Sauter</span></div>
+  <div class="todo-text">GLT-Dokumentation Status quo erstellen</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.3.10" data-tags="RSE" data-order="18">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.3.10</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></div>
+  <div class="todo-text">Tarifmodell intern abstimmen, Steuerabteilung zur Kenntnis, Zähler in Stromausschreibung einbinden</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.4.02" data-tags="BI" data-order="19">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.4.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Fotos der Zählerstände (alt/neu) an HOP/RSE übermitteln</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.4.03" data-tags="RSE" data-order="20">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.4.03</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-1)">RSE</span></div>
+  <div class="todo-text">Sudarshan neue Zählernummern/-stände mitteilen, Hinweis auf automatische Syna-Ummeldung</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.5.02" data-tags="BI" data-order="21">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.5.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Bestandspläne Vormieter Cheil heraussuchen, Lüftungs-/Kältekomponenten lokalisieren (Samsung C&amp;T)</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.5.05" data-tags="BI" data-order="22">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.5.05</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-3)">BI</span></div>
+  <div class="todo-text">Deckenbelegungsplan Finger 4. OG heraussuchen und nachreichen</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.8.02" data-tags="HOP" data-order="23">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.8.02</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></div>
+  <div class="todo-text">Variantenbetrachtung Flächenzuschnitt Fitseveneleven-Erweiterung (Brandschutz/Rettungswege/Bürofläche)</div>
+  <div class="todo-foot"><span class="todo-frist">KW24-26</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.8.03" data-tags="HOP,JZ" data-order="24">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.8.03</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span><span class="ktag" style="--tc:var(--tag-6)">JZ</span></div>
+  <div class="todo-text">Bestehendes Brandschutzkonzept Bereich Fitseveneleven einholen, Restriktionen abstimmen</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card" draggable="true" data-id="#24|F.8.04" data-tags="HOP" data-order="25">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"><span class="todo-ref">#24|F.8.04</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></div>
+  <div class="todo-text">Bauphysik (Lärmschutz/Trittschall) Kursraum Fitseveneleven vorab klären</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+<article class="todo-card done" draggable="true" data-id="#24|F.3.11" data-tags="HOP" data-order="26">
+  <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt" checked><span class="todo-ref">#24|F.3.11</span></div>
+  <div class="todo-tags"><span class="ktag" style="--tc:var(--tag-4)">HOP</span></div>
+  <div class="todo-text">Sudarshan auf Übergangslösung (RFID-Karte/App vom Hausmeister) ansprechen, Ergebnis an Hr. Krämer</div>
+  <div class="todo-foot"><span class="todo-frist todo-frist-none">ohne Frist</span></div>
+</article>
+</div>
+<div class="todo-empty" id="todoEmpty" hidden>Keine Aufgaben für die aktive Filterauswahl.</div>
+</div></section>
+
+<section class="kap" id="anlagen" style="--kc:var(--tag-7)">
+<div class="kap-head" data-toggle="kap" data-target="kapbody-anlagen">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <span class="kap-bar"></span>
+  <h2 class="kap-title">Anlagen</h2>
+</div>
+<div class="kap-body" id="kapbody-anlagen">
+<div class="an-grid">
+  <div class="an-h">Nummer</div>
+  <div class="an-h">Inhalt</div>
+  <div class="an-h">Dateiname</div>
+  <div class="an-h"></div>
+
+  <div class="an-cell an-num">#22.01</div>
+  <div class="an-cell">260529 HIS_Fit7.11_Brandschutz Mängel-Hinweisliste_JZ_KH.pdf</div>
+  <div class="an-cell an-file">260529 HIS_Fit7.11_Brandschutz Mängel-Hinweisliste_JZ_KH.pdf</div>
+  <div class="an-cell an-dl">
+    <a class="an-download" href="data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgNTk1IDg0Ml0vUmVzb3VyY2VzPDwvRm9udDw8L0YxIDUgMCBSPj4+Pi9Db250ZW50cyA0IDAgUj4+ZW5kb2JqCjQgMCBvYmo8PC9MZW5ndGggNzM+PnN0cmVhbQpCVCAvRjEgMTYgVGYgNzAgNzYwIFRkIChLQURSQSBIVE1MLUV4cG9ydCBEZW1vLUFubGFnZSBQbGF0emhhbHRlcikgVGogRVQKZW5kc3RyZWFtZW5kb2JqCjUgMCBvYmo8PC9UeXBlL0ZvbnQvU3VidHlwZS9UeXBlMS9CYXNlRm9udC9IZWx2ZXRpY2E+PmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1MiAwMDAwMCBuIAowMDAwMDAwMTAxIDAwMDAwIG4gCjAwMDAwMDAyMTEgMDAwMDAgbiAKMDAwMDAwMDMyOCAwMDAwMCBuIAp0cmFpbGVyPDwvU2l6ZSA2L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKMzg5CiUlRU9G" download="260529 HIS_Fit7.11_Brandschutz Mängel-Hinweisliste_JZ_KH.pdf" title="Herunterladen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+    </a>
+  </div>
+
+  <div class="an-cell an-num">#22.02</div>
+  <div class="an-cell">260526 HIS Terminablauf Ertüchtigung Rippenauflager.pdf</div>
+  <div class="an-cell an-file">260526 HIS Terminablauf Ertüchtigung Rippenauflager.pdf</div>
+  <div class="an-cell an-dl">
+    <a class="an-download" href="data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgNTk1IDg0Ml0vUmVzb3VyY2VzPDwvRm9udDw8L0YxIDUgMCBSPj4+Pi9Db250ZW50cyA0IDAgUj4+ZW5kb2JqCjQgMCBvYmo8PC9MZW5ndGggNzM+PnN0cmVhbQpCVCAvRjEgMTYgVGYgNzAgNzYwIFRkIChLQURSQSBIVE1MLUV4cG9ydCBEZW1vLUFubGFnZSBQbGF0emhhbHRlcikgVGogRVQKZW5kc3RyZWFtZW5kb2JqCjUgMCBvYmo8PC9UeXBlL0ZvbnQvU3VidHlwZS9UeXBlMS9CYXNlRm9udC9IZWx2ZXRpY2E+PmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1MiAwMDAwMCBuIAowMDAwMDAwMTAxIDAwMDAwIG4gCjAwMDAwMDAyMTEgMDAwMDAgbiAKMDAwMDAwMDMyOCAwMDAwMCBuIAp0cmFpbGVyPDwvU2l6ZSA2L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKMzg5CiUlRU9G" download="260526 HIS Terminablauf Ertüchtigung Rippenauflager.pdf" title="Herunterladen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+    </a>
+  </div>
+</div>
+</div></section>
+
+<section class="kap kap-legende" id="legende" style="--kc:var(--text-tertiary)">
+<div class="kap-head" data-toggle="kap" data-target="kapbody-legende">
+  <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  <span class="kap-bar"></span>
+  <h2 class="kap-title">Legende</h2>
+</div>
+<div class="kap-body" id="kapbody-legende">
+<div class="lg-label">Abkürzungen</div>
+<div class="abk-grid">
+<div class="abk-item"><span class="abk-k">BI</span><span class="abk-v">Brendel Ingenieure GmbH (TGA-Planung)</span></div>
+<div class="abk-item"><span class="abk-k">BMA</span><span class="abk-v">Brandmeldeanlage</span></div>
+<div class="abk-item"><span class="abk-k">DGNB</span><span class="abk-v">Deutsche Gesellschaft für Nachhaltiges Bauen</span></div>
+<div class="abk-item"><span class="abk-k">ELA / SAA</span><span class="abk-v">Elektroakustische Anlage / Sprachalarmierungsanlage</span></div>
+<div class="abk-item"><span class="abk-k">Fitseveneleven</span><span class="abk-v">Mieter (geplante Erweiterung L2/1. OG)</span></div>
+<div class="abk-item"><span class="abk-k">GLT</span><span class="abk-v">Gebäudeleittechnik</span></div>
+<div class="abk-item"><span class="abk-k">HEICO</span><span class="abk-v">HEICO Holding GmbH (Facility Manager)</span></div>
+<div class="abk-item"><span class="abk-k">HIS</span><span class="abk-v">Projekt hillsite Schwalbach</span></div>
+<div class="abk-item"><span class="abk-k">HOP</span><span class="abk-v">Hopro GmbH &amp; Co. KG (Projektsteuerung)</span></div>
+<div class="abk-item"><span class="abk-k">JFx</span><span class="abk-v">Jour Fixe (Planer)</span></div>
+<div class="abk-item"><span class="abk-k">JZ</span><span class="abk-v">Josef Zohner (Brandschutz-SV)</span></div>
+<div class="abk-item"><span class="abk-k">KH</span><span class="abk-v">Klaus Hannappel Architekt</span></div>
+<div class="abk-item"><span class="abk-k">Klein</span><span class="abk-v">Elektro Klein AG</span></div>
+<div class="abk-item"><span class="abk-k">RSE</span><span class="abk-v">RSE Grundbesitz und Beteiligungs-GmbH (Vermieterin)</span></div>
+<div class="abk-item"><span class="abk-k">Sauter</span><span class="abk-v">Sauter-Cumulus GmbH (GLT)</span></div>
+<div class="abk-item"><span class="abk-k">Schneider</span><span class="abk-v">Schneider Electric (Wallbox-Hersteller)</span></div>
+<div class="abk-item"><span class="abk-k">Sudarshan</span><span class="abk-v">Sudarshan Germany Horizons GmbH (Mieterin L4-2.OG)</span></div>
+<div class="abk-item"><span class="abk-k">Süwag</span><span class="abk-v">Süwag Energie AG (EVU)</span></div>
+</div>
+<div class="lg-label lg-hinweis-label">Hinweis</div>
+<p class="lg-hinweis">Der in obenstehendem Text beschriebene Besprechungsinhalt gibt das Verständnis des Verfassers wieder. Die Empfänger des Protokolls werden gebeten eventuell gewünschte Ergänzungen und/oder Korrekturen möglichst innerhalb von drei Tagen nach Zustellung beim Verfasser schriftlich anzumelden. Diese werden dann in der nächsten Besprechung dokumentiert. Ohne Einwände wird von einer ordnungsgemäßen Besprechungswiedergabe ausgegangen. Das Protokoll wird regelmässig durch Entfall älterer und nur dokumentierender Einträge bewusst gekürzt.</p>
+</div></section>
+<footer class="doc-footer">hillsite Schwalbach · HIS · Planer JFx 24 · 03.06.2026 — interaktive Fassung</footer>
+</main>
+</div>
+<script>
+const LS_KEY='kadraHtmlExportPreview260610';
+let state={collapsed:{},order:[],done:[],filters:[],hideDone:false,sortBy:'manual'};
+function loadState(){try{const s=JSON.parse(localStorage.getItem(LS_KEY));if(s)state=Object.assign(state,s);}catch(e){}}
+function saveState(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));}catch(e){}}
+
+/* ── Seitenleiste ein-/ausklappen ── */
+document.getElementById('dsToggle').addEventListener('click',()=>{
+  document.getElementById('docStructure').classList.toggle('collapsed');
+});
+
+/* ── Seitenleiste in der Breite ziehen ── */
+(function(){
+  const rail=document.getElementById('docStructure');
+  const handle=document.getElementById('dsResize');
+  const MIN=200,MAX=480;
+  let startX=0,startW=0;
+  function onMove(e){
+    const w=Math.min(MAX,Math.max(MIN,startW+(e.clientX-startX)));
+    rail.style.setProperty('--ds-width',w+'px');
+  }
+  function onUp(){
+    handle.classList.remove('dragging');
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    document.body.style.userSelect='';
+  }
+  handle.addEventListener('mousedown',e=>{
+    if(rail.classList.contains('collapsed'))return;
+    startX=e.clientX;startW=rail.getBoundingClientRect().width;
+    handle.classList.add('dragging');
+    document.body.style.userSelect='none';
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+    e.preventDefault();
+  });
+})();
+
+/* ── Collapse KAP/UKAP ── */
+document.querySelectorAll('[data-toggle]').forEach(h=>{
+  const id=h.getAttribute('data-target');
+  const body=document.getElementById(id);
+  if(state.collapsed[id]){h.classList.add('collapsed');body.classList.add('collapsed');}
+  else if(state.collapsed[id]===false){h.classList.remove('collapsed');body.classList.remove('collapsed');}
+  h.addEventListener('click',()=>{
+    const c=body.classList.toggle('collapsed');
+    h.classList.toggle('collapsed',c);
+    state.collapsed[id]=c;saveState();
+  });
+});
+
+/* ── Scrollspy Seitenleiste ── */
+const links=[...document.querySelectorAll('.ds-body a[href^="#"]')];
+const map={};links.forEach(l=>{const t=document.getElementById(l.getAttribute('href').slice(1));if(t)map[l.getAttribute('href')]=t;});
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){
+  links.forEach(l=>l.classList.toggle('ds-active',l.getAttribute('href')==='#'+e.target.id));}});},
+  {rootMargin:'-10% 0px -80% 0px'});
+Object.values(map).forEach(t=>obs.observe(t));
+/* Klick: eingeklappte Eltern aufklappen, dann scrollen */
+links.forEach(l=>l.addEventListener('click',ev=>{
+  // Teilnehmer: ganz nach oben scrollen, damit der komplette Header sichtbar ist.
+  if(l.getAttribute('href')==='#teilnehmer'){
+    ev.preventDefault();
+    window.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
+  const t=document.getElementById(l.getAttribute('href').slice(1));if(!t)return;
+  let p=t.closest('.kap-body.collapsed,.ukap-body.collapsed');
+  while(p){p.classList.remove('collapsed');const head=document.querySelector('[data-target="'+p.id+'"]');
+    if(head){head.classList.remove('collapsed');state.collapsed[p.id]=false;}p=t.closest('.kap-body.collapsed,.ukap-body.collapsed');}
+  saveState();
+}));
+
+/* ── Aufgaben: Filter ── */
+const grid=document.getElementById('todoGrid');
+const pills=[...document.querySelectorAll('.pill')];
+const allPill=document.querySelector('.pill-all');
+function applyFilters(){
+  const active=state.filters;
+  const cards=[...grid.querySelectorAll('.todo-card')];
+  let visible=0;
+  cards.forEach(c=>{
+    const tags=(c.dataset.tags||'').split(',').filter(Boolean);
+    const matchTag=active.length===0||tags.some(t=>active.includes(t));
+    const isDone=c.classList.contains('done');
+    // Frisch abgehakte Karte (settling) bleibt sichtbar, damit man den Wechsel sieht.
+    const settling=c.classList.contains('settling');
+    const show=matchTag&&(!state.hideDone||!isDone||settling);
+    c.style.display=show?'':'none';
+    if(show)visible++;
+  });
+  document.getElementById('todoEmpty').hidden=visible>0;
+  allPill.classList.toggle('active',active.length===0);
+  pills.forEach(p=>{if(p===allPill)return;p.classList.toggle('active',active.includes(p.dataset.tag));});
+}
+pills.forEach(p=>p.addEventListener('click',()=>{
+  const tag=p.dataset.tag;
+  if(tag==='__all__'){state.filters=[];}
+  else{const i=state.filters.indexOf(tag);if(i>=0)state.filters.splice(i,1);else state.filters.push(tag);}
+  saveState();applyFilters();
+}));
+
+/* ── Aufgaben: erledigt ein-/ausblenden (Standard: sichtbar) ── */
+document.getElementById('toggleDone').checked=state.hideDone;
+document.getElementById('toggleDone').addEventListener('change',e=>{state.hideDone=e.target.checked;saveState();applyFilters();});
+function sortDoneLast(){
+  const cards=[...grid.querySelectorAll('.todo-card')];
+  cards.sort((a,b)=>{const da=a.classList.contains('done')?1:0,db=b.classList.contains('done')?1:0;
+    if(da!==db)return da-db;return (+a.dataset.cur||0)-(+b.dataset.cur||0);});
+  cards.forEach(c=>grid.appendChild(c));
+}
+
+/* ── Sortier-Schlüssel ──
+   Frist: echtes Datum -> YYYYMMDD; KW-Angaben grob am Jahresanfang einsortiert;
+   "ohne Frist"/leer ganz ans Ende. ID: numerisch nach Protokoll-Nr + Kap.Ukap.Lfd. */
+function fristKey(card){
+  const t=(card.querySelector('.todo-frist')?.textContent||'').trim();
+  if(!t||/ohne frist/i.test(t))return '99999999';
+  const dm=t.match(/(\d{2})\.(\d{2})\.(\d{4})/);          // DD.MM.YYYY
+  if(dm)return dm[3]+dm[2]+dm[1];
+  const kw=t.match(/KW\s*(\d{1,2})/i);                    // KW24-26 -> grob 2026, Woche
+  if(kw)return '2026'+String(kw[1]).padStart(2,'0')+'00';
+  return '99999998';                                     // sonstige Textfristen knapp vor "ohne"
+}
+function idKey(card){
+  const m=(card.dataset.id||'').match(/#?(\d+)\|([A-Z])\.?(\d+)?\.?(\d+)?/);
+  if(!m)return [9999,99,999,999];
+  return [ +m[1], (m[2]||'Z').charCodeAt(0), +(m[3]||0), +(m[4]||0) ];
+}
+function applySort(){
+  if(state.sortBy==='manual')return;            // nur data-cur (Quelltext/Drag) beibehalten
+  const cards=[...grid.querySelectorAll('.todo-card')];
+  if(state.sortBy==='frist'){
+    cards.sort((a,b)=>{const ka=fristKey(a),kb=fristKey(b);
+      if(ka!==kb)return ka<kb?-1:1; return (+a.dataset.cur||0)-(+b.dataset.cur||0);});
+  }else if(state.sortBy==='id'){
+    cards.sort((a,b)=>{const ka=idKey(a),kb=idKey(b);
+      for(let i=0;i<ka.length;i++){if(ka[i]!==kb[i])return ka[i]-kb[i];} return 0;});
+  }
+  cards.forEach((c,i)=>c.dataset.cur=i);        // neue Basis-Reihenfolge verankern
+}
+
+/* ── Sortier-Dropdown ── */
+const sortBtn=document.getElementById('sortBtn');
+const sortMenu=document.getElementById('sortMenu');
+const sortBtnLabel=document.getElementById('sortBtnLabel');
+const SORT_LABELS={frist:'nach Frist',id:'nach ID'};
+function syncSortUI(){
+  sortBtnLabel.textContent=SORT_LABELS[state.sortBy]||'Sortieren';
+  sortMenu.querySelectorAll('.sort-item').forEach(it=>
+    it.classList.toggle('active',it.dataset.sort===state.sortBy));
+}
+sortBtn.addEventListener('click',e=>{
+  e.stopPropagation();
+  const open=sortMenu.hidden;
+  sortMenu.hidden=!open;sortBtn.setAttribute('aria-expanded',String(open));
+});
+sortMenu.querySelectorAll('.sort-item').forEach(it=>it.addEventListener('click',()=>{
+  state.sortBy=it.dataset.sort;saveState();
+  applySort();sortDoneLast();applyFilters();syncSortUI();
+  sortMenu.hidden=true;sortBtn.setAttribute('aria-expanded','false');
+}));
+document.addEventListener('click',e=>{
+  if(!sortMenu.hidden&&!sortMenu.contains(e.target)&&!sortBtn.contains(e.target)){
+    sortMenu.hidden=true;sortBtn.setAttribute('aria-expanded','false');
+  }
+});
+grid.querySelectorAll('.todo-check').forEach(chk=>{
+  const card=chk.closest('.todo-card');const id=card.dataset.id;
+  if(state.done.includes(id)){chk.checked=true;card.classList.add('done');}
+  chk.addEventListener('change',()=>{
+    card.classList.toggle('done',chk.checked);
+    const i=state.done.indexOf(id);
+    if(chk.checked&&i<0)state.done.push(id);
+    if(!chk.checked&&i>=0)state.done.splice(i,1);
+    saveState();markDirty();
+    if(chk.checked){
+      // Erst grünes Häkchen + Durchstreichung zeigen, dann ans Ende sortieren
+      // (bzw. ausblenden) — unabhängig vom "Erledigte ausblenden"-Schalter.
+      card.classList.add('settling');
+      setTimeout(()=>{card.classList.remove('settling');reindex();sortDoneLast();applyFilters();},700);
+    }else{
+      reindex();sortDoneLast();applyFilters();
+    }
+  });
+});
+
+/* ── Ungesicherte-Änderungen-Wächter ──
+   dirty = es gab Aufgaben-Änderungen seit dem letzten "Stand sichern".
+   Warnt beim Schließen/Neuladen (Browser zeigt generischen Dialog; Text nicht steuerbar). */
+let dirty=false;
+function markDirty(){dirty=true;}
+window.addEventListener('beforeunload',e=>{
+  if(dirty){e.preventDefault();e.returnValue='';}
+});
+
+/* ── Aufgaben: Drag & Drop ── */
+let dragEl=null;
+grid.querySelectorAll('.todo-card').forEach(c=>{
+  c.addEventListener('dragstart',()=>{dragEl=c;c.classList.add('dragging');});
+  c.addEventListener('dragend',()=>{c.classList.remove('dragging');dragEl=null;
+    grid.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));
+    // Manuelles Ziehen hebt einen aktiven Sortiermodus auf.
+    if(state.sortBy!=='manual'){state.sortBy='manual';syncSortUI();}
+    reindex();persistOrder();markDirty();});
+  c.addEventListener('dragover',e=>{e.preventDefault();if(!dragEl||dragEl===c)return;
+    const r=c.getBoundingClientRect();const after=(e.clientY-r.top)/r.height>0.5;
+    grid.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));c.classList.add('drop-target');
+    grid.insertBefore(dragEl,after?c.nextSibling:c);});
+});
+grid.addEventListener('dragover',e=>e.preventDefault());
+function reindex(){[...grid.querySelectorAll('.todo-card')].forEach((c,i)=>c.dataset.cur=i);}
+function persistOrder(){state.order=[...grid.querySelectorAll('.todo-card')].map(c=>c.dataset.id);saveState();}
+function restoreOrder(){
+  if(state.sortBy&&state.sortBy!=='manual'){
+    // Gespeicherter Sortiermodus hat Vorrang vor gezogener Reihenfolge.
+    applySort();sortDoneLast();
+  }else{
+    if(state.order&&state.order.length){
+      state.order.forEach(id=>{const c=grid.querySelector('.todo-card[data-id="'+CSS.escape(id)+'"]');if(c)grid.appendChild(c);});
+    }
+    reindex();sortDoneLast();
+  }
+}
+
+/* ── Stand sichern: aktuellen DOM (Häkchen + Reihenfolge) als neue HTML-Datei ──
+   Kein Rückfluss nach KADRA — reine Komfort-Sicherung für den Empfänger. */
+const saveBtn=document.getElementById('saveBtn');
+saveBtn.addEventListener('click',()=>{
+  // Live-Zustand der Aufgaben-Checkboxen als HTML-Attribut verankern,
+  // damit er die Serialisierung übersteht (DOM-property -> attribute).
+  grid.querySelectorAll('.todo-card .todo-check').forEach(chk=>{
+    if(chk.checked)chk.setAttribute('checked','');else chk.removeAttribute('checked');
+  });
+  // Auch die Teilnehmer-/Status-Checkboxen im Protokoll sind statisch (kein input),
+  // daher genügt das Verankern oben. doctype + outerHTML = vollständige Datei.
+  const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(document.title||'Protokoll').replace(/[\\/:*?"<>|]+/g,' ').trim()+'.html';
+  a.click();URL.revokeObjectURL(a.href);
+  dirty=false;   // Stand ist gesichert -> keine Schließen-Warnung mehr
+  // kurzes visuelles Feedback
+  const label=saveBtn.childNodes[saveBtn.childNodes.length-1];
+  const prev=label.textContent;
+  saveBtn.classList.add('saved');label.textContent=' Gesichert';
+  setTimeout(()=>{saveBtn.classList.remove('saved');label.textContent=prev;},1600);
+});
+
+loadState();syncSortUI();restoreOrder();applyFilters();
+</script>
+</body>
+</html>

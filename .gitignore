@@ -19,6 +19,10 @@ docs/Sicherheit_und_Sichtbarkeit_GitHub.md
 # Alle Unterordner die mit _ beginnen werden ignoriert
 _*/
 
+# Future-Features-Ordner: enthaelt Beispieldokumente mit echten Inhalten
+# (nur lokal, nicht ins Repo).
+docs/future_features/
+
 # npm / Build
 node_modules/
 npm-debug.log*
