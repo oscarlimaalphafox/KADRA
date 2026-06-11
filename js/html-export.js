@@ -889,9 +889,9 @@ a{color:inherit;text-decoration:none;}
 .doc-structure{--ds-width:307px;width:var(--ds-width);flex-shrink:0;background:var(--bg-app);
   position:sticky;top:0;align-self:flex-start;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 .doc-structure.collapsed{width:44px;}
-.ds-resize{width:5px;flex-shrink:0;cursor:col-resize;background:transparent;position:sticky;top:0;height:100vh;
+.ds-resize{width:1px;flex-shrink:0;cursor:col-resize;background:var(--border-light);position:sticky;top:0;height:100vh;
   align-self:flex-start;transition:background .15s;}
-.ds-resize:hover,.ds-resize.dragging{background:var(--accent-blue-20);}
+.ds-resize:hover,.ds-resize.dragging{background:var(--accent-blue-20);width:4px;}
 .doc-structure.collapsed + .ds-resize{pointer-events:none;}
 .doc-structure.collapsed .ds-title,
 .doc-structure.collapsed .ds-body{display:none;}
