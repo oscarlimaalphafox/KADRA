@@ -368,9 +368,11 @@ ${rows}
     }
 
     const doneClass = point.done ? ' entry-done' : '';
+    // Neue Punkte (im aktuellen Protokoll eingetragen): nur die ID fett.
+    const idClass = point.isNew ? 'entry-id entry-id-new' : 'entry-id';
 
     return `<div class="entry${doneClass}" id="${escAttr(entryAnchor(point.id))}" style="scroll-margin-top:18px;">
-  <div class="entry-id">${esc(point.id || '')}</div>
+  <div class="${idClass}">${esc(point.id || '')}</div>
   <div class="entry-main">
     <div class="entry-meta">
       <span class="kat ${catClass}">${esc(category)}</span>
@@ -942,6 +944,8 @@ a{color:inherit;text-decoration:none;}
 .entry-done{opacity:.42;filter:grayscale(.55);}
 .entry-done .entry-text{color:var(--text-secondary);}
 .entry-id{font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);padding-top:3px;word-break:break-all;}
+/* Neuer Punkt (im aktuellen Protokoll eingetragen): nur die ID fett. */
+.entry-id-new{font-weight:700;color:var(--text-primary);}
 .entry-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;}
 .row-tags{display:inline-flex;gap:5px;flex-wrap:wrap;}
 .entry-frist{font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);}
