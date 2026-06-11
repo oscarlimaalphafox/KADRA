@@ -347,7 +347,7 @@ ${rows}
     return 'entry-' + String(pointId || '').replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');
   }
 
-  function renderEntry(point, tagMap) {
+  function renderEntry(point, tagMap, attachmentLinkMap) {
     const category = normalizeCategory(point.category);
     const catClass = CAT_CLASS[category] || 'kat-aufgabe';
     const tokens = splitResponsibleTokens(point.responsible);
@@ -380,7 +380,7 @@ ${rows}
       ${fristHtml}
       <span class="entry-status">${statusInner}</span>
     </div>
-    <div class="entry-text">${esc(point.content || '')}</div>
+    <div class="entry-text">${linkifyAttachments(esc(point.content || ''), attachmentLinkMap || {})}</div>
   </div>
 </div>`;
   }
@@ -423,7 +423,7 @@ ${bodyHtml}
 
   // Baut Kapitel-Sektionen aus collectPointRows. Themen gruppieren ihre Punkte;
   // Punkte ohne UKAP/Thema (z.B. Aktennotiz) landen direkt im jeweiligen Eltern-Block.
-  function renderChapters(protocol, hiddenChapters, chapterColors, tagMap) {
+  function renderChapters(protocol, hiddenChapters, chapterColors, tagMap, attachmentLinkMap) {
     const rows = collectPointRows(protocol, hiddenChapters);
     const out = [];
 
@@ -474,7 +474,7 @@ ${bodyHtml}
         subBody.push(`<h4 class="thema" id="thema-${escAttr(row.id)}">${esc(row.label)}</h4>`);
         topicEntries = [];
       } else if (row.type === 'point') {
-        const html = renderEntry(row.point, tagMap);
+        const html = renderEntry(row.point, tagMap, attachmentLinkMap);
         if (topicEntries) { topicEntries.push(html); subPointCount += 1; }
         else if (curSub) { if (!looseSub) looseSub = []; looseSub.push(html); subPointCount += 1; }
         else { if (!looseChapter) looseChapter = []; looseChapter.push(html); }
@@ -604,9 +604,60 @@ ${renderTaskCards(tasks, tagMap)}
 
   const DL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>';
 
+  // Baut eine Map { '<id>': { href, fileName } } fuer alle Anlagen.
+  // href ist der Data-URI-Link (eingebettet) oder '#anlagen' (nicht eingebettet/keine Daten).
+  // Wird vor dem Rendern der Punkte aufgebaut, damit linkifyAttachments darauf zugreifen kann.
+  function buildAttachmentLinkMap(protocol) {
+    const map = {};
+    const attachments = protocol.attachments || [];
+    if (!attachments.length) return map;
+
+    let used = 0;
+    attachments.forEach((att) => {
+      if (!att.id) return;
+      const buffer = att.fileData;
+      const byteLen = buffer && (buffer.byteLength != null ? buffer.byteLength : 0);
+      let href = '#anlagen';
+      if (buffer && byteLen) {
+        const projected = used + Math.ceil(byteLen * 4 / 3);
+        if (projected <= ATTACHMENT_BUDGET) {
+          try {
+            const b64 = arrayBufferToBase64(buffer);
+            used += b64.length;
+            const mime = att.fileType || 'application/octet-stream';
+            href = `data:${mime};base64,${b64}`;
+          } catch (e) { /* Fallback auf #anlagen */ }
+        }
+      }
+      map[att.id] = { href, fileName: att.fileName || att.id };
+    });
+    return map;
+  }
+
+  // Ersetzt bekannte Anlagen-IDs im bereits HTML-escapten Text durch klickbare Links.
+  // Sucht nur nach den tatsaechlich vorhandenen IDs — kein generischer Regex.
+  function linkifyAttachments(escapedText, attachmentLinkMap) {
+    if (!escapedText || !Object.keys(attachmentLinkMap).length) return escapedText;
+    let result = escapedText;
+    Object.entries(attachmentLinkMap).forEach(([id, { href, fileName }]) => {
+      // ID ist z.B. '#12.01' — im HTML-escapten Text ist '#' unveraendert.
+      // Literal-Suche via split/join (kein Regex-Escaping noetig).
+      const parts = result.split(id);
+      if (parts.length < 2) return;
+      const isData = href.startsWith('data:');
+      const linkAttr = isData
+        ? `href="${escAttr(href)}" download="${escAttr(fileName)}" title="${escAttr(fileName)}"`
+        : `href="${escAttr(href)}" title="Anlage nicht eingebettet — zur Anlagenliste springen"`;
+      const linkClass = isData ? 'an-ref' : 'an-ref an-ref-missing';
+      result = parts.join(`<a class="${linkClass}" ${linkAttr}>${esc(id)}</a>`);
+    });
+    return result;
+  }
+
   // Liefert { html, skipped: [fileName...] }. Eingebettete Dateien per Base64-Data-URI,
   // Budget ATTACHMENT_BUDGET; danach nur Listeneintrag ohne Download.
-  function renderAttachments(protocol) {
+  // attachmentLinkMap wird von buildAttachmentLinkMap() geliefert (bereits berechnet).
+  function renderAttachments(protocol, attachmentLinkMap) {
     const attachments = protocol.attachments || [];
     const skipped = [];
 
@@ -628,37 +679,25 @@ ${head}
       };
     }
 
-    let used = 0;
     const rows = attachments.map((att) => {
       const num = esc(att.id || '');
       const content = esc(att.content || att.fileName || '');
       const fileName = esc(att.fileName || '');
+      const entry = att.id ? attachmentLinkMap[att.id] : null;
+      const embedded = entry && entry.href.startsWith('data:');
       let dlCell = '<div class="an-cell an-dl"></div>';
 
-      const buffer = att.fileData;
-      const byteLen = buffer && (buffer.byteLength != null ? buffer.byteLength : 0);
-      if (buffer && byteLen) {
-        // Base64 ~ 4/3 der Rohgroesse; gegen Budget pruefen.
-        const projected = used + Math.ceil(byteLen * 4 / 3);
-        if (projected <= ATTACHMENT_BUDGET) {
-          try {
-            const b64 = arrayBufferToBase64(buffer);
-            used += b64.length;
-            const mime = att.fileType || 'application/octet-stream';
-            dlCell = `<div class="an-cell an-dl">
-    <a class="an-download" href="data:${escAttr(mime)};base64,${b64}" download="${escAttr(att.fileName || 'anlage')}" title="Herunterladen">
+      if (embedded) {
+        dlCell = `<div class="an-cell an-dl">
+    <a class="an-download" href="${escAttr(entry.href)}" download="${escAttr(att.fileName || 'anlage')}" title="Herunterladen">
       ${DL_SVG}
     </a>
   </div>`;
-          } catch (e) {
-            skipped.push(att.fileName || att.id || 'Anlage');
-          }
-        } else {
-          skipped.push(att.fileName || att.id || 'Anlage');
-        }
+      } else if (att.fileData) {
+        skipped.push(att.fileName || att.id || 'Anlage');
       }
 
-      const fileLabel = att.fileData && byteLen && !skipped.includes(att.fileName || att.id || 'Anlage')
+      const fileLabel = embedded
         ? fileName
         : (fileName ? `${fileName} <span class="pt-muted">(nicht eingebettet)</span>` : '—');
 
@@ -733,10 +772,12 @@ ${abkItems}
 
     const lsKey = `kadraHtmlExport_${protocol.id || DB.uuid()}`;
 
+    const attachmentLinkMap = buildAttachmentLinkMap(protocol);
+
     const header = renderHeader(protocol, project, tagMap);
-    const chapters = renderChapters(protocol, hiddenChapters, chapterColors, tagMap);
+    const chapters = renderChapters(protocol, hiddenChapters, chapterColors, tagMap, attachmentLinkMap);
     const tasks = renderTasksSection(protocol, hiddenChapters, tagMap);
-    const attachments = renderAttachments(protocol);
+    const attachments = renderAttachments(protocol, attachmentLinkMap);
     const legende = renderLegende(protocol);
     const sidebar = renderSidebar(protocol, hiddenChapters, chapterColors);
 
@@ -1036,6 +1077,11 @@ a{color:inherit;text-decoration:none;}
   border-radius:6px;color:var(--text-tertiary);transition:all .15s;}
 .an-download svg{width:16px;height:16px;}
 .an-download:hover{color:var(--secondary);background:var(--bg-hover);}
+.an-ref{font-family:var(--font-mono);font-size:12px;color:var(--text-primary);background:color-mix(in srgb,#968B79 25%,transparent);
+  padding:1px 5px;border-radius:3px;text-decoration:none;transition:background .15s;}
+.an-ref:hover{background:color-mix(in srgb,#968B79 38%,transparent);text-decoration:underline;}
+.an-ref-missing{color:var(--text-tertiary);background:color-mix(in srgb,var(--text-tertiary) 12%,transparent);}
+.an-ref-missing:hover{background:color-mix(in srgb,var(--text-tertiary) 22%,transparent);}
 .kap-legende{border-bottom:none;}
 .lg-label{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
   color:var(--text-secondary);margin-bottom:12px;}
