@@ -4605,6 +4605,21 @@ function bindGlobalEvents() {
       showToast('Markdown-Export fehlgeschlagen: ' + e.message, 'error');
     }
   });
+  document.getElementById('btnExportHtml').addEventListener('click', async () => {
+    if (!App.currentProtocolId) {
+      showToast('Bitte zuerst ein Protokoll oeffnen.', 'error');
+      return;
+    }
+    try {
+      await saveCurrentProtocol();
+      const fileName = await HtmlExport.exportProtocolHtml(App.currentProtocolId, App.hiddenChapters);
+      showToast(`HTML exportiert: ${fileName}`, 'success');
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+      console.error('HTML-Export Fehler:', e);
+      showToast('HTML-Export fehlgeschlagen: ' + e.message, 'error');
+    }
+  });
 
   // [cleanup]
   const fileInput = document.getElementById('fileImportJson');
