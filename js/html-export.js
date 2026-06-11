@@ -296,15 +296,19 @@ const HtmlExport = (() => {
       : '';
 
     return `<header class="doc-header">
+<div class="dh-card">
 <div class="dh-eyebrow">${eyebrow}</div>
 <h1 class="dh-title">${numbered}</h1>
 <div class="dh-grid">
 ${gridItems}
 </div>
 ${aufgestellt}
+</div>
 
-<div class="pt-label" id="teilnehmer" style="scroll-margin-top:18px;">Teilnehmer</div>
+<div class="pt-card" id="teilnehmer" style="scroll-margin-top:18px;">
+<div class="pt-label">Teilnehmer</div>
 ${renderParticipants(protocol, tagMap)}
+</div>
 </header>`;
   }
 
@@ -435,6 +439,7 @@ ${bodyHtml}
     let looseSub = null;       // Punkte direkt im UKAP, vor/ohne Thema
     let looseChapter = null;   // Punkte direkt im Kapitel (keine UKAP, z.B. Aktennotiz)
     let subPointCount = 0;     // Punkte im aktuellen UKAP (fuer "leer -> eingeklappt")
+    let subDoneCount = 0;      // davon erledigte Punkte (fuer "alle erledigt -> eingeklappt")
 
     function flushTopic() {
       if (topicEntries) { subBody.push(entriesBlock(topicEntries)); topicEntries = null; }
@@ -451,8 +456,9 @@ ${bodyHtml}
       flushTopic();
       flushLooseSub();
       if (curSub) {
-        chapterBody.push(wrapSubchapter(curSub, subBody.join('\n'), subPointCount === 0));
-        curSub = null; subBody = []; subPointCount = 0;
+        const startCollapsed = subPointCount === 0 || subDoneCount === subPointCount;
+        chapterBody.push(wrapSubchapter(curSub, subBody.join('\n'), startCollapsed));
+        curSub = null; subBody = []; subPointCount = 0; subDoneCount = 0;
       }
     }
     function flushChapter() {
@@ -475,8 +481,8 @@ ${bodyHtml}
         topicEntries = [];
       } else if (row.type === 'point') {
         const html = renderEntry(row.point, tagMap, attachmentLinkMap);
-        if (topicEntries) { topicEntries.push(html); subPointCount += 1; }
-        else if (curSub) { if (!looseSub) looseSub = []; looseSub.push(html); subPointCount += 1; }
+        if (topicEntries) { topicEntries.push(html); subPointCount += 1; if (row.point.done) subDoneCount += 1; }
+        else if (curSub) { if (!looseSub) looseSub = []; looseSub.push(html); subPointCount += 1; if (row.point.done) subDoneCount += 1; }
         else { if (!looseChapter) looseChapter = []; looseChapter.push(html); }
       }
     });
@@ -524,16 +530,28 @@ ${bodyHtml}
   /* ── Bausteine: Aufgabenuebersicht ──────────────────────────── */
 
   // Alle Punkte der Kategorie Aufgabe + Freigabe erfordl, in Dokumentreihenfolge.
+  // Liefert { point, contextLabel } — contextLabel = Thema > UKAP > Kapitel-Label.
   function collectTasks(protocol, hiddenChapters) {
-    return collectPointRows(protocol, hiddenChapters)
-      .filter((r) => r.type === 'point' && isTaskCategory(normalizeCategory(r.point.category)))
-      .map((r) => r.point);
+    const rows = collectPointRows(protocol, hiddenChapters);
+    let chapterLabel = '';
+    let subLabel = '';
+    let topicLabel = '';
+    const result = [];
+    rows.forEach((r) => {
+      if (r.type === 'chapter') { chapterLabel = r.label; subLabel = ''; topicLabel = ''; }
+      else if (r.type === 'subchapter') { subLabel = r.label; topicLabel = ''; }
+      else if (r.type === 'topic') { topicLabel = r.label; }
+      else if (r.type === 'point' && isTaskCategory(normalizeCategory(r.point.category))) {
+        result.push({ point: r.point, contextLabel: topicLabel || subLabel || chapterLabel });
+      }
+    });
+    return result;
   }
 
   function renderTaskFilterPills(tasks, tagMap) {
     const seen = [];
-    tasks.forEach((pt) => {
-      splitResponsibleTokens(pt.responsible).forEach((t) => {
+    tasks.forEach(({ point }) => {
+      splitResponsibleTokens(point.responsible).forEach((t) => {
         if (!seen.includes(t)) seen.push(t);
       });
     });
@@ -545,10 +563,13 @@ ${bodyHtml}
 
   function renderTaskCards(tasks, tagMap) {
     if (!tasks.length) return '';
-    return tasks.map((pt, i) => {
+    return tasks.map(({ point: pt, contextLabel }, i) => {
       const tokens = splitResponsibleTokens(pt.responsible);
       const tagsAttr = tokens.join(',');
       const tagsHtml = tokens.map((t) => ktag(t, tagMap)).join('');
+      const contextHtml = contextLabel
+        ? `<span class="todo-context">${esc(contextLabel)}</span>`
+        : '';
       const frist = pt.deadline
         ? `<span class="todo-frist">${esc(pt.deadline)}</span>`
         : '<span class="todo-frist todo-frist-none">ohne Frist</span>';
@@ -556,7 +577,7 @@ ${bodyHtml}
       const checkedAttr = pt.done ? ' checked' : '';
       return `<article class="todo-card${doneClass}" draggable="true" data-id="${escAttr(pt.id || '')}" data-tags="${escAttr(tagsAttr)}" data-order="${i}" data-anchor="${escAttr(entryAnchor(pt.id))}">
   <div class="todo-top"><span class="todo-handle">⠿</span><input type="checkbox" class="todo-check" aria-label="erledigt"${checkedAttr}><span class="todo-ref">${esc(pt.id || '')}</span></div>
-  <div class="todo-tags">${tagsHtml}</div>
+  <div class="todo-tags">${tagsHtml}${contextHtml}</div>
   <div class="todo-text">${esc(pt.content || '')}</div>
   <div class="todo-foot">${frist}</div>
 </article>`;
@@ -927,7 +948,10 @@ a{color:inherit;text-decoration:none;}
 .ds-subchapter.ds-active,.ds-topic.ds-active{background:rgba(0,0,0,.12);color:var(--accent-blue);}
 .ds-divider{margin:10px 16px 4px;height:1px;background:var(--border);}
 .content{flex:1;min-width:0;padding:0 0 60px;background:var(--bg-app);}
-.doc-header{padding:22px 54px 34px;border-bottom:1px solid var(--border-light);}
+.doc-header{padding:22px 54px 28px;}
+.dh-card{background:var(--bg-app);border:1px solid var(--border-light);border-radius:var(--radius-md);
+  box-shadow:0 1px 3px rgba(14,45,88,.05);padding:22px 20px 22px 24px;margin-bottom:18px;
+  border-left:4px solid var(--primary);}
 .dh-eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--tertiary);margin-bottom:10px;}
 .dh-title{font-size:30px;font-weight:800;line-height:1.15;margin:0 0 22px;color:var(--primary);}
@@ -935,13 +959,16 @@ a{color:inherit;text-decoration:none;}
 .dh-item{display:flex;flex-direction:column;gap:2px;}
 .dh-lbl{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-tertiary);}
 .dh-val{font-size:14px;font-weight:600;}
-.dh-aufgestellt{font-size:12px;color:var(--text-secondary);margin-bottom:28px;}
+.dh-aufgestellt{font-size:12px;color:var(--text-secondary);margin-bottom:0;}
+.pt-card{background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius-md);
+  box-shadow:0 1px 3px rgba(14,45,88,.05);padding:0 0 4px;border-left:4px solid var(--text-tertiary);}
 .pt-label{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--text-secondary);margin-bottom:10px;}
+  color:var(--text-secondary);margin:18px 20px 10px;}
 .pt-grid{display:grid;grid-template-columns:1.1fr 1.6fr 100px 1.4fr 96px 96px;
-  background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius-md);overflow:hidden;
-  box-shadow:0 1px 3px rgba(14,45,88,.05);}
+  background:var(--bg-surface);padding:0 12px;}
 .pt-h{font-size:11px;color:var(--text-tertiary);padding:10px 14px 7px;background:var(--bg-app);}
+.pt-h:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm);}
+.pt-h:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0;}
 .pt-h.pt-c{text-align:center;}
 .pt-cell{padding:9px 14px;font-size:13.5px;border-top:1px solid var(--border-light);display:flex;align-items:center;}
 .pt-cell.pt-c{justify-content:center;}
@@ -1051,7 +1078,9 @@ a{color:inherit;text-decoration:none;}
 .todo-handle{color:var(--text-tertiary);font-size:14px;cursor:grab;}
 .todo-check{width:16px;height:16px;accent-color:var(--success);cursor:pointer;}
 .todo-ref{font-family:var(--font-mono);font-size:10.5px;color:var(--text-tertiary);margin-left:auto;}
-.todo-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.todo-tags{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow:hidden;}
+.todo-context{font-family:var(--font-ui);font-size:11px;font-weight:700;color:var(--text-primary);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 0;}
 .todo-text{font-size:11px;line-height:1.5;flex:1;white-space:pre-wrap;}
 /* Gekuerzte Karte: max. 8 Zeilen, Rest abgeschnitten (JS ergaenzt " [...]"). */
 .todo-text.clamped{display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;}

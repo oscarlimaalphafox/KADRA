@@ -30,6 +30,7 @@
 - [x] Hamburger Menü: "Zuletzt verwendet" mit Untermenü unter "Datenbank öffnen"
 - [x] **STRUKTURLEISTE**: Bisher nur als Ansicht. Zukünftig kann man über die Strukturleiste Kapitel, Unterkapitel und Themen manipulieren, also neu erzeugen, löschen, Position per Drag & Drop verändern.
 - [x] TOOLBAR: Schatten nicht nur unten sondern rundherum ausweiten, sodass sich die Toolbar noch besser vom darunterliegenden Workspace abhebt
+- [ ] Das Suchfeld braucht ein löschen-X sodass die Texteingabe gelöscht wird
 
 ## FEATURES
 
