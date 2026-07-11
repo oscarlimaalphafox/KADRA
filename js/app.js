@@ -70,8 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const vals    = Array.from(panel.querySelectorAll('input[type="checkbox"]:checked'))
           .map(cb => cb.value);
         const joined  = vals.join('/');
-        if (wrap)    wrap.dataset.value = joined;
-        if (trigger) trigger.querySelector('.resp-display').textContent = vals.length ? joined : '-';
+        if (wrap)    { wrap.dataset.value = joined; _renderRespDisplay(wrap); }
         panel.classList.add('hidden');
         if (trigger) trigger.classList.remove('open');
       });
@@ -707,6 +706,35 @@ function updateResponsibleDropdowns() {
    MULTI-SELECT ZUSTAENDIG
 ============================================================ */
 
+/* Kürzel/Firma -> Farb-Tag (tag-1..8) anhand der Teilnehmer-Reihenfolge.
+   Gleiche Logik wie der HTML-Export: Teilnehmer i bekommt tag-(i%8)+1. */
+function updateAbbrColorMap() {
+  const map = {};
+  getParticipantsFromDOM().forEach((p, i) => {
+    const tag = (i % DOC_STRUCTURE_TAGS.length) + 1;
+    if (p.abbr && map[p.abbr.toUpperCase()] === undefined) map[p.abbr.toUpperCase()] = tag;
+    if (p.company && map[p.company.toUpperCase()] === undefined) map[p.company.toUpperCase()] = tag;
+  });
+  App._abbrColors = map;
+}
+
+function respPillHtml(val) {
+  const tag = (App._abbrColors || {})[String(val).toUpperCase()];
+  const colorVar = tag ? `var(--tag-${tag})` : 'var(--text-secondary)';
+  return `<span class="resp-pill" style="--tc:${colorVar}" title="${esc(val)}">${esc(val)}</span>`;
+}
+
+/* Anzeige des Zustaendig-Feldes aus wrap.dataset.value neu aufbauen
+   (farbige Kürzel-Pills; leer -> "+ Verantwortlichk." via CSS). */
+function _renderRespDisplay(wrap) {
+  if (!wrap) return;
+  const disp = wrap.querySelector('.resp-display');
+  if (!disp) return;
+  const vals = String(wrap.dataset.value || '').split('/').filter(Boolean);
+  disp.innerHTML = vals.map(respPillHtml).join('');
+  wrap.classList.toggle('resp-has', vals.length > 0);
+}
+
 /**
  * [cleanup]
  * [cleanup]
@@ -718,14 +746,13 @@ function createResponsibleSelect(currentValue, disabled) {
   wrap.dataset.field = 'responsible';
   wrap.dataset.value = currentValue || '';
 
-  const display = currentValue ? currentValue : '-';
-
   const trigger = document.createElement('button');
   trigger.type      = 'button';
   trigger.className = 'resp-trigger';
   trigger.disabled  = !!disabled;
   trigger.innerHTML = `
-    <span class="resp-display">${esc(display)}</span>
+    <span class="resp-display"></span>
+    <span class="resp-empty">+ Verantwortlichk.</span>
     ${iconChevronDown('resp-chevron')}`;
 
   const panel = document.createElement('div');
@@ -745,6 +772,7 @@ function createResponsibleSelect(currentValue, disabled) {
   panel.appendChild(footer);
   wrap.appendChild(trigger);
   wrap.appendChild(panel);
+  _renderRespDisplay(wrap);
 
   // [cleanup]
   trigger.addEventListener('click', (e) => {
@@ -789,7 +817,7 @@ function createResponsibleSelect(currentValue, disabled) {
       }
 
       // Zeilenauswahl synchronisieren
-      const tr = wrap.closest('tr');
+      const tr = wrap.closest('.row-point');
       if (tr && tr.dataset.pointId) {
         selectRow({
           type:'point', chapterKey:tr.dataset.chapter || '',
@@ -808,7 +836,7 @@ function createResponsibleSelect(currentValue, disabled) {
       .map(cb => cb.value);
     const joined = vals.join('/');
     wrap.dataset.value = joined;
-    trigger.querySelector('.resp-display').textContent = vals.length ? joined : '-';
+    _renderRespDisplay(wrap);
     panel.classList.add('hidden');
     trigger.classList.remove('open');
     saveCurrentProtocol();
@@ -817,6 +845,15 @@ function createResponsibleSelect(currentValue, disabled) {
   okBtn.addEventListener('click',    (e) => { e.stopPropagation(); commit(); });
 
   return wrap;
+}
+
+/* Kategorie -> Badge-Klasse (Farbe via --kat-c Custom Property in CSS). */
+function katClass(v) {
+  const s = String(v || '').toLowerCase();
+  if (s.startsWith('info'))    return 'kat-info';
+  if (s.startsWith('festleg')) return 'kat-festlegung';
+  if (s.startsWith('freigabe'))return 'kat-freigabe';
+  return 'kat-aufgabe';
 }
 
 function createCategorySelect(currentValue) {
@@ -830,7 +867,8 @@ function createCategorySelect(currentValue) {
 
   const trigger = document.createElement('button');
   trigger.type = 'button';
-  trigger.className = 'cat-trigger';
+  trigger.className = 'cat-trigger ' + katClass(hidden.value);
+  trigger.title = 'Kategorie ändern';
   trigger.innerHTML = `
     <span class="cat-display">${esc(hidden.value)}</span>
     ${iconChevronDown('cat-chevron')}`;
@@ -842,12 +880,13 @@ function createCategorySelect(currentValue) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'cat-option';
-    btn.textContent = opt;
+    btn.innerHTML = `<span class="kat-dot ${katClass(opt)}"></span>${esc(opt)}`;
     if (opt === hidden.value) btn.classList.add('is-active');
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       hidden.value = opt;
       trigger.querySelector('.cat-display').textContent = opt;
+      trigger.className = 'cat-trigger ' + katClass(opt);
       panel.querySelectorAll('.cat-option').forEach(b => b.classList.toggle('is-active', b.textContent === opt));
       panel.classList.add('hidden');
       trigger.classList.remove('open');
@@ -884,8 +923,7 @@ function setResponsibleDisabled(tr, disabled) {
     wrap.classList.add('resp-disabled');
     if (trigger) trigger.disabled = true;
     wrap.dataset.value = '';
-    const disp = wrap.querySelector('.resp-display');
-    if (disp) disp.textContent = '-';
+    _renderRespDisplay(wrap);
     // [cleanup]
     wrap.querySelector('.resp-panel')?.classList.add('hidden');
   } else {
@@ -937,12 +975,23 @@ function renderPoints(protocol) {
   // [cleanup]
   let akSectionNum = 0;
 
-  Object.entries(structure).forEach(([chKey, chapter]) => {
+  // Kürzel-Farben (Pills) aus der aktuellen Teilnehmerliste ableiten
+  updateAbbrColorMap();
+
+  Object.entries(structure).forEach(([chKey, chapter], chIndex) => {
     const chCollId    = 'chapter-' + chKey;
     const chCollapsed = App.collapsedSections.has(chCollId);
+    const chColor     = docStructureChapterColor(chIndex);
+
+    // Kapitel-Sektion: Container fuer KAP-Zeile + Body (Karten-Layout)
+    const section = document.createElement('section');
+    section.className = 'kap-section';
+    section.dataset.chapter = chKey;
+    section.style.setProperty('--kc', chColor);
+    tbody.appendChild(section);
 
     // [cleanup]
-    const chRow = document.createElement('tr');
+    const chRow = document.createElement('div');
     chRow.className = 'row-chapter';
     chRow.dataset.type       = 'chapter';
     chRow.dataset.chapter    = chKey;
@@ -987,21 +1036,18 @@ function renderPoints(protocol) {
     }
 
     chRow.innerHTML = `
-      <td>
-        <button class="collapse-btn${chCollapsed?' is-collapsed':''}"
-                data-collapse-id="${chCollId}" title="Ein-/Ausklappen">
-          ${iconChevronDown()}
-        </button>
-      </td>
-      <td colspan="7">
-        <div class="structure-label-cell">
-          ${chLabelHtml}
-          <span class="structure-actions">
-            ${chDelBtn}
-            ${isReorderableChapter ? `<span class="drag-handle chapter-drag-handle" title="Kapitel verschieben">${iconGrip()}</span>` : ''}
-          </span>
-        </div>
-      </td>
+      <button class="collapse-btn${chCollapsed?' is-collapsed':''}"
+              data-collapse-id="${chCollId}" title="Ein-/Ausklappen">
+        ${iconChevronDown()}
+      </button>
+      <span class="kap-bar"></span>
+      <div class="structure-label-cell">
+        ${chLabelHtml}
+        <span class="structure-actions">
+          ${chDelBtn}
+          ${isReorderableChapter ? `<span class="drag-handle chapter-drag-handle" title="Kapitel verschieben">${iconGrip()}</span>` : ''}
+        </span>
+      </div>
     `;
 
     // [cleanup]
@@ -1115,38 +1161,53 @@ function renderPoints(protocol) {
     });
 
     addRowClick(chRow, { type:'chapter', chapterKey:chKey, label: isAk ? chapter.label : `Kapitel ${chKey}` });
-    tbody.appendChild(chRow);
+    section.appendChild(chRow);
+
+    // Kapitel-Body: nimmt lose Punkte + UKAP-Karten auf; Collapse versteckt
+    // den ganzen Container (statt frueher einzelne Zeilen via row-hidden).
+    const kapBody = document.createElement('div');
+    kapBody.className = 'kap-body' + (chCollapsed ? ' collapsed' : '');
+    kapBody.dataset.collapseBody = chCollId;
+    section.appendChild(kapBody);
 
     // Direkte Punkte ohne Unterkapitel
     let akPointSeq = 0;
-    points.filter(pt => pt.chapter === chKey && !pt.subchapter).forEach(pt => {
-      const row = createPointRow(pt, protocol.number, chKey, null, null, ac.signal);
-      // Aktennotiz: Anzeige-ID dynamisch berechnen
-      if (isAk) {
-        akPointSeq++;
-        const prefix = chKey === 'P' ? 'P' : chKey === 'N' ? 'N' : String(akSectionNum);
-        const displayId = `${prefix}.${String(akPointSeq).padStart(2,'0')}`;
-        const idSpan = row.querySelector('.point-id');
-        if (idSpan) idSpan.textContent = displayId;
-      }
-      if (chCollapsed) row.classList.add('row-hidden');
-      tbody.appendChild(row);
-    });
+    const loosePoints = points.filter(pt => pt.chapter === chKey && !pt.subchapter);
+    if (loosePoints.length) {
+      const looseEntries = document.createElement('div');
+      looseEntries.className = 'entries entries-loose';
+      loosePoints.forEach(pt => {
+        const row = createPointRow(pt, protocol.number, chKey, null, null, ac.signal);
+        // Aktennotiz: Anzeige-ID dynamisch berechnen
+        if (isAk) {
+          akPointSeq++;
+          const prefix = chKey === 'P' ? 'P' : chKey === 'N' ? 'N' : String(akSectionNum);
+          const displayId = `${prefix}.${String(akPointSeq).padStart(2,'0')}`;
+          const idSpan = row.querySelector('.point-id');
+          if (idSpan) idSpan.textContent = displayId;
+        }
+        looseEntries.appendChild(row);
+      });
+      kapBody.appendChild(looseEntries);
+    }
 
     // [cleanup]
     (chapter.subchapters || []).forEach(sub => {
       const subCollId   = 'subchapter-' + sub.id;
       const subCollapsed = App.collapsedSections.has(subCollId);
-      const hideRow     = chCollapsed;
 
-      const subRow = document.createElement('tr');
+      // UKAP als eigene Karte (Kopfzeile + Body)
+      const ukapCard = document.createElement('div');
+      ukapCard.className = 'ukap-card';
+      kapBody.appendChild(ukapCard);
+
+      const subRow = document.createElement('div');
       subRow.className = 'row-subchapter';
       subRow.dataset.type       = 'subchapter';
       subRow.dataset.chapter    = chKey;
       subRow.dataset.subchapter = sub.id;
       subRow.dataset.collapseId = subCollId;
       subRow.draggable = false;
-      if (hideRow) subRow.classList.add('row-hidden');
 
       // [cleanup]
       const delBtn = `<button class="btn-delete-row" data-action="deleteSubchapter"
@@ -1154,23 +1215,19 @@ function renderPoints(protocol) {
         title="Unterkapitel lÃ¶schen">${iconTrash()}</button>`;
 
       subRow.innerHTML = `
-        <td>
-          <button class="collapse-btn${subCollapsed?' is-collapsed':''}"
-                  data-collapse-id="${subCollId}" title="Ein-/Ausklappen">
-            ${iconChevronDown()}
-          </button>
-        </td>
-        <td colspan="7">
-          <div class="structure-label-cell">
-            <span class="structure-label-group"><span>${esc(sub.id)} </span><span class="editable-label" contenteditable="true"
-              data-chapter="${chKey}" data-subchapter="${esc(sub.id)}"
-              data-field="subchapterLabel">${esc(sub.label)}</span></span>
-            <span class="structure-actions">
-              ${delBtn}
-              <span class="drag-handle sub-drag-handle" title="Unterkapitel verschieben">${iconGrip()}</span>
-            </span>
-          </div>
-        </td>
+        <button class="collapse-btn${subCollapsed?' is-collapsed':''}"
+                data-collapse-id="${subCollId}" title="Ein-/Ausklappen">
+          ${iconChevronDown()}
+        </button>
+        <div class="structure-label-cell">
+          <span class="structure-label-group"><span>${esc(sub.id)} </span><span class="editable-label" contenteditable="true"
+            data-chapter="${chKey}" data-subchapter="${esc(sub.id)}"
+            data-field="subchapterLabel">${esc(sub.label)}</span></span>
+          <span class="structure-actions">
+            ${delBtn}
+            <span class="drag-handle sub-drag-handle" title="Unterkapitel verschieben">${iconGrip()}</span>
+          </span>
+        </div>
       `;
       // [cleanup]
       const subLabel = subRow.querySelector('.editable-label[data-field="subchapterLabel"]');
@@ -1207,14 +1264,9 @@ function renderPoints(protocol) {
         App._dragGroup = chKey;
         App._dragType  = 'subchapter';
         startDragAutoScroll();
-        // [cleanup]
-        let sib = subRow.nextElementSibling;
-        while (sib && sib.dataset.type !== 'subchapter' && sib.dataset.type !== 'chapter') {
-          if (sib.dataset.chapter === chKey && sib.dataset.subchapter === sub.id) {
-            sib.classList.add('drag-child-hidden');
-          }
-          sib = sib.nextElementSibling;
-        }
+        // Waehrend des Drags die Kinder ausblenden (kompakteres Drag-Bild)
+        const ownBody = ukapCard.querySelector('.ukap-body');
+        if (ownBody) ownBody.classList.add('drag-child-hidden');
       });
 
       subRow.addEventListener('dragend', () => {
@@ -1287,20 +1339,23 @@ function renderPoints(protocol) {
         type:'subchapter', chapterKey:chKey, subchapterId:sub.id,
         label:`${sub.id} ${sub.label}`
       });
-      tbody.appendChild(subRow);
+      ukapCard.appendChild(subRow);
 
-      const hideChildren = hideRow || subCollapsed;
+      // UKAP-Body: Themen + Punkte; Collapse versteckt den Container
+      const ukapBody = document.createElement('div');
+      ukapBody.className = 'ukap-body' + (subCollapsed ? ' collapsed' : '');
+      ukapBody.dataset.collapseBody = subCollId;
+      ukapCard.appendChild(ukapBody);
 
       // Themen
       (sub.topics || []).forEach(topic => {
-        const topicRow = document.createElement('tr');
+        const topicRow = document.createElement('div');
         topicRow.className = 'row-topic';
         topicRow.dataset.type       = 'topic';
         topicRow.dataset.chapter    = chKey;
         topicRow.dataset.subchapter = sub.id;
         topicRow.dataset.topic      = topic.id;
         topicRow.draggable = false;
-        if (hideChildren) topicRow.classList.add('row-hidden');
 
         const topicDelBtn = `<button class="btn-delete-row" data-action="deleteTopic"
           data-chapter="${chKey}" data-subchapter="${esc(sub.id)}" data-topic="${esc(topic.id)}"
@@ -1308,15 +1363,16 @@ function renderPoints(protocol) {
           title="Thema lÃ¶schen">${iconTrash()}</button>`;
 
         topicRow.innerHTML = `
-          <td><span class="drag-handle" title="Thema verschieben">${iconGrip()}</span></td>
-          <td colspan="7">
-            <div class="structure-label-cell">
-              <span class="topic-label editable-label" contenteditable="true"
-                data-chapter="${chKey}" data-subchapter="${esc(sub.id)}"
-                data-topic="${esc(topic.id)}" data-field="topicLabel">${esc(topic.label)}</span>
+          <span class="topic-dot"></span>
+          <div class="structure-label-cell">
+            <span class="topic-label editable-label" contenteditable="true"
+              data-chapter="${chKey}" data-subchapter="${esc(sub.id)}"
+              data-topic="${esc(topic.id)}" data-field="topicLabel">${esc(topic.label)}</span>
+            <span class="structure-actions">
               ${topicDelBtn}
-            </div>
-          </td>
+              <span class="drag-handle" title="Thema verschieben">${iconGrip()}</span>
+            </span>
+          </div>
         `;
         // [cleanup]
         const topicLabel = topicRow.querySelector('.editable-label[data-field="topicLabel"]');
@@ -1356,12 +1412,9 @@ function renderPoints(protocol) {
           App._dragGroup = group;
           App._dragType  = 'topic';
           startDragAutoScroll();
-          // [cleanup]
-          let sib = topicRow.nextElementSibling;
-          while (sib && sib.dataset.type === 'point' && sib.dataset.topic === topic.id) {
-            sib.classList.add('drag-child-hidden');
-            sib = sib.nextElementSibling;
-          }
+          // Punkte des Themas waehrend des Drags ausblenden (Container folgt der Zeile)
+          const sib = topicRow.nextElementSibling;
+          if (sib && sib.classList.contains('entries')) sib.classList.add('drag-child-hidden');
         });
 
         topicRow.addEventListener('dragend', () => {
@@ -1429,25 +1482,28 @@ function renderPoints(protocol) {
           type:'topic', chapterKey:chKey, subchapterId:sub.id,
           topicId:topic.id, label:`Thema: ${topic.label}`
         });
-        tbody.appendChild(topicRow);
+        ukapBody.appendChild(topicRow);
 
-        // Punkte unter Thema
+        // Punkte unter Thema (Container direkt hinter der Themen-Zeile)
+        const topicEntries = document.createElement('div');
+        topicEntries.className = 'entries';
+        topicEntries.dataset.topicEntries = topic.id;
+        ukapBody.appendChild(topicEntries);
         points
           .filter(pt => pt.chapter===chKey && pt.subchapter===sub.id && pt.topic===topic.id)
           .forEach(pt => {
-            const row = createPointRow(pt, protocol.number, chKey, sub.id, topic.id, ac.signal);
-            if (hideChildren) row.classList.add('row-hidden');
-            tbody.appendChild(row);
+            topicEntries.appendChild(createPointRow(pt, protocol.number, chKey, sub.id, topic.id, ac.signal));
           });
       });
 
       // Punkte ohne Thema im Unterkapitel
+      const noTopicEntries = document.createElement('div');
+      noTopicEntries.className = 'entries';
+      ukapBody.appendChild(noTopicEntries);
       points
         .filter(pt => pt.chapter===chKey && pt.subchapter===sub.id && !pt.topic)
         .forEach(pt => {
-          const row = createPointRow(pt, protocol.number, chKey, sub.id, null, ac.signal);
-          if (hideChildren) row.classList.add('row-hidden');
-          tbody.appendChild(row);
+          noTopicEntries.appendChild(createPointRow(pt, protocol.number, chKey, sub.id, null, ac.signal));
         });
     });
   });
@@ -1606,12 +1662,12 @@ function renderDocStructure(protocol) {
 function docStructureFindRow(el) {
   const type = el.dataset.type;
   if (type === 'chapter') {
-    return document.querySelector('#pointsBody tr.row-chapter[data-chapter="' + cssEscape(el.dataset.chapter) + '"]');
+    return document.querySelector('#pointsBody .row-chapter[data-chapter="' + cssEscape(el.dataset.chapter) + '"]');
   }
   if (type === 'subchapter') {
-    return document.querySelector('#pointsBody tr.row-subchapter[data-subchapter="' + cssEscape(el.dataset.subchapter) + '"]');
+    return document.querySelector('#pointsBody .row-subchapter[data-subchapter="' + cssEscape(el.dataset.subchapter) + '"]');
   }
-  return document.querySelector('#pointsBody tr.row-topic[data-topic="' + cssEscape(el.dataset.topic) + '"]');
+  return document.querySelector('#pointsBody .row-topic[data-topic="' + cssEscape(el.dataset.topic) + '"]');
 }
 
 // Minimaler CSS-Attribut-Escaper (IDs koennen Punkte/Sonderzeichen enthalten).
@@ -1749,15 +1805,15 @@ function updateDocStructureSpy() {
   const lineY    = cRect.top + toolbarH + Math.round((cRect.height - toolbarH) / 3);
 
   // Letzte Struktur-Zeile, die noch oberhalb der Linie beginnt = aktuelle Stelle.
-  const rows = container.querySelectorAll('#pointsBody tr.row-chapter, #pointsBody tr.row-subchapter, #pointsBody tr.row-topic');
+  const rows = container.querySelectorAll('#pointsBody .row-chapter, #pointsBody .row-subchapter, #pointsBody .row-topic');
   let current = null;
   rows.forEach(r => {
-    if (r.classList.contains('row-hidden')) return;
+    if (r.offsetParent === null) return; // versteckt (Collapse/Filter/Suche)
     if (r.getBoundingClientRect().top <= lineY) current = r;
   });
   if (!current) {
     // Vor der ersten Struktur-Zeile: erstes Element aktiv lassen.
-    current = Array.from(rows).find(r => !r.classList.contains('row-hidden')) || null;
+    current = Array.from(rows).find(r => r.offsetParent !== null) || null;
   }
   if (!current) return;
 
@@ -1779,6 +1835,12 @@ function toolbarOverflows() {
   return tools.scrollWidth > tools.clientWidth + 0.5;
 }
 
+// Theme der Strukturleiste anwenden (dunkel = Default, hell via Einstellungen).
+function applyDocStructureTheme() {
+  const dark = (localStorage.getItem('kadra_docStructureTheme') || 'dark') === 'dark';
+  document.getElementById('docStructure')?.classList.toggle('ds-dark', dark);
+}
+
 // Toggle + Resize der Dokumentenstruktur-Leiste (einmalig binden).
 function initDocStructureControls() {
   const panel  = document.getElementById('docStructure');
@@ -1786,6 +1848,8 @@ function initDocStructureControls() {
   const toggle = document.getElementById('btnToggleDocStructure');
   const body   = document.getElementById('docStructureBody');
   if (!panel || !toggle || !body) return;
+
+  applyDocStructureTheme();
 
   // Toggle-Icon (Panel-Open/Close aus dem Icon-System).
   const setToggleIcon = () => {
@@ -2220,7 +2284,7 @@ function stopDragAutoScroll() {
 
 /* [cleanup] */
 function createPointRow(point, currentNum, chKey, subId, topicId, renderSignal) {
-  const tr = document.createElement('tr');
+  const tr = document.createElement('div');
   tr.className = 'row-point';
   tr.dataset.pointId  = point.id;
   tr.dataset.type     = 'point';
@@ -2247,44 +2311,51 @@ function createPointRow(point, currentNum, chKey, subId, topicId, renderSignal) 
   tr.draggable = false;
 
   tr.innerHTML = `
-    <td><span class="drag-handle" title="Punkt verschieben">${iconGrip()}</span></td>
-    <td><span class="point-id">${esc(point.id)}</span></td>
-    <td class="content-cell${contentAmended ? ' content-amended' : ''}">
-      <textarea class="table-textarea" data-field="content" rows="1"
-        placeholder="Inhalt ...">${esc(point.content || '')}</textarea>
-    </td>
-    <td class="col-category category-cell"></td>
-    <td class="resp-cell"></td>
-    <td class="deadline-cell${deadlineAmended ? ' deadline-amended' : ''}">
-      <div class="termin-wrap">
-        <input type="text" class="table-input termin-input" data-field="deadline"
-          value="${esc(point.deadline || '')}" placeholder="-" />
-        <button type="button" class="termin-cal-btn" title="Kalender Ã¶ffnen">
-          ${iconCalendar()}
-        </button>
-        <input type="date" class="termin-date-hidden" tabindex="-1" aria-hidden="true" />
-      </div>
-    </td>
-    <td class="col-done col-center">
-      <div class="point-check-btn" data-field="done" data-checked="${point.done ? '1' : ''}">
+    <div class="entry-check">
+      <div class="point-check-btn" data-field="done" data-checked="${point.done ? '1' : ''}"
+        title="erledigt">
         ${point.done ? iconSquareCheckBig() : iconSquare()}
       </div>
-    </td>
-    <td>
-      <button class="btn-delete-row" data-action="deletePoint"
-        data-point-id="${point.id}" title="Punkt lÃ¶schen">${iconTrash()}</button>
-    </td>
+    </div>
+    <div class="entry-id"><span class="point-id">${esc(point.id)}</span></div>
+    <div class="entry-main">
+      <div class="entry-meta">
+        <span class="category-cell"></span>
+        <span class="resp-cell"></span>
+        <span class="deadline-cell${deadlineAmended ? ' deadline-amended' : ''}">
+          <span class="termin-wrap">
+            <input type="text" class="table-input termin-input" data-field="deadline"
+              value="${esc(point.deadline || '')}" placeholder="—" />
+            <button type="button" class="termin-cal-btn" title="Kalender öffnen">
+              ${iconCalendar()}
+            </button>
+            <input type="date" class="termin-date-hidden" tabindex="-1" aria-hidden="true" />
+          </span>
+        </span>
+        <span class="entry-meta-spacer"></span>
+        <span class="entry-actions">
+          <span class="drag-handle" title="Punkt verschieben">${iconGrip()}</span>
+          <button class="btn-delete-row" data-action="deletePoint"
+            data-point-id="${point.id}" title="Punkt löschen">${iconTrash()}</button>
+        </span>
+      </div>
+      <div class="content-cell${contentAmended ? ' content-amended' : ''}">
+        <textarea class="table-textarea" data-field="content" rows="1"
+          placeholder="Inhalt ...">${esc(point.content || '')}</textarea>
+      </div>
+    </div>
   `;
 
   tr.querySelector('.category-cell').appendChild(createCategorySelect(catVal));
   // [cleanup]
   tr.querySelector('.resp-cell').appendChild(respSelect);
 
-  // Zeilenauswahl per Fokus
+  // Zeilenauswahl per Fokus + Klick auf freie Kartenflaeche
   const rowCtx = {
     type:'point', chapterKey:chKey, subchapterId:subId,
     topicId, pointId:point.id, label:`Punkt ${point.id}`
   };
+  addRowClick(tr, rowCtx);
   tr.querySelectorAll('input, select, textarea').forEach(el => {
     el.addEventListener('focus', () => selectRow(rowCtx, tr));
     el.addEventListener('change', saveCurrentProtocol);
@@ -2534,6 +2605,7 @@ function selectRow(ctx, rowEl) {
   document.querySelectorAll('.row-selected').forEach(r => r.classList.remove('row-selected'));
   App.selectedRow = ctx;
   if (rowEl) rowEl.classList.add('row-selected');
+  renderInsertLine(rowEl, ctx);
   updateSelectionHint();
 
   // Strukturleiste an der Auswahl ausrichten (PKT -> Thema/UKAP/KAP).
@@ -2552,17 +2624,17 @@ function updateSelectionHint() {
 function syncSelectionAfterRender() {
   document.querySelectorAll('.row-selected').forEach(r => r.classList.remove('row-selected'));
   const sel = App.selectedRow;
-  if (!sel) { updateSelectionHint(); return; }
+  if (!sel) { renderInsertLine(null, null); updateSelectionHint(); return; }
 
   let row = null;
   if (sel.type === 'point' && sel.pointId) {
-    row = document.querySelector('#pointsBody tr.row-point[data-point-id="' + sel.pointId + '"]');
+    row = document.querySelector('#pointsBody .row-point[data-point-id="' + sel.pointId + '"]');
   } else if (sel.type === 'topic' && sel.topicId) {
-    row = document.querySelector('#pointsBody tr.row-topic[data-topic="' + sel.topicId + '"]');
+    row = document.querySelector('#pointsBody .row-topic[data-topic="' + sel.topicId + '"]');
   } else if (sel.type === 'subchapter' && sel.subchapterId) {
-    row = document.querySelector('#pointsBody tr.row-subchapter[data-subchapter="' + sel.subchapterId + '"]');
+    row = document.querySelector('#pointsBody .row-subchapter[data-subchapter="' + sel.subchapterId + '"]');
   } else if (sel.type === 'chapter' && sel.chapterKey) {
-    row = document.querySelector('#pointsBody tr.row-chapter[data-chapter="' + sel.chapterKey + '"]');
+    row = document.querySelector('#pointsBody .row-chapter[data-chapter="' + sel.chapterKey + '"]');
   }
 
   if (row) {
@@ -2570,179 +2642,95 @@ function syncSelectionAfterRender() {
   } else {
     App.selectedRow = null;
   }
+  renderInsertLine(row, App.selectedRow);
   updateSelectionHint();
+}
+
+/* Einfüge-Linie "Neuen Punkt einfügen" unter der ausgewaehlten Punkt-Karte.
+   Klick legt einen neuen Punkt direkt unter dem ausgewaehlten an (addPoint
+   fuegt bei Punkt-Auswahl hinter dem Referenzpunkt ein). */
+function renderInsertLine(rowEl, ctx) {
+  document.querySelectorAll('#pointsBody .insert-line').forEach(el => el.remove());
+  if (!rowEl || !ctx || ctx.type !== 'point') return;
+  const line = document.createElement('div');
+  line.className = 'insert-line';
+  line.title = 'Neuen Punkt unter dem ausgewaehlten Punkt anlegen';
+  line.innerHTML = `<span class="insert-plus">${iconPlus()}</span><span class="insert-label">Neuen Punkt einfügen</span>`;
+  line.addEventListener('click', (e) => {
+    e.stopPropagation();
+    addPoint();
+  });
+  rowEl.after(line);
 }
 
 
 function syncCollapseAllButtonState() {
-  const sectionIds = Array.from(document.querySelectorAll('#pointsBody tr[data-collapse-id]'))
-    .map(tr => tr.dataset.collapseId)
+  const sectionIds = Array.from(document.querySelectorAll('#pointsBody [data-collapse-body]'))
+    .map(el => el.dataset.collapseBody)
     .filter(Boolean);
   App.allCollapsed = sectionIds.length > 0 && sectionIds.every(id => App.collapsedSections.has(id));
 }
 /* ============================================================
    COLLAPSE / EXPAND
+   Karten-Layout: Collapse versteckt den jeweiligen Body-Container
+   (.kap-body / .ukap-body via .collapsed), nicht mehr einzelne Zeilen.
 ============================================================ */
-/* [cleanup] */
-function getRowsForSection(sectionId) {
-  const rows = [];
-  if (sectionId.startsWith('chapter-')) {
-    const ch = sectionId.replace('chapter-', '');
-    document.querySelectorAll(`#pointsBody tr[data-chapter="${ch}"]`).forEach(tr => {
-      if (tr.dataset.type !== 'chapter') rows.push(tr);
-    });
-  } else if (sectionId.startsWith('subchapter-')) {
-    const sub = sectionId.replace('subchapter-', '');
-    document.querySelectorAll(`#pointsBody tr[data-subchapter="${sub}"]`).forEach(tr => {
-      if (tr.dataset.type !== 'subchapter') rows.push(tr);
-    });
-  }
-  return rows;
+
+/* Liegt ein Element in einem eingeklappten Kapitel/UKAP? */
+function isInCollapsedSection(el) {
+  return !!el.closest('.kap-body.collapsed, .ukap-body.collapsed');
 }
 
-/** Einzelne Section mit Fade-Animation ein-/ausklappen */
+/** Einzelne Section ein-/ausklappen */
 function toggleCollapse(sectionId) {
-  const rowEl = document.querySelector(`tr[data-collapse-id="${sectionId}"]`);
-  const btn   = rowEl?.querySelector('.collapse-btn');
-  if (!rowEl) {
+  const body = document.querySelector(`#pointsBody [data-collapse-body="${sectionId}"]`);
+  const btn  = document.querySelector(`#pointsBody .collapse-btn[data-collapse-id="${sectionId}"]`);
+  if (!body) {
     App.collapsedSections.delete(sectionId);
     syncCollapseAllButtonState();
     return;
   }
 
-  if (App.collapsedSections.has(sectionId)) {
-    // [cleanup]
-    App.collapsedSections.delete(sectionId);
-    btn?.classList.remove('is-collapsed');
-    const rows = getRowsForSection(sectionId);
-    rows.forEach(tr => {
-      // [cleanup]
-      const chKey = tr.dataset.chapter;
-      if (chKey && App.collapsedSections.has('chapter-' + chKey)) return;
-      // Nur anzeigen, wenn nicht durch eingeklapptes UKAP versteckt
-      const subKey = tr.dataset.subchapter;
-      if (subKey && tr.dataset.type !== 'subchapter' && App.collapsedSections.has('subchapter-' + subKey)) return;
-      tr.style.opacity    = '0';
-      tr.style.transition = '';
-      tr.classList.remove('row-hidden');
-      // Hoehe neu messen: war die Zeile bei einer Breitenaenderung versteckt,
-      // stimmt die fixe Textarea-Hoehe nicht mehr.
-      tr.querySelectorAll('.table-textarea').forEach(autoResize);
-      requestAnimationFrame(() => {
-        tr.style.transition = 'opacity 150ms ease';
-        tr.style.opacity    = '1';
-      });
-      setTimeout(() => { tr.style.transition = ''; tr.style.opacity = ''; }, 160);
+  const collapse = !App.collapsedSections.has(sectionId);
+  if (collapse) App.collapsedSections.add(sectionId);
+  else          App.collapsedSections.delete(sectionId);
+
+  body.classList.toggle('collapsed', collapse);
+  btn?.classList.toggle('is-collapsed', collapse);
+
+  if (!collapse) {
+    // Hoehe neu messen: war die Textarea bei einer Breitenaenderung versteckt,
+    // stimmt die fixe Hoehe nicht mehr. Nur sichtbare messen.
+    body.querySelectorAll('.table-textarea').forEach(ta => {
+      if (ta.offsetParent !== null) autoResize(ta);
     });
-  setTimeout(refreshSearchIfActive, 170);
-    syncCollapseAllButtonState();
-  } else {
-    // [cleanup]
-    const rows = getRowsForSection(sectionId);
-    rows.forEach(tr => {
-      if (tr.classList.contains('row-hidden')) return; // bereits versteckt
-      tr.style.transition = 'opacity 150ms ease';
-      tr.style.opacity    = '0';
-    });
-    setTimeout(() => {
-      App.collapsedSections.add(sectionId);
-      btn?.classList.add('is-collapsed');
-      rows.forEach(tr => {
-        tr.classList.add('row-hidden');
-        tr.style.transition = '';
-        tr.style.opacity    = '';
-      });
-      syncCollapseAllButtonState();
-      refreshSearchIfActive();
-    }, 150);
   }
+  syncCollapseAllButtonState();
+  refreshSearchIfActive();
 }
 
-/** Initiale Collapse-State ohne Animation anwenden (beim Rendern) */
-function applyCollapsedState() {
-  document.querySelectorAll('#pointsBody tr').forEach(tr => {
-    tr.classList.remove('row-hidden');
-    const colId = tr.dataset.collapseId;
-    if (colId) {
-      const b = tr.querySelector('.collapse-btn');
-      if (b) b.classList.toggle('is-collapsed', App.collapsedSections.has(colId));
-    }
-  });
-  App.collapsedSections.forEach(sid => {
-    if (sid.startsWith('chapter-')) {
-      const ch = sid.replace('chapter-', '');
-      document.querySelectorAll(`#pointsBody tr[data-chapter="${ch}"]`).forEach(tr => {
-        if (tr.dataset.type !== 'chapter') tr.classList.add('row-hidden');
-      });
-    } else if (sid.startsWith('subchapter-')) {
-      const sub = sid.replace('subchapter-', '');
-      document.querySelectorAll(`#pointsBody tr[data-subchapter="${sub}"]`).forEach(tr => {
-        if (tr.dataset.type !== 'subchapter') tr.classList.add('row-hidden');
-      });
-    }
-  });
-}
-
-/** Alle Kapitel + Unterkapitel einklappen oder aufklappen (mit Fade) */
+/** Alle Kapitel + Unterkapitel einklappen oder aufklappen */
 function toggleCollapseAll() {
-  const allSectionIds = [];
-  document.querySelectorAll('#pointsBody tr[data-collapse-id]').forEach(tr => {
-    allSectionIds.push(tr.dataset.collapseId);
-  });
-
-  if (allSectionIds.length === 0) {
+  const bodies = Array.from(document.querySelectorAll('#pointsBody [data-collapse-body]'));
+  if (bodies.length === 0) {
     App.allCollapsed = false;
     syncCollapseAllButtonState();
     return;
   }
 
-  if (!App.allCollapsed) {
-    // [cleanup]
-    const rowsToHide = [];
-    allSectionIds.forEach(sid => {
-      getRowsForSection(sid).forEach(tr => {
-        if (!tr.classList.contains('row-hidden') && !rowsToHide.includes(tr)) {
-          rowsToHide.push(tr);
-        }
-      });
-    });
-    rowsToHide.forEach(tr => {
-      tr.style.transition = 'opacity 150ms ease';
-      tr.style.opacity    = '0';
-    });
-    setTimeout(() => {
-      allSectionIds.forEach(s => App.collapsedSections.add(s));
-      rowsToHide.forEach(tr => {
-        tr.classList.add('row-hidden');
-        tr.style.transition = ''; tr.style.opacity = '';
-      });
-      // Pfeile aktualisieren
-      document.querySelectorAll('.collapse-btn').forEach(b =>
-        b.classList.add('is-collapsed'));
-      syncCollapseAllButtonState();
-      refreshSearchIfActive();
-    }, 150);
+  const collapse = !App.allCollapsed;
+  bodies.forEach(body => {
+    const id = body.dataset.collapseBody;
+    if (collapse) App.collapsedSections.add(id);
+    else          App.collapsedSections.delete(id);
+    body.classList.toggle('collapsed', collapse);
+  });
+  document.querySelectorAll('#pointsBody .collapse-btn').forEach(b =>
+    b.classList.toggle('is-collapsed', collapse));
 
-  } else {
-    // [cleanup]
-    App.collapsedSections.clear();
-    document.querySelectorAll('.collapse-btn').forEach(b => b.classList.remove('is-collapsed'));
-
-    const rowsToShow = document.querySelectorAll('#pointsBody tr.row-hidden');
-    rowsToShow.forEach(tr => {
-      tr.style.opacity    = '0';
-      tr.style.transition = '';
-      tr.classList.remove('row-hidden');
-      tr.querySelectorAll('.table-textarea').forEach(autoResize);
-      requestAnimationFrame(() => {
-        tr.style.transition = 'opacity 150ms ease';
-        tr.style.opacity    = '1';
-      });
-      setTimeout(() => { tr.style.transition = ''; tr.style.opacity = ''; }, 160);
-    });
-    syncCollapseAllButtonState();
-    setTimeout(refreshSearchIfActive, 170);
-  }
+  if (!collapse) autoResizeVisible();
+  syncCollapseAllButtonState();
+  refreshSearchIfActive();
 }
 
 /* ============================================================
@@ -2919,9 +2907,8 @@ async function populateChapterFilter() {
 }
 
 function applyChapterFilter() {
-  document.querySelectorAll('#pointsBody tr[data-chapter]').forEach(tr => {
-    const ch = tr.dataset.chapter;
-    tr.classList.toggle('chapter-filtered', App.hiddenChapters.has(ch));
+  document.querySelectorAll('#pointsBody .kap-section[data-chapter]').forEach(sec => {
+    sec.classList.toggle('chapter-filtered', App.hiddenChapters.has(sec.dataset.chapter));
   });
   const btn = document.getElementById('btnChapterFilter');
   btn.classList.toggle('has-filter', App.hiddenChapters.size > 0);
@@ -3352,7 +3339,7 @@ async function saveTopic() {
     renderPoints(protocol);
 
     setTimeout(() => {
-      const row = document.querySelector(`tr[data-point-id="${newPoint.id}"]`);
+      const row = document.querySelector(`.row-point[data-point-id="${newPoint.id}"]`);
       if (row) {
         row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         row.querySelector('textarea')?.focus();
@@ -3436,12 +3423,20 @@ async function addPoint() {
       createdInProtocol: protocol.number,
     };
 
-    protocol.points = [...(protocol.points || []), newPoint];
+    // Bei ausgewaehltem Punkt: direkt dahinter einfuegen (Einfuege-Linie/Toolbar),
+    // sonst ans Ende der Punkteliste.
+    const pts = protocol.points || [];
+    let insertIdx = pts.length;
+    if (sel.type === 'point' && sel.pointId) {
+      const refIdx = pts.findIndex(p => p.id === sel.pointId);
+      if (refIdx !== -1) insertIdx = refIdx + 1;
+    }
+    protocol.points = [...pts.slice(0, insertIdx), newPoint, ...pts.slice(insertIdx)];
     await DB.Protocols.save(protocol);
     renderPoints(protocol);
 
     setTimeout(() => {
-      const row = document.querySelector(`tr[data-point-id="${newPoint.id}"]`);
+      const row = document.querySelector(`.row-point[data-point-id="${newPoint.id}"]`);
       if (row) {
         row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         row.querySelector('textarea')?.focus();
@@ -3589,7 +3584,7 @@ async function saveCurrentProtocol() {
       pointBuckets.get(key).push(pt);
     });
 
-    document.querySelectorAll('#pointsBody tr[data-point-id]').forEach(tr => {
+    document.querySelectorAll('#pointsBody .row-point[data-point-id]').forEach(tr => {
       const id = tr.dataset.pointId;
       const bucket = pointBuckets.get(String(id));
       const pt = bucket?.shift();
@@ -4726,9 +4721,25 @@ function setupProjectMenu() {
   if (btnSettings) {
     btnSettings.addEventListener('click', () => {
       panel.classList.add('hidden');
-      // Platzhalter: Einstellungen folgen spaeter.
+      const theme = localStorage.getItem('kadra_docStructureTheme') || 'dark';
+      const darkRadio  = document.getElementById('dsThemeDark');
+      const lightRadio = document.getElementById('dsThemeLight');
+      if (darkRadio)  darkRadio.checked  = theme === 'dark';
+      if (lightRadio) lightRadio.checked = theme !== 'dark';
+      openModal('modalSettings');
     });
   }
+
+  // Einstellungen: Theme der Dokumentenstruktur-Leiste (dunkel/hell)
+  ['dsThemeDark', 'dsThemeLight'].forEach(id => {
+    const radio = document.getElementById(id);
+    if (!radio) return;
+    radio.addEventListener('change', () => {
+      if (!radio.checked) return;
+      localStorage.setItem('kadra_docStructureTheme', radio.value);
+      applyDocStructureTheme();
+    });
+  });
 
   // [cleanup]
   const _logoEl = document.querySelector('.sidebar-logo-img');
@@ -6081,8 +6092,8 @@ function executeSearch(rawQuery) {
   const matchedTopics      = new Set();
 
   pointRows.forEach(tr => {
-    // Skip rows already hidden by other filters
-    if (tr.classList.contains('filter-hidden') || tr.classList.contains('chapter-filtered') || tr.classList.contains('row-hidden')) return;
+    // Skip rows already hidden by other filters or collapsed sections
+    if (tr.classList.contains('filter-hidden') || tr.classList.contains('chapter-filtered') || isInCollapsedSection(tr)) return;
 
     const content    = (tr.querySelector('[data-field="content"]')?.value || '').toLowerCase();
     const pointId    = (tr.querySelector('.point-id')?.textContent || '').toLowerCase();
@@ -6102,19 +6113,24 @@ function executeSearch(rawQuery) {
     }
   });
 
-  // Hide structure rows that have no matching children
+  // Hide structure rows that have no matching children.
+  // Karten-Layout: statt der Zeile den zugehoerigen Container verstecken,
+  // damit keine leeren Karten-Huellen stehen bleiben.
   structRows.forEach(tr => {
     let keep = false;
+    let target = tr;
     if (tr.classList.contains('row-chapter')) {
       keep = matchedChapters.has(tr.dataset.chapter);
+      target = tr.closest('.kap-section') || tr;
     } else if (tr.classList.contains('row-subchapter')) {
       keep = matchedSubchapters.has(tr.dataset.subchapter);
+      target = tr.closest('.ukap-card') || tr;
     } else if (tr.classList.contains('row-topic')) {
       keep = matchedTopics.has(tr.dataset.topic);
     }
     if (!keep) {
-      tr.classList.add('search-struct-hidden');
-      tr.style.display = 'none';
+      target.classList.add('search-struct-hidden');
+      target.style.display = 'none';
     }
   });
 
@@ -6670,7 +6686,7 @@ function closeImportStepperPanel() {
 
 function getCurrentParticipantAbbrs() {
   // Aus aktuell geoeffnetem Protokoll: alle Teilnehmer-Kuerzel sammeln
-  const rows = document.querySelectorAll('#participantsBody tr');
+  const rows = document.querySelectorAll('#participantsBody .pg-row');
   const set = new Set();
   rows.forEach(tr => {
     const abbrInput = tr.querySelector('input[data-field="abbr"]');

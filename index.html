@@ -425,22 +425,8 @@
             <div class="proto-card-header">
               <span>INHALTE</span>
             </div>
-            <div class="proto-card-body proto-card-body-table">
-              <table class="data-table points-table" id="pointsTable">
-                <thead>
-                  <tr>
-                    <th class="col-collapse"></th>
-                    <th class="col-id">ID</th>
-                    <th class="col-content">Sachverhalt</th>
-                    <th class="col-category">Kategorie</th>
-                    <th class="col-responsible">Zustaendig</th>
-                    <th class="col-deadline">Termin</th>
-                    <th class="col-done">Erledigt</th>
-                    <th class="col-action"></th>
-                  </tr>
-                </thead>
-                <tbody id="pointsBody"></tbody>
-              </table>
+            <div class="proto-card-body proto-card-body-points">
+              <div id="pointsBody" class="points-cards"></div>
             </div>
           </div>
 
@@ -876,6 +862,33 @@
       <div class="modal-footer">
         <button class="btn-secondary" data-close="modalCloseDatabase">Abbrechen</button>
         <button id="btnConfirmCloseDatabase" class="btn-danger">Datenbank schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Einstellungen -->
+  <div id="modalSettings" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">Einstellungen</h2>
+        <button class="modal-close" data-close="modalSettings">
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Dokumentenstruktur-Leiste</label>
+          <div class="settings-choice">
+            <label class="filter-option">
+              <input type="radio" name="dsTheme" id="dsThemeDark" value="dark" /> Dunkel
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="dsTheme" id="dsThemeLight" value="light" /> Hell
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" data-close="modalSettings">Schließen</button>
       </div>
     </div>
   </div>

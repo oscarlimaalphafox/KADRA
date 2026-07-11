@@ -34,6 +34,22 @@
   font-display: swap;
   src: url('../fonts/nunito-sans-v19-latin-800.woff2') format('woff2');
 }
+/* Serifen-Headline (KAP-Titel im Workspace) — lokal gebundelt wie Nunito */
+@font-face {
+  font-family: 'Roboto Serif';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/roboto-serif-v17-latin-600.woff2') format('woff2');
+}
+/* Mono fuer IDs / Fristen / Kuerzel / Kategorien (Variable Font, 400-600) */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../fonts/jetbrains-mono-v24-latin.woff2') format('woff2');
+}
 
 /* â”€â”€ KADRA Icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 /* Grundeinstellung: Grau. Ãœberschreiben mit .icon-black */
@@ -2050,7 +2066,7 @@ input[type="date"].meta-input { color: var(--text-primary); }
   background: transparent;
 }
 .row-topic .topic-label {
-  font-weight: 400 !important;
+  font-weight: 700;
 }
 .row-topic td:first-child {
   padding-left: 0;
@@ -2435,10 +2451,10 @@ input[type="date"].meta-input { color: var(--text-primary); }
 .row-subchapter:hover .drag-handle,
 .row-topic:hover .drag-handle,
 .row-chapter:hover .chapter-drag-handle { opacity: 1; }
-/* Kapitel-Handle sitzt auf dunkler Pille -> helle Farbe */
-.chapter-drag-handle { color: var(--text-inverted); }
+/* Kapitel-Handle: Karten-Layout, heller Hintergrund -> graue Farbe */
+.chapter-drag-handle { color: var(--text-tertiary); }
 .row-chapter .chapter-drag-handle:hover,
-.row-chapter .chapter-drag-handle:hover .kadra-icon { color: #fff; }
+.row-chapter .chapter-drag-handle:hover .kadra-icon { color: var(--text-primary); }
 .row-point .drag-handle:hover,
 .row-subchapter .drag-handle:hover,
 .row-topic .drag-handle:hover { color: var(--text-primary); }
@@ -2457,9 +2473,10 @@ input[type="date"].meta-input { color: var(--text-primary); }
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-inverted);
+  color: var(--text-secondary);
   opacity: 0.7;
   padding: 0;
+  flex-shrink: 0;
 }
 .collapse-btn .kadra-icon {
   transition: transform 150ms ease;
@@ -2474,15 +2491,9 @@ input[type="date"].meta-input { color: var(--text-primary); }
   margin-left: 3px;
 }
 .row-chapter .collapse-btn {
-  --icon-color: #fff;
-  color: #fff;
+  color: var(--text-secondary);
   opacity: 1;
   margin-left: 3px;
-}
-.row-chapter .collapse-btn .kadra-icon,
-.row-chapter .collapse-btn .kadra-icon * {
-  color: #fff !important;
-  stroke: #fff !important;
 }
 
 /* Filter-Klassen */
@@ -3613,4 +3624,463 @@ a { color: var(--accent-blue); }
   color: #6b3a00;
   border: 1px solid #f0c378;
 }
+
+/* ============================================================
+   WORKSPACE-KARTEN
+   Umbau 2026-07: Punktebereich als Karten-Layout analog HTML-Export
+   (KAP-Überschrift mit Farbbalken, UKAP-Karte, Themen-Zeile,
+   Punkt-Karten mit Checkbox links oben + fixen Meta-Spalten).
+============================================================ */
+
+/* Kategorie-Farbklassen: liefern --kat-c fuer Badge + Dot */
+.kat-aufgabe    { --kat-c: var(--kat-aufgabe); }
+.kat-info       { --kat-c: var(--kat-info); }
+.kat-festlegung { --kat-c: var(--kat-festlegung); }
+.kat-freigabe   { --kat-c: var(--kat-freigabe); }
+
+/* Punktebereich: beiger Grund im weissen INHALTE-Card */
+.proto-card-body-points {
+  padding: 14px 20px 26px;
+  background: var(--bg-app);
+}
+.points-cards {
+  max-width: 1080px;   /* Zeilenlaengen-Deckel (testweise) */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Kapitel-Sektion ── */
+.kap-section {
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 4px;
+}
+.kap-section:last-child { border-bottom: none; }
+
+.points-cards .row-chapter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 4px 10px 0;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.points-cards .kap-bar {
+  width: 5px;
+  height: 24px;
+  border-radius: 3px;
+  background: var(--kc, var(--text-tertiary));
+  flex-shrink: 0;
+}
+.points-cards .row-chapter .structure-label-cell {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--accent-blue-dark);
+}
+.points-cards .row-chapter .editable-label { min-width: 40px; }
+.points-cards .row-chapter.row-selected {
+  background: var(--row-selected-bg);
+  box-shadow: inset 0 0 0 2px var(--accent-blue);
+}
+/* Aktennotiz-Abschnittsnummer im Serif-Stil mitlaufen lassen */
+.points-cards .ak-section-num { margin-right: 4px; }
+
+.kap-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 0 14px;
+}
+.kap-body.collapsed,
+.ukap-body.collapsed { display: none; }
+
+/* ── UKAP-Karte ── */
+.ukap-card {
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 3px rgba(14, 45, 88, .05);
+}
+.points-cards .row-subchapter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px 9px 10px;
+  background: var(--bg-app);
+  border-left: 4px solid var(--kc, var(--border));
+  cursor: pointer;
+}
+.points-cards .row-subchapter .structure-label-group {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+.points-cards .row-subchapter.row-selected { box-shadow: inset 0 0 0 2px var(--accent-blue); }
+.ukap-body {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 14px 14px;
+}
+
+/* ── Themen-Zeile ── */
+.points-cards .row-topic {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 8px;
+  padding: 2px 4px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.topic-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--kc, var(--text-tertiary));
+  flex-shrink: 0;
+}
+.points-cards .row-topic .topic-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.points-cards .row-topic.row-selected { box-shadow: inset 0 0 0 2px var(--accent-blue); }
+
+/* ── Punkte-Container ── */
+.points-cards .entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.points-cards .entries:empty { display: none; }
+.points-cards .entries-loose { margin-bottom: 2px; }
+
+/* ── Punkt-Karte ── */
+.points-cards .row-point {
+  display: grid;
+  grid-template-columns: 24px 92px minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-app);
+  border: 1px solid transparent;
+  transition: border-color .12s, background .12s;
+}
+/* Lose Punkte direkt im Kapitel: helle Umrandung (liegen auf beigem Grund) */
+.points-cards .entries-loose > .row-point { border-color: var(--border-light); }
+.points-cards .row-point:hover { border-color: var(--border); }
+.points-cards .row-point.row-selected {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 1px var(--accent-blue);
+  background: var(--bg-surface);
+}
+.points-cards .row-point.point-done {
+  opacity: .5;
+  filter: grayscale(.6);
+}
+
+/* Checkbox links oben (fixe X-Position) */
+.points-cards .entry-check { padding-top: 2px; }
+.points-cards .point-check-btn { width: 18px; height: 18px; margin: 0; }
+
+/* ID-Spalte */
+.points-cards .entry-id { padding-top: 4px; min-width: 0; }
+.points-cards .point-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+.points-cards .point-new .point-id {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Meta-Zeile: fixe Spalten -> Kategorie / Kürzel-Slot / Frist an fester X-Kante */
+.points-cards .entry-main { min-width: 0; }
+.points-cards .entry-meta {
+  display: grid;
+  /* Feste Spalten: Kategorie / Kürzel (max 3) / Frist — dadurch beginnt die
+     Frist in jeder Karte an derselben X-Position (Scan-Spalte). */
+  grid-template-columns: 132px 176px 118px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  margin-bottom: 4px;
+}
+/* Schmaler Workspace: Spalten duerfen schrumpfen, bevor die Karte ueberlaeuft */
+@media (max-width: 1360px) {
+  .points-cards .entry-meta {
+    grid-template-columns: minmax(96px, 132px) minmax(96px, 176px) 118px 1fr auto;
+  }
+}
+.points-cards .category-cell,
+.points-cards .resp-cell { position: relative; min-width: 0; }
+.points-cards .entry-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  justify-self: end;
+}
+.points-cards .entry-actions .drag-handle { opacity: 0; }
+.points-cards .row-point:hover .entry-actions .drag-handle { opacity: 1; }
+
+/* Kategorie-Badge (Variante A: Chevron erscheint bei Hover) */
+.points-cards .cat-select { width: auto; }
+.points-cards .cat-trigger {
+  width: auto;
+  min-height: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-inverted);
+  background: var(--kat-c, var(--kat-aufgabe));
+  padding: 3px 9px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+.points-cards .cat-trigger:hover,
+.points-cards .cat-trigger:focus-visible {
+  background: var(--kat-c, var(--kat-aufgabe));
+  filter: brightness(1.08);
+}
+.points-cards .cat-display {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.points-cards .cat-chevron {
+  color: rgba(255, 255, 255, .9);
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity .12s;
+  margin-left: 0;
+}
+.points-cards .row-point:hover .cat-chevron { opacity: .95; }
+.kat-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  margin-right: 8px;
+  background: var(--kat-c, var(--text-tertiary));
+}
+.point-done .cat-trigger,
+.point-done .cat-display { color: var(--text-inverted) !important; }
+
+/* Zuständig: farbige Kürzel-Pills, leer -> "+ Verantwortlichk." bei Hover */
+.points-cards .resp-trigger {
+  height: auto;
+  min-height: 22px;
+  gap: 4px;
+  width: auto;
+  max-width: 100%;
+}
+.points-cards .resp-display {
+  display: inline-flex;
+  gap: 4px;
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+.resp-pill {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--tc, var(--text-secondary));
+  background: color-mix(in srgb, var(--tc, var(--text-secondary)) 25%, transparent);
+  padding: 3px 8px;
+  border-radius: 32px;
+  white-space: nowrap;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+}
+.point-done .resp-pill { color: var(--txt-erledigt); }
+.resp-empty {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .12s;
+}
+.points-cards .row-point:hover .resp-empty { opacity: 1; }
+.resp-select.resp-has .resp-empty,
+.resp-select.resp-disabled .resp-empty { display: none; }
+.resp-disabled .resp-display::before {
+  content: '–';
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.points-cards .resp-chevron {
+  opacity: 0;
+  transition: opacity .12s;
+  margin-left: 0;
+}
+.points-cards .row-point:hover .resp-select:not(.resp-disabled) .resp-chevron { opacity: 1; }
+.points-cards .resp-disabled .resp-chevron { display: none; }
+
+/* Frist: Mono an fester X-Kante, Kalender-Button bei Hover */
+.points-cards .deadline-cell {
+  display: flex;
+  align-items: center;
+  padding-right: 0;
+}
+.points-cards .termin-wrap { width: 112px; height: 22px; }
+.points-cards .termin-input {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  height: 22px;
+  line-height: 22px;
+  border-radius: 4px;
+  padding: 0 24px 0 4px;
+  margin-left: -4px;
+  transition: background .12s;
+}
+.points-cards .termin-input:hover:not(:disabled),
+.points-cards .termin-input:focus { background: rgba(14, 45, 88, .05); }
+.points-cards .termin-input:disabled { color: var(--text-tertiary); }
+.points-cards .termin-input::placeholder { color: var(--text-tertiary); }
+.points-cards .termin-input.deadline-overdue { font-weight: 600; }
+.points-cards .deadline-amended .termin-input { color: var(--accent-blue); }
+.points-cards .termin-cal-btn { opacity: 0; transition: opacity .12s; }
+.points-cards .row-point:hover .termin-cal-btn:not(:disabled) { opacity: 1; }
+
+/* Sachverhalt: rahmenlos, Hover-/Fokus-Feedback */
+.points-cards .content-cell { min-width: 0; }
+.points-cards .table-textarea {
+  font-size: 13.5px;
+  line-height: 1.5;
+  border-radius: 4px;
+  padding: 2px 5px;
+  margin: 0 -5px;
+  width: calc(100% + 10px);
+  transition: background .12s, box-shadow .12s;
+}
+.points-cards .table-textarea:hover { background: rgba(14, 45, 88, .04); }
+.points-cards .table-textarea:focus {
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 2px var(--accent-blue-20);
+}
+
+/* Einfüge-Linie unter der ausgewaehlten Punkt-Karte */
+.insert-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  cursor: pointer;
+  color: var(--accent-blue);
+  font-size: 12px;
+  font-weight: 700;
+  user-select: none;
+}
+.insert-line::before,
+.insert-line::after {
+  content: '';
+  flex: 1;
+  border-top: 1.5px dashed var(--accent-blue-20);
+  transition: border-color .12s;
+}
+.insert-line:hover::before,
+.insert-line:hover::after { border-color: var(--accent-blue); }
+.insert-plus {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  color: var(--text-inverted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.insert-plus .kadra-icon { width: 12px; height: 12px; }
+
+/* Suche: Treffer-Karten einfaerben (Karten statt Tabellenzellen) */
+.points-cards .row-point.search-match {
+  background: var(--search-match-bg) !important;
+  border-color: transparent;
+}
+.points-cards .row-point.search-match-active {
+  background: var(--search-match-active-bg) !important;
+}
+
+/* Drag-Indikatoren + Import-Drop auf Karten */
+#pointsBody .drag-over-top    { box-shadow: inset 0 3px 0 var(--accent-blue) !important; }
+#pointsBody .drag-over-bottom { box-shadow: inset 0 -3px 0 var(--accent-blue) !important; }
+#pointsBody .drag-over-into   { box-shadow: inset 0 0 0 2px var(--accent-blue) !important; }
+#pointsBody .drag-active      { opacity: .4; }
+#pointsBody .import-drop-target { background: var(--accent-blue-10) !important; }
+
+/* Einstellungen-Modal: Theme-Auswahl */
+.settings-choice { display: flex; gap: 18px; }
+.settings-choice .filter-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.settings-choice input[type="radio"] { accent-color: var(--accent-blue); }
+
+/* ============================================================
+   DOKUMENTENSTRUKTUR-LEISTE: DUNKLES THEME (Default, Toggle in
+   den Einstellungen; Optik wie HTML-Export)
+============================================================ */
+.doc-structure.ds-dark {
+  background: #909090;
+  border-left-color: #909090;
+}
+.doc-structure.ds-dark .doc-structure-title { color: rgba(255, 255, 255, .75); }
+.doc-structure.ds-dark .doc-structure-header::after { background: rgba(255, 255, 255, .25); }
+.doc-structure.ds-dark .doc-structure-toggle { color: rgba(255, 255, 255, .7); }
+.doc-structure.ds-dark .doc-structure-toggle:hover { background: rgba(255, 255, 255, .15); }
+.doc-structure.ds-dark .doc-structure-empty { color: rgba(255, 255, 255, .6); }
+
+.doc-structure.ds-dark .ds-item { color: rgba(255, 255, 255, .75); }
+.doc-structure.ds-dark .ds-chapter { color: #FFFFFF; }
+.doc-structure.ds-dark .ds-chapter::before { box-shadow: 0 0 0 3px rgba(255, 255, 255, .12); }
+.doc-structure.ds-dark .ds-chapter:hover { background: rgba(255, 255, 255, .12); }
+.doc-structure.ds-dark .ds-subchapter { color: rgba(255, 255, 255, .8); }
+.doc-structure.ds-dark .ds-subchapter:hover { color: #FFFFFF; background: rgba(255, 255, 255, .1); }
+.doc-structure.ds-dark .ds-topic {
+  color: rgba(255, 255, 255, .6);
+  border-left-color: rgba(255, 255, 255, .3);
+}
+.doc-structure.ds-dark .ds-topic:hover { color: rgba(255, 255, 255, .9); background: rgba(255, 255, 255, .1); }
+.doc-structure.ds-dark .ds-item.ds-active {
+  background: rgba(0, 0, 0, .18);
+  color: #FFFFFF;
+}
+.doc-structure.ds-dark .ds-chapter.ds-active {
+  background: color-mix(in srgb, var(--ds-chapter-color) 22%, transparent);
+  color: #FFFFFF;
+}
+.doc-structure.ds-dark .ds-subchapter.ds-active,
+.doc-structure.ds-dark .ds-topic.ds-active { color: #FFFFFF; }
+.doc-structure.ds-dark .ds-action { color: rgba(255, 255, 255, .65); }
+.doc-structure.ds-dark button.ds-action:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, .15);
+}
+.doc-structure.ds-dark .ds-grip:hover { color: #FFFFFF; }
+
+/* Eingeklappt: schmale Leiste bleibt hell (wie Export) */
+.doc-structure.ds-dark.collapsed { background: var(--bg-app); border-left-color: var(--border); }
+.doc-structure.ds-dark.collapsed .doc-structure-toggle { color: var(--text-secondary); }
+.doc-structure.ds-dark.collapsed .doc-structure-toggle:hover { background: var(--accent-blue-10); }
 

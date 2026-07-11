@@ -5,7 +5,7 @@
  * ErmÃ¶glicht Offline-Nutzung der App.
  */
 
-const CACHE_NAME    = 'protokoll-app-v2.62';
+const CACHE_NAME    = 'protokoll-app-v2.63';
 const SHELL_ASSETS  = [
   './index.html',
   './css/style.css',
@@ -24,6 +24,8 @@ const SHELL_ASSETS  = [
   './icons/HOPRO%20Logo_wei%C3%9FerHintergrund_medres.jpg',
   './fonts/nunito-sans-v19-latin-regular.woff2',
   './fonts/nunito-sans-v19-latin-600.woff2',
+  './fonts/roboto-serif-v17-latin-600.woff2',
+  './fonts/jetbrains-mono-v24-latin.woff2',
 ];
 
 /* â”€â”€ Install: App-Shell in Cache legen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

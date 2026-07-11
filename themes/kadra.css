@@ -8,7 +8,8 @@
 :root {
   /* ── Typografie ────────────────────────────────────────── */
   --font:       "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono:  ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --font-mono:  "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --font-serif: "Roboto Serif", Georgia, "Times New Roman", serif;
 
   /* ── Transitions ───────────────────────────────────────── */
   --transition: 140ms ease;
@@ -101,6 +102,22 @@
 
   --border:           #D2D2D2;
   --border-light:     #E5E5E5;
+
+  /* ── Kapitel-/Kürzel-Farbpalette (VOCTA tag-1..8, wie HTML-Export) ── */
+  --tag-1: #E88E5A;
+  --tag-2: #F4BD48;
+  --tag-3: #968B79;
+  --tag-4: #99BDB8;
+  --tag-5: #96B4C9;
+  --tag-6: #E199AA;
+  --tag-7: #94AF83;
+  --tag-8: #CDAD96;
+
+  /* ── Kategorie-Farben (Badges im Workspace + HTML-Export) ── */
+  --kat-info:       #968B79;
+  --kat-aufgabe:    #154384;
+  --kat-festlegung: #94AF83;
+  --kat-freigabe:   #E88E5A;
 
   /* ── Protokollstruktur ─────────────────────────────────── */
   /* Sektion-Header (TEILNEHMER, INHALTE, ANLAGEN etc.) */
