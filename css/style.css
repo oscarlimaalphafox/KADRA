@@ -4277,9 +4277,13 @@ a {
 .kat-freigabe {
   --kat-c: var(--kat-freigabe);
 }
+#sectionPoints {
+  overflow: visible;
+}
 .proto-card-body-points {
   padding: 14px 20px 26px;
   background: var(--bg-app);
+  border-radius: 0 0 var(--card-radius) var(--card-radius);
 }
 .points-cards {
   max-width: 1080px;
@@ -4337,7 +4341,6 @@ a {
 .ukap-card {
   border: 1px solid var(--border-light);
   border-radius: 12px;
-  overflow: hidden;
   background: var(--bg-surface);
   box-shadow: 0 1px 3px rgba(14, 45, 88, .05);
 }
@@ -4349,6 +4352,10 @@ a {
   background: var(--bg-app);
   border-left: 4px solid var(--kc, var(--border));
   cursor: pointer;
+  border-radius: 11px 11px 0 0;
+}
+.ukap-card:has(> .ukap-body.collapsed) .row-subchapter {
+  border-radius: 11px;
 }
 .points-cards .row-subchapter .structure-label-group {
   font-size: 14.5px;

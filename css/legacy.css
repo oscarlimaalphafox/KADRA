@@ -3521,10 +3521,15 @@ a { color: var(--accent-blue); }
 .kat-festlegung { --kat-c: var(--kat-festlegung); }
 .kat-freigabe   { --kat-c: var(--kat-freigabe); }
 
-/* Punktebereich: beiger Grund im weissen INHALTE-Card */
+/* Punktebereich: beiger Grund im weissen INHALTE-Card.
+   #sectionPoints ohne overflow:hidden, damit Dropdowns der letzten Karte
+   nicht an der Sektionsunterkante abgeschnitten werden; die unteren
+   Ecken rundet der Body selbst. */
+#sectionPoints { overflow: visible; }
 .proto-card-body-points {
   padding: 14px 20px 26px;
   background: var(--bg-app);
+  border-radius: 0 0 var(--card-radius) var(--card-radius);
 }
 .points-cards {
   max-width: 1080px;   /* Zeilenlaengen-Deckel (testweise) */
@@ -3578,11 +3583,13 @@ a { color: var(--accent-blue); }
 .kap-body.collapsed,
 .ukap-body.collapsed { display: none; }
 
-/* ── UKAP-Karte ── */
+/* ── UKAP-Karte ──
+   Kein overflow:hidden: Dropdown-Panels (Kategorie/Verantwortlich) der
+   untersten Punkt-Karte muessen aus der Karte herausragen koennen.
+   Runde Ecken liegen stattdessen auf der Kopfzeile selbst. */
 .ukap-card {
   border: 1px solid var(--border-light);
   border-radius: 12px;
-  overflow: hidden;
   background: var(--bg-surface);
   box-shadow: 0 1px 3px rgba(14, 45, 88, .05);
 }
@@ -3594,7 +3601,10 @@ a { color: var(--accent-blue); }
   background: var(--bg-app);
   border-left: 4px solid var(--kc, var(--border));
   cursor: pointer;
+  border-radius: 11px 11px 0 0;
 }
+/* Eingeklapptes UKAP: Kopfzeile ist unterster Inhalt -> auch unten runden */
+.ukap-card:has(> .ukap-body.collapsed) .row-subchapter { border-radius: 11px; }
 .points-cards .row-subchapter .structure-label-group {
   font-size: 14.5px;
   font-weight: 700;
