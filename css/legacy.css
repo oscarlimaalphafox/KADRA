@@ -1968,36 +1968,8 @@ input[type="date"].meta-input { color: var(--text-primary); }
           Thema: #666 unterstrichen
           Punkte: 14px, Erledigt-Zeilen #989898
 ============================================================ */
-.points-table {
-  width: calc(100% - 32px);
-  margin: 0 16px 6px;
-  table-layout: fixed;
-  border-collapse: collapse;
-  border-spacing: 0;
-}
-
-.points-table thead th {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--txt-erledigt);
-  padding: 8px 8px 6px;
-  text-align: left;
-  border: none;
-  white-space: nowrap;
-}
-.points-table thead th.col-id { padding-left: 12px; }
-.points-table thead th.col-done,
-.points-table thead th.col-action { text-align: center; padding-left: 0; padding-right: 0; }
-
-/* Spaltenbreiten Punkte */
-.points-table .col-collapse   { width: 28px; }
-.points-table .col-id         { width: 132px; }
-.points-table .col-content    { /* flex */ }
-.points-table .col-category   { width: 132px; }
-.points-table .col-responsible{ width: 100px; } /* max. 3 Kuerzel (z.B. BI/HOP/RSE), schmaler zugunsten der Sachverhalts-Spalte */
-.points-table .col-deadline   { width: 100px; } /* DD.MM.YYYY + Kalender-Button, Button rueckt ans Datum heran */
-.points-table .col-done       { width: 92px; text-align: center; }
-.points-table .col-action     { width: 44px; }
+/* Punkte-Tabelle entfernt (2026-07): Layout jetzt Karten-Grammatik,
+   Spaltenmasse liegen in .entry-meta (WORKSPACE-KARTEN-Block). */
 
 /* Kapitel-Zeile: dunkelgrau, uppercase, weiÃŸ */
 .row-chapter td {
@@ -2127,8 +2099,6 @@ input[type="date"].meta-input { color: var(--text-primary); }
   padding-bottom: 0;
 }
 
-/* ID-Spalte: eine Stufe kleiner */
-.points-table .point-id { font-size: 11px; color: var(--text-primary); }
 
 /* Erledigt-Zustand: alles #989898 */
 .point-done td { color: var(--txt-erledigt) !important; }
@@ -2204,15 +2174,6 @@ input[type="date"].meta-input { color: var(--text-primary); }
   cursor: pointer;
   width: 100%;
   min-height: 24px;
-}
-.points-table .table-select { font-size: 11px; }
-.points-table .table-select {
-  border-radius: 4px;
-  transition: background var(--transition);
-}
-.points-table .table-select:hover,
-.points-table .table-select:focus-visible {
-  background: var(--accent-blue-20);
 }
 
 /* Kategorie-Popup (custom, wie Sidebar-Menue) */
@@ -2291,15 +2252,6 @@ input[type="date"].meta-input { color: var(--text-primary); }
   color: var(--text-primary);
   cursor: pointer;
   padding: 0;
-}
-.points-table .resp-trigger { font-size: 11px; }
-.points-table .resp-trigger {
-  border-radius: 4px;
-  transition: background var(--transition);
-}
-.points-table .resp-trigger:hover,
-.points-table .resp-trigger:focus-visible {
-  background: var(--accent-blue-20);
 }
 .resp-display { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .resp-chevron { color: var(--text-tertiary); margin-left: auto; flex-shrink: 0; }
@@ -2386,8 +2338,6 @@ input[type="date"].meta-input { color: var(--text-primary); }
   height: 20px;
   padding-right: 26px;
 }
-.points-table .termin-input { font-size: 11px; }
-.points-table .termin-input:focus { background: transparent; }
 .termin-wrap {
   position: relative;
   width: 100%;
@@ -2496,33 +2446,12 @@ input[type="date"].meta-input { color: var(--text-primary); }
   margin-left: 3px;
 }
 
-/* Filter-Klassen */
-.row-hidden       { display: none !important; }
+/* Filter-Klassen (Treffer-/Drop-Optik der Karten: siehe WORKSPACE-KARTEN-Block) */
 .filter-hidden    { display: none !important; }
 .chapter-filtered { display: none !important; }
 .search-hidden    { display: none !important; }
 .search-struct-hidden { display: none !important; }
 .drag-child-hidden { display: none !important; }
-.search-match td  { background: var(--search-match-bg) !important; }
-.search-match-active td { background: var(--search-match-active-bg) !important; }
-
-/* Drag Insert-Indicator (INHALTE): klare blaue Einfuegelinie am Drop-Point */
-#pointsBody tr.drag-over-top td {
-  box-shadow: inset 0 2px 0 var(--accent-blue) !important;
-}
-#pointsBody tr.drag-over-bottom td {
-  box-shadow: inset 0 -2px 0 var(--accent-blue) !important;
-}
-/* Punkt-Drop in eine UKAP-/Themen-Zeile hinein (ans Ende einsortieren) */
-#pointsBody tr.drag-over-into td {
-  box-shadow: inset 0 2px 0 var(--accent-blue), inset 0 -2px 0 var(--accent-blue) !important;
-}
-#pointsBody tr.drag-over-into td:first-child {
-  box-shadow: inset 2px 0 0 var(--accent-blue), inset 0 2px 0 var(--accent-blue), inset 0 -2px 0 var(--accent-blue) !important;
-}
-#pointsBody tr.drag-over-into td:last-child {
-  box-shadow: inset -2px 0 0 var(--accent-blue), inset 0 2px 0 var(--accent-blue), inset 0 -2px 0 var(--accent-blue) !important;
-}
 
 /* Buttons in Zeilen */
 .btn-delete-row, .btn-delete-structure, .btn-delete-chapter, .btn-delete-abbrev {
@@ -3237,51 +3166,7 @@ a { color: var(--accent-blue); }
 /* Sidebar Toggle Button */
 .sidebar-toggle-btn { margin-left: auto; }
 
-/* Aktive Auswahl Zeile */
-.row-selected td { background: var(--row-selected-bg) !important; }
-
-/* Kapitel-Pille bleibt bei Auswahl dunkel + lesbar: kein heller Hintergrund,
-   stattdessen Rand in Primary Blue (oben/unten als inset box-shadow,
-   links/rechts an den abgerundeten End-Zellen). */
-.row-chapter.row-selected td {
-  background: var(--bg-chapter) !important;
-  box-shadow:
-    inset 0  2px 0 var(--accent-blue),
-    inset 0 -2px 0 var(--accent-blue);
-}
-.row-chapter.row-selected td:first-child {
-  box-shadow:
-    inset  2px  0 0 var(--accent-blue),
-    inset  0    2px 0 var(--accent-blue),
-    inset  0   -2px 0 var(--accent-blue);
-}
-.row-chapter.row-selected td:last-child {
-  box-shadow:
-    inset -2px  0 0 var(--accent-blue),
-    inset  0    2px 0 var(--accent-blue),
-    inset  0   -2px 0 var(--accent-blue);
-}
-
-/* UKAP-Pille bei Auswahl: heller Hintergrund bleibt, umlaufender Rand
-   in Primary Blue (analog zur Kapitel-Pille). */
-.row-subchapter.row-selected td {
-  background: var(--bg-input) !important;
-  box-shadow:
-    inset 0  2px 0 var(--accent-blue),
-    inset 0 -2px 0 var(--accent-blue);
-}
-.row-subchapter.row-selected td:first-child {
-  box-shadow:
-    inset  2px  0 0 var(--accent-blue),
-    inset  0    2px 0 var(--accent-blue),
-    inset  0   -2px 0 var(--accent-blue);
-}
-.row-subchapter.row-selected td:last-child {
-  box-shadow:
-    inset -2px  0 0 var(--accent-blue),
-    inset  0    2px 0 var(--accent-blue),
-    inset  0   -2px 0 var(--accent-blue);
-}
+/* Aktive Auswahl: Karten-Styles siehe WORKSPACE-KARTEN-Block (.row-selected) */
 
 /* is-aktennotiz: kein Protokollnummer-Display */
 .is-aktennotiz .protocol-number-display { display: none; }
@@ -3613,10 +3498,8 @@ a { color: var(--accent-blue); }
   border-radius: 4px;
 }
 
-/* Drop-Highlight fuer Struktur-Zeilen waehrend Import-Drag */
-#pointsBody tr.import-drop-target td {
-  background: var(--accent-blue-10) !important;
-}
+/* Drop-Highlight fuer Struktur-Zeilen waehrend Import-Drag:
+   Karten-Regel #pointsBody .import-drop-target im WORKSPACE-KARTEN-Block */
 
 /* Toast: warning */
 .toast.toast-warning {

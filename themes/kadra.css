@@ -113,11 +113,12 @@
   --tag-7: #94AF83;
   --tag-8: #CDAD96;
 
-  /* ── Kategorie-Farben (Badges im Workspace + HTML-Export) ── */
-  --kat-info:       #968B79;
-  --kat-aufgabe:    #154384;
-  --kat-festlegung: #94AF83;
-  --kat-freigabe:   #E88E5A;
+  /* ── Kategorie-Farben (Badges im Workspace + HTML-Export) ──
+     Referenzieren bestehende Tokens statt Hex-Duplikate (Drift-Schutz). */
+  --kat-info:       var(--tag-3);
+  --kat-aufgabe:    var(--accent-blue);
+  --kat-festlegung: var(--tag-7);
+  --kat-freigabe:   var(--tag-1);
 
   /* ── Protokollstruktur ─────────────────────────────────── */
   /* Sektion-Header (TEILNEHMER, INHALTE, ANLAGEN etc.) */

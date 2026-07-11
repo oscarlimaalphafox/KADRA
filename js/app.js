@@ -675,6 +675,11 @@ function renderParticipants(participants) {
 
     tbody.appendChild(tr);
   });
+
+  // Kürzel-Farbzuordnung aktualisieren und bereits gerenderte Punkt-Pills
+  // nachfaerben (Teilnehmer geaendert/umsortiert ohne renderPoints-Durchlauf).
+  updateAbbrColorMap();
+  document.querySelectorAll('#pointsBody .resp-select').forEach(w => _renderRespDisplay(w));
 }
 
 function getParticipantsFromDOM() {
@@ -2602,6 +2607,9 @@ function addRowClick(row, ctx) {
 }
 
 function selectRow(ctx, rowEl) {
+  // Gleiche Zeile bereits ausgewaehlt (z.B. Fokuswechsel zwischen Feldern
+  // derselben Punkt-Karte): kompletten Selektionspfad ueberspringen.
+  if (App.selectedRow === ctx && rowEl && rowEl.classList.contains('row-selected')) return;
   document.querySelectorAll('.row-selected').forEach(r => r.classList.remove('row-selected'));
   App.selectedRow = ctx;
   if (rowEl) rowEl.classList.add('row-selected');
@@ -6092,8 +6100,9 @@ function executeSearch(rawQuery) {
   const matchedTopics      = new Set();
 
   pointRows.forEach(tr => {
-    // Skip rows already hidden by other filters or collapsed sections
-    if (tr.classList.contains('filter-hidden') || tr.classList.contains('chapter-filtered') || isInCollapsedSection(tr)) return;
+    // Skip rows already hidden by other filters or collapsed sections.
+    // chapter-filtered sitzt im Karten-Layout auf der .kap-section -> closest().
+    if (tr.classList.contains('filter-hidden') || tr.closest('.chapter-filtered') || isInCollapsedSection(tr)) return;
 
     const content    = (tr.querySelector('[data-field="content"]')?.value || '').toLowerCase();
     const pointId    = (tr.querySelector('.point-id')?.textContent || '').toLowerCase();
@@ -6127,6 +6136,14 @@ function executeSearch(rawQuery) {
       target = tr.closest('.ukap-card') || tr;
     } else if (tr.classList.contains('row-topic')) {
       keep = matchedTopics.has(tr.dataset.topic);
+      // Thema hat kein eigenes Wrapper-Element: Punkte-Container mit verstecken
+      if (!keep) {
+        const sib = tr.nextElementSibling;
+        if (sib && sib.classList.contains('entries')) {
+          sib.classList.add('search-struct-hidden');
+          sib.style.display = 'none';
+        }
+      }
     }
     if (!keep) {
       target.classList.add('search-struct-hidden');
