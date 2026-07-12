@@ -574,27 +574,47 @@ function renderParticipants(participants) {
   document.addEventListener('mouseup',  () => tbody.querySelectorAll('.pg-row').forEach(r => r.draggable = false), { signal: ac.signal });
   document.addEventListener('touchend', () => tbody.querySelectorAll('.pg-row').forEach(r => r.draggable = false), { signal: ac.signal });
 
+  // Kürzel -> Farb-Tag (gleiche Zuordnung wie Workspace-Pills/HTML-Export:
+  // erster Traeger eines Kürzels bestimmt die Farbe nach Zeilen-Reihenfolge)
+  const abbrTags = {};
+  participants.forEach((p, i) => {
+    const key = String(p.abbr || '').toUpperCase();
+    if (key && abbrTags[key] === undefined) abbrTags[key] = (i % DOC_STRUCTURE_TAGS.length) + 1;
+  });
+
   participants.forEach((p, idx) => {
     const tr = document.createElement('div');
     tr.className = 'pg-row' + (idx % 2 === 0 ? ' pg-row-odd' : '');
     tr.dataset.idx = idx;
     tr.draggable = false;
+    const abbrTag = abbrTags[String(p.abbr || '').toUpperCase()];
     tr.innerHTML = `
       <div class="pg-col-drag" title="Verschieben">${iconGrip()}</div>
       <div class="pg-col-name"><input class="table-input" value="${esc(p.name)}" data-field="name" /></div>
       <div class="pg-col-company"><input class="table-input" value="${esc(p.company)}" data-field="company" /></div>
-      <div class="pg-col-abbr"><input class="table-input input-uppercase" value="${esc(p.abbr)}"    data-field="abbr" maxlength="4"/></div>
+      <div class="pg-col-abbr"><input class="table-input input-uppercase abbr-pill" value="${esc(p.abbr)}"
+        ${abbrTag ? `style="--tc:var(--tag-${abbrTag})"` : ''} data-field="abbr" maxlength="4"/></div>
       <div class="pg-col-email"><input class="table-input" type="email" value="${esc(p.email)}" data-field="email"/></div>
-      <div class="pg-col-check pg-check-btn" data-field="attended"  data-checked="${p.attended  ?'1':''}">${p.attended  ? iconSquareCheckBig() : iconSquare()}</div>
-      <div class="pg-col-check pg-check-btn" data-field="inDistrib" data-checked="${p.inDistrib ?'1':''}">${p.inDistrib ? iconSquareCheckBig() : iconSquare()}</div>
+      <div class="pg-col-check pg-check-btn" data-field="attended"  data-checked="${p.attended  ?'1':''}">${p.attended  ? iconCheck() : ''}</div>
+      <div class="pg-col-check pg-check-btn" data-field="inDistrib" data-checked="${p.inDistrib ?'1':''}">${p.inDistrib ? iconCheck() : ''}</div>
       <div class="pg-col-action"><button class="btn-delete-row" data-action="deleteParticipant" data-idx="${idx}" title="Entfernen">${iconTrash()}</button></div>
     `;
     tr.querySelectorAll('input').forEach(el => el.addEventListener('change', saveCurrentProtocol));
+    // Kürzel-Pill live nachfaerben, wenn das Kürzel geaendert wird
+    const abbrInput = tr.querySelector('[data-field="abbr"]');
+    if (abbrInput) {
+      abbrInput.addEventListener('change', () => {
+        updateAbbrColorMap();
+        const tag = (App._abbrColors || {})[abbrInput.value.trim().toUpperCase()];
+        if (tag) abbrInput.style.setProperty('--tc', `var(--tag-${tag})`);
+        else abbrInput.style.removeProperty('--tc');
+      });
+    }
     tr.querySelectorAll('.pg-check-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const checked = btn.dataset.checked === '1';
         btn.dataset.checked = checked ? '' : '1';
-        btn.innerHTML = checked ? iconSquare() : iconSquareCheckBig();
+        btn.innerHTML = checked ? '' : iconCheck();
         saveCurrentProtocol();
       });
     });
@@ -4129,7 +4149,7 @@ function bindGlobalEvents() {
   function syncNewParticipantCheckbox(el) {
     if (!el) return;
     const checked = el.dataset.checked === '1';
-    el.innerHTML = checked ? iconSquareCheckBig() : iconSquare();
+    el.innerHTML = checked ? iconCheck() : '';
   }
 
   ['newParticipantAttended','newParticipantDistrib'].forEach(id => {
@@ -4141,6 +4161,24 @@ function bindGlobalEvents() {
       syncNewParticipantCheckbox(el);
     });
   });
+
+  // Teilnehmer-Eingabezeile: eingeklappt, Einfüge-Linie oeffnet sie
+  const pAddRow  = document.querySelector('#sectionParticipants .pg-add-row');
+  const pAddLine = document.getElementById('participantAddLine');
+  if (pAddRow && pAddLine) {
+    pAddLine.innerHTML = `<span class="insert-plus">${iconPlus()}</span><span class="insert-label">Teilnehmer hinzufügen</span>`;
+    const toggleParticipantAdd = (show) => {
+      pAddRow.classList.toggle('pg-add-row-collapsed', !show);
+      pAddLine.classList.toggle('hidden', show);
+      if (show) document.getElementById('newParticipantName')?.focus();
+    };
+    App._collapseParticipantAdd = () => toggleParticipantAdd(false);
+    pAddLine.addEventListener('click', () => toggleParticipantAdd(true));
+    pAddLine.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleParticipantAdd(true); }
+    });
+    pAddRow.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleParticipantAdd(false); });
+  }
 
   const btnReload = document.getElementById('btnReload');
   if (btnReload) btnReload.addEventListener('click', () => { forceFreshReload(); });
@@ -4307,8 +4345,10 @@ function bindGlobalEvents() {
     // [cleanup]
     ['newParticipantAttended','newParticipantDistrib'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) { el.dataset.checked = '1'; el.innerHTML = iconSquareCheckBig(); }
+      if (el) { el.dataset.checked = '1'; el.innerHTML = iconCheck(); }
     });
+    // Eingabezeile wieder einklappen (Einfüge-Linie zeigen)
+    App._collapseParticipantAdd?.();
   });
   document.getElementById('newParticipantEmail').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('btnAddParticipant').click();

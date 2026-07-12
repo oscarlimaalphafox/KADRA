@@ -395,8 +395,8 @@
                 </div>
                 <!-- Daten-Zeilen (via JS gerendert) -->
                 <div id="participantsBody"></div>
-                <!-- Eingabe-Zeile -->
-                <div class="pg-add-row">
+                <!-- Eingabe-Zeile (eingeklappt; Einfüge-Linie darunter öffnet sie) -->
+                <div class="pg-add-row pg-add-row-collapsed">
                   <div class="pg-col-drag"></div>
                   <div class="pg-col-name"><input type="text"  id="newParticipantName"    class="table-input" placeholder="Name ..." /></div>
                   <div class="pg-col-company"><input type="text"  id="newParticipantCompany" class="table-input" placeholder="Firma ..." /></div>
@@ -412,10 +412,13 @@
                   </div>
                   <div class="pg-col-action">
                     <button id="btnAddParticipant" class="btn-add-participant" title="Teilnehmer hinzufuegen">
-                      
+
                     </button>
                   </div>
                 </div>
+                <!-- Einfüge-Linie: öffnet die Eingabe-Zeile -->
+                <div id="participantAddLine" class="insert-line participant-add-line"
+                     role="button" tabindex="0" title="Neuen Teilnehmer hinzufügen"></div>
               </div>
             </div>
           </div>

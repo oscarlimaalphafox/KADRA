@@ -2377,16 +2377,18 @@ input[type="date"].meta-input {
   width: 100%;
 }
 .pg-header {
-  padding: 8px 0 6px 0;
+  padding: 0;
+  background: var(--bg-app);
+  border-radius: 6px;
 }
 .pg-header > div {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
-  color: var(--txt-erledigt);
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: 8px;
+  padding: 9px 0 7px 8px;
 }
 .pg-header .pg-col-drag {
   padding-left: 0;
@@ -2398,21 +2400,51 @@ input[type="date"].meta-input {
   display: flex;
 }
 .pg-row {
-  margin: 3px 0;
-  height: 32px;
-  border-radius: 32px;
+  margin: 0;
+  height: 40px;
+  border-radius: 0;
+  border-top: 1px solid var(--border-light);
+  background: transparent;
+}
+#participantsBody .pg-row:first-child {
+  border-top: none;
 }
 .pg-row.pg-row-odd {
-  background: var(--bg-input);
-}
-.pg-row:not(.pg-row-odd) {
   background: transparent;
 }
 .pg-row > div {
   background: transparent;
-  height: 32px;
+  height: 100%;
   display: flex;
   align-items: center;
+}
+.pg-row .pg-col-name .table-input {
+  font-weight: 600;
+}
+.pg-row .abbr-pill {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--tc, var(--text-secondary));
+  background: var(--tc, var(--text-secondary));
+  @supports (color: color-mix(in lab, red, red)) {
+    background: color-mix(in srgb, var(--tc, var(--text-secondary)) 22%, transparent);
+  }
+  border-radius: 32px;
+  width: 52px;
+  height: 22px;
+  padding: 0;
+  text-align: center;
+  flex: 0 0 auto;
+  margin-left: 8px;
+}
+.pg-row .abbr-pill:focus {
+  background: var(--tc, var(--text-secondary));
+  @supports (color: color-mix(in lab, red, red)) {
+    background: color-mix(in srgb, var(--tc, var(--text-secondary)) 22%, transparent);
+  }
+  box-shadow: 0 0 0 2px var(--accent-blue-20);
+  border-radius: 32px;
 }
 .pg-row .pg-col-drag {
   justify-content: center;
@@ -2451,18 +2483,40 @@ input[type="date"].meta-input {
   justify-content: center;
   padding-right: 4px;
 }
-.pg-check-btn {
+.pg-check-btn, .checkbox-cell {
   cursor: pointer;
   user-select: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  border: 1.5px solid var(--text-tertiary);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  transition: background var(--transition), border-color var(--transition);
 }
-.pg-check-btn .kadra-icon, .checkbox-cell .kadra-icon, .point-check-btn .kadra-icon {
+.pg-check-btn[data-checked="1"], .checkbox-cell[data-checked="1"] {
+  background: var(--success);
+  border-color: var(--success);
+}
+.pg-check-btn .kadra-icon, .checkbox-cell .kadra-icon {
+  color: var(--text-inverted);
+  width: 12px;
+  height: 12px;
+  --icon-stroke: 3;
+}
+.point-check-btn .kadra-icon {
   color: var(--text-secondary);
 }
-.pg-check-btn[data-checked="1"] .kadra-icon, .checkbox-cell[data-checked="1"] .kadra-icon, .point-check-btn[data-checked="1"] .kadra-icon {
+.point-check-btn[data-checked="1"] .kadra-icon {
   color: var(--accent-blue);
+}
+.pg-row .pg-check-btn {
+  width: 17px;
+  height: 17px;
+  justify-self: center;
 }
 .pg-row.drag-active {
   opacity: 0.4;
@@ -2497,6 +2551,12 @@ input[type="date"].meta-input {
 .table-input.email-warn {
   color: var(--warning);
   border-bottom-color: var(--warning);
+}
+.pg-add-row-collapsed {
+  display: none !important;
+}
+.participant-add-line {
+  margin: 12px 4px 2px;
 }
 .row-chapter td {
   height: 32px;
