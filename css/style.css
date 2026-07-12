@@ -2673,9 +2673,6 @@ input[type="date"].meta-input {
 .point-done .point-id, .point-done .cat-trigger, .point-done .resp-trigger, .point-done .termin-input, .point-done .resp-display, .point-done .cat-display {
   color: var(--txt-erledigt) !important;
 }
-.point-new .table-textarea {
-  font-weight: 700 !important;
-}
 .content-amended .table-textarea {
   color: var(--accent-blue) !important;
 }
@@ -4494,8 +4491,11 @@ a {
   word-break: break-all;
 }
 .points-cards .point-new .point-id {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+}
+.points-cards .row-point.point-new {
+  box-shadow: inset 2px 0 0 var(--accent-blue);
 }
 .points-cards .entry-main {
   min-width: 0;

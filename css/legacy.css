@@ -2160,8 +2160,8 @@ input[type="date"].meta-input { color: var(--text-primary); }
   color: var(--txt-erledigt) !important;
 }
 
-/* Neu-Zustand: fett */
-.point-new .table-textarea { font-weight: 700 !important; }
+/* Neu-Zustand: NICHT mehr der Fliesstext (schlecht lesbar) — Signal traegt
+   allein die fett gesetzte ID (siehe .points-cards .point-new .point-id). */
 
 /* GeÃ¤nderter Inhalt (Amendment): Blau */
 .content-amended .table-textarea { color: var(--accent-blue) !important; }
@@ -3736,9 +3736,18 @@ a { color: var(--accent-blue); }
   color: var(--text-secondary);
   word-break: break-all;
 }
+/* Neue Punkte: Signal liegt AUSSCHLIESSLICH auf der ID (fett + schwarz).
+   Der Fliesstext bleibt normal — fetter Fliesstext war schlecht lesbar. */
 .points-cards .point-new .point-id {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+}
+
+/* Optionale Zusatz-Markierung: dezenter Strich an der linken Kartenkante,
+   damit neue Punkte auch beim schnellen Scrollen auffallen.
+   Zum Deaktivieren einfach diesen Block entfernen. */
+.points-cards .row-point.point-new {
+  box-shadow: inset 2px 0 0 var(--accent-blue);
 }
 
 /* Meta-Zeile: fixe Spalten -> Kategorie / Kürzel-Slot / Frist an fester X-Kante */
