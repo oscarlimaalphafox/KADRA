@@ -14,7 +14,7 @@
  * [cleanup]
  */
 
-const APP_VERSION = '0.4';
+const APP_VERSION = '0.5.0';
 
 /* [cleanup] */
 const App = {
@@ -4827,7 +4827,7 @@ function setupProjectMenu() {
 
   document.getElementById('btnAppInfo').addEventListener('click', () => {
     panel.classList.add('hidden');
-    document.getElementById('appInfoVersion').textContent = 'Version ' + APP_VERSION;
+    document.getElementById('appInfoVersion').textContent = 'V' + APP_VERSION;
     openModal('modalAppInfo');
   });
 
@@ -4860,7 +4860,7 @@ function setupProjectMenu() {
   if (_logoEl) {
     _logoEl.style.cursor = 'pointer';
     _logoEl.addEventListener('click', () => {
-      document.getElementById('appInfoVersion').textContent = 'Version ' + APP_VERSION;
+      document.getElementById('appInfoVersion').textContent = 'V' + APP_VERSION;
       openModal('modalAppInfo');
     });
   }
