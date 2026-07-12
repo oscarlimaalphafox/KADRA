@@ -3743,11 +3743,16 @@ a { color: var(--accent-blue); }
   color: var(--text-primary);
 }
 
-/* Optionale Zusatz-Markierung: dezenter Strich an der linken Kartenkante,
-   damit neue Punkte auch beim schnellen Scrollen auffallen.
-   Zum Deaktivieren einfach diesen Block entfernen. */
+/* Zusatz-Markierung: Strich an der linken Kartenkante in der Farbe des
+   jeweiligen Kapitels (--kc wird von .kap-section gesetzt und vererbt),
+   damit neue Punkte auch beim schnellen Scrollen auffallen. */
 .points-cards .row-point.point-new {
-  box-shadow: inset 2px 0 0 var(--accent-blue);
+  box-shadow: inset 2px 0 0 var(--kc, var(--accent-blue));
+}
+/* Ausgewaehlter neuer Punkt: Auswahlrahmen UND Kapitelstrich behalten
+   (sonst ueberschreibt eine der beiden box-shadow-Regeln die andere). */
+.points-cards .row-point.point-new.row-selected {
+  box-shadow: 0 0 0 1px var(--accent-blue), inset 2px 0 0 var(--kc, var(--accent-blue));
 }
 
 /* Meta-Zeile: fixe Spalten -> Kategorie / Kürzel-Slot / Frist an fester X-Kante */

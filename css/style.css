@@ -4495,7 +4495,10 @@ a {
   color: var(--text-primary);
 }
 .points-cards .row-point.point-new {
-  box-shadow: inset 2px 0 0 var(--accent-blue);
+  box-shadow: inset 2px 0 0 var(--kc, var(--accent-blue));
+}
+.points-cards .row-point.point-new.row-selected {
+  box-shadow: 0 0 0 1px var(--accent-blue), inset 2px 0 0 var(--kc, var(--accent-blue));
 }
 .points-cards .entry-main {
   min-width: 0;
