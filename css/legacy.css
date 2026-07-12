@@ -4044,3 +4044,109 @@ a { color: var(--accent-blue); }
 .doc-structure.ds-dark.collapsed .doc-structure-toggle { color: var(--text-secondary); }
 .doc-structure.ds-dark.collapsed .doc-structure-toggle:hover { background: var(--accent-blue-10); }
 
+
+/* ============================================================
+   DROPDOWN-FLIP + KW-DATEPICKER (2026-07-12)
+============================================================ */
+
+/* Kategorie-/Zustaendig-Panel nach oben klappen, wenn unten der
+   Platz in der Karte fehlt (Panels der letzten Punkte) */
+.cat-panel.panel-up,
+.resp-panel.panel-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+/* Datepicker mit Kalenderwochen (#kadraDatePicker, fixed an body) */
+.kadra-datepicker {
+  position: fixed;
+  z-index: 4000;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-md);
+  padding: 10px;
+  font-family: var(--font);
+  user-select: none;
+}
+.kadra-datepicker.hidden { display: none; }
+.kdp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.kdp-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.kdp-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.kdp-nav:hover { background: var(--bg-input); color: var(--text-primary); }
+.kdp-row {
+  display: grid;
+  grid-template-columns: 30px repeat(7, 28px);
+  align-items: center;
+}
+.kdp-head { margin-bottom: 2px; }
+.kdp-dow {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.kdp-week {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  border-right: 1px solid var(--border-light);
+  margin-right: 4px;
+  padding-right: 4px;
+}
+.kdp-day {
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.kdp-day:hover { background: var(--accent-blue-20); }
+.kdp-other { color: var(--text-tertiary); opacity: .55; }
+.kdp-today { box-shadow: inset 0 0 0 1px var(--accent-blue); }
+.kdp-selected,
+.kdp-selected:hover {
+  background: var(--accent-blue);
+  color: var(--text-inverted);
+}
+.kdp-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light);
+}
+.kdp-today-btn {
+  border: none;
+  border-radius: 32px;
+  background: none;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--accent-blue);
+  cursor: pointer;
+}
+.kdp-today-btn:hover { background: var(--accent-blue-10); }

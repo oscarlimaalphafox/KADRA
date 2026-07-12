@@ -14,7 +14,7 @@
  * [cleanup]
  */
 
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.5.1';
 
 /* [cleanup] */
 const App = {
@@ -846,6 +846,8 @@ function createResponsibleSelect(currentValue, disabled) {
         });
       }
 
+      applyPanelDirection(trigger, panel);
+
       // Zeilenauswahl synchronisieren
       const tr = wrap.closest('.row-point');
       if (tr && tr.dataset.pointId) {
@@ -884,6 +886,26 @@ function katClass(v) {
   if (s.startsWith('festleg')) return 'kat-festlegung';
   if (s.startsWith('freigabe'))return 'kat-freigabe';
   return 'kat-aufgabe';
+}
+
+/* Dropdown-Panels (Kategorie/Zustaendig) nach oben aufklappen, wenn unten
+   der Platz in der Karte fehlt (.proto-card hat overflow:hidden — Panels der
+   letzten Punkte wuerden sonst abgeschnitten). */
+function applyPanelDirection(trigger, panel) {
+  panel.classList.remove('panel-up');
+  const card = trigger.closest('.proto-card');
+  const scroller = trigger.closest('.workspace-content');
+  const cardRect = card?.getBoundingClientRect();
+  const bottomLimit = Math.min(
+    cardRect ? cardRect.bottom : Infinity,
+    scroller ? scroller.getBoundingClientRect().bottom : window.innerHeight
+  );
+  const topLimit = cardRect ? cardRect.top : 0;
+  const rect = trigger.getBoundingClientRect();
+  const h = panel.offsetHeight;
+  if (rect.bottom + 4 + h > bottomLimit && rect.top - 4 - h > topLimit) {
+    panel.classList.add('panel-up');
+  }
 }
 
 function createCategorySelect(currentValue) {
@@ -936,6 +958,7 @@ function createCategorySelect(currentValue) {
     const opening = panel.classList.contains('hidden');
     panel.classList.toggle('hidden', !opening);
     trigger.classList.toggle('open', opening);
+    if (opening) applyPanelDirection(trigger, panel);
   });
 
   wrap.appendChild(hidden);
@@ -2494,8 +2517,10 @@ function createPointRow(point, currentNum, chKey, subId, topicId, renderSignal) 
   if (terminInput && calBtn && hiddenDate) {
     calBtn.addEventListener('click', () => {
       const iso = toIsoDate((terminInput.value || '').trim());
-      if (iso) hiddenDate.value = iso;
-      hiddenDate.showPicker?.() || hiddenDate.click();
+      openKadraDatePicker(calBtn, iso, (picked) => {
+        hiddenDate.value = picked;
+        hiddenDate.dispatchEvent(new Event('change'));
+      });
     });
 
     hiddenDate.addEventListener('change', () => {
@@ -2597,6 +2622,142 @@ function toIsoDate(str) {
     return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
   }
   return ''; // KW-Notation etc. -> leer (nicht darstellbar als date-Input)
+}
+
+/* ============================================================
+   Datepicker mit Kalenderwochen (ersetzt den nativen Picker
+   fuer Termin-Felder und das Aufgestellt-Datum)
+============================================================ */
+
+const KadraDatePicker = {
+  el: null,          // Singleton-Popup (fixed, an document.body)
+  view: null,        // Date: 1. des angezeigten Monats
+  selected: '',      // ISO-String der aktuellen Auswahl
+  onPick: null,      // Callback(iso)
+  _anchor: null,
+};
+
+/* ISO-8601-Kalenderwoche (Montag-Start, KW 1 = Woche mit erstem Donnerstag) */
+function isoWeekNumber(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - day + 3); // Donnerstag dieser Woche
+  const firstThu = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const fDay = (firstThu.getUTCDay() + 6) % 7;
+  firstThu.setUTCDate(firstThu.getUTCDate() - fDay + 3);
+  return 1 + Math.round((date - firstThu) / (7 * 24 * 3600 * 1000));
+}
+
+function openKadraDatePicker(anchor, isoValue, onPick) {
+  const dp = KadraDatePicker;
+  if (dp.el && dp._anchor === anchor && !dp.el.classList.contains('hidden')) {
+    closeKadraDatePicker();
+    return;
+  }
+  if (!dp.el) {
+    dp.el = document.createElement('div');
+    dp.el.id = 'kadraDatePicker';
+    dp.el.className = 'kadra-datepicker hidden';
+    document.body.appendChild(dp.el);
+    // Outside-Click / Escape schliessen
+    document.addEventListener('pointerdown', (e) => {
+      if (dp.el.classList.contains('hidden')) return;
+      if (!dp.el.contains(e.target) && e.target !== dp._anchor && !dp._anchor?.contains(e.target)) {
+        closeKadraDatePicker();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeKadraDatePicker();
+    });
+    window.addEventListener('resize', closeKadraDatePicker);
+    document.querySelector('.workspace-content')
+      ?.addEventListener('scroll', closeKadraDatePicker);
+  }
+  dp._anchor = anchor;
+  dp.onPick = onPick;
+  dp.selected = isoValue || '';
+  const base = isoValue ? new Date(isoValue + 'T00:00:00') : new Date();
+  dp.view = new Date(base.getFullYear(), base.getMonth(), 1);
+  renderKadraDatePicker();
+  dp.el.classList.remove('hidden');
+  positionKadraDatePicker(anchor);
+}
+
+function closeKadraDatePicker() {
+  const dp = KadraDatePicker;
+  if (dp.el) dp.el.classList.add('hidden');
+  dp._anchor = null;
+}
+
+function positionKadraDatePicker(anchor) {
+  const dp = KadraDatePicker;
+  const r = anchor.getBoundingClientRect();
+  const w = dp.el.offsetWidth, h = dp.el.offsetHeight;
+  let left = Math.min(r.left, window.innerWidth - w - 8);
+  let top = r.bottom + 4;
+  if (top + h > window.innerHeight - 8) top = r.top - h - 4; // nach oben klappen
+  dp.el.style.left = Math.max(8, left) + 'px';
+  dp.el.style.top = Math.max(8, top) + 'px';
+}
+
+function renderKadraDatePicker() {
+  const dp = KadraDatePicker;
+  const monthNames = ['Januar','Februar','März','April','Mai','Juni',
+                      'Juli','August','September','Oktober','November','Dezember'];
+  const y = dp.view.getFullYear(), m = dp.view.getMonth();
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  // Grid ab Montag der Woche des Monatsersten
+  const first = new Date(y, m, 1);
+  const start = new Date(first);
+  start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+
+  let rows = '';
+  const cur = new Date(start);
+  for (let w = 0; w < 6; w++) {
+    let cells = `<span class="kdp-week">${isoWeekNumber(cur)}</span>`;
+    for (let i = 0; i < 7; i++) {
+      const iso = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+      const cls = ['kdp-day'];
+      if (cur.getMonth() !== m) cls.push('kdp-other');
+      if (iso === todayIso) cls.push('kdp-today');
+      if (iso === dp.selected) cls.push('kdp-selected');
+      cells += `<button type="button" class="${cls.join(' ')}" data-iso="${iso}">${cur.getDate()}</button>`;
+      cur.setDate(cur.getDate() + 1);
+    }
+    rows += `<div class="kdp-row">${cells}</div>`;
+    // Monat komplett dargestellt -> keine reine Folgemonats-Zeile anhaengen
+    if (cur.getMonth() !== m) break;
+  }
+
+  dp.el.innerHTML = `
+    <div class="kdp-header">
+      <button type="button" class="kdp-nav" data-nav="-1" title="Vorheriger Monat">${iconChevronLeft()}</button>
+      <span class="kdp-title">${monthNames[m]} ${y}</span>
+      <button type="button" class="kdp-nav" data-nav="1" title="Nächster Monat">${iconChevronRight()}</button>
+    </div>
+    <div class="kdp-row kdp-head">
+      <span class="kdp-week">KW</span>
+      ${['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => `<span class="kdp-dow">${d}</span>`).join('')}
+    </div>
+    ${rows}
+    <div class="kdp-footer">
+      <button type="button" class="kdp-today-btn" data-iso="${todayIso}">Heute</button>
+    </div>`;
+
+  dp.el.querySelectorAll('.kdp-nav').forEach(btn =>
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dp.view = new Date(y, m + parseInt(btn.dataset.nav, 10), 1);
+      renderKadraDatePicker();
+    }));
+  dp.el.querySelectorAll('[data-iso]').forEach(btn =>
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const iso = btn.dataset.iso;
+      closeKadraDatePicker();
+      dp.onPick?.(iso);
+    }));
 }
 
 /* [cleanup] */
@@ -4623,7 +4784,11 @@ function bindGlobalEvents() {
   const authorDateHidden = document.getElementById('authorDateHidden');
   if (authorCalBtn && authorDateHidden && authorDateInput) {
     authorCalBtn.addEventListener('click', () => {
-      authorDateHidden.showPicker?.() || authorDateHidden.click();
+      const iso = toIsoDate((authorDateInput.value || '').trim());
+      openKadraDatePicker(authorCalBtn, iso, (picked) => {
+        authorDateHidden.value = picked;
+        authorDateHidden.dispatchEvent(new Event('change'));
+      });
     });
     authorDateHidden.addEventListener('change', () => {
       if (authorDateHidden.value) {

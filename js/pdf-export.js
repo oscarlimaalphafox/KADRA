@@ -564,7 +564,23 @@ const PDFExport = (() => {
       doc.setFillColor(245, 245, 245);
       doc.rect(MARGIN_LEFT, startY - 3.5, CONTENT_WIDTH, 5.5, 'F');
       doc.setTextColor(...BLACK);
-      doc.text(`${att.id || ''}    ${att.content || ''}`, MARGIN_LEFT + 10, startY);
+      let line = `${att.id || ''}    ${att.content || ''}`;
+      if (att.fileName) {
+        // Dateiname rechtsbuendig in grau; Beschreibung bei Kollision kuerzen
+        doc.setFont(FONT_NAME, 'italic');
+        const fileW = doc.getTextWidth(att.fileName);
+        doc.setFont(FONT_NAME, 'normal');
+        const maxLineW = CONTENT_WIDTH - 13 - fileW - 5;
+        while (line.length > 4 && doc.getTextWidth(line) > maxLineW) {
+          line = line.slice(0, -2).trimEnd() + '…';
+        }
+        doc.setFont(FONT_NAME, 'italic');
+        doc.setTextColor(...GRAY_DONE);
+        doc.text(att.fileName, MARGIN_LEFT + CONTENT_WIDTH - 3, startY, { align: 'right' });
+        doc.setFont(FONT_NAME, 'normal');
+        doc.setTextColor(...BLACK);
+      }
+      doc.text(line, MARGIN_LEFT + 10, startY);
       startY += 6;
     });
 
@@ -738,8 +754,16 @@ const PDFExport = (() => {
     const name = [a.firstName, a.lastName].filter(Boolean).join(' ');
     const parts = [name, a.company, a.date].filter(Boolean).join(', ');
     doc.text(`Aufgestellt: ${parts}`, MARGIN_LEFT, startY);
+    startY += 5;
 
-    return startY + 8;
+    if (a.seen) {
+      doc.setFontSize(8);
+      const lines = doc.splitTextToSize(a.seen, CONTENT_WIDTH);
+      doc.text(lines, MARGIN_LEFT, startY);
+      startY += lines.length * 4;
+    }
+
+    return startY + 3;
   }
 
   /* ── Hauptfunktion ────────────────────────────────────────── */
