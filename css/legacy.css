@@ -985,6 +985,16 @@ button.ds-action:hover { color: var(--accent-blue); background: var(--accent-blu
 }
 .ds-topic:hover { color: var(--text-secondary); background: rgba(14, 45, 88, .04); }
 
+/* Sprungmarken zu den Karten (Titel, Teilnehmer, Anlagen, Aufgestellt,
+   Legende): Kapitel-Optik mit neutralem grauen Dot (Default aus .ds-item),
+   getrennt von der Kapitelstruktur durch eine Trennlinie — wie im HTML-Export. */
+.ds-divider {
+  height: 1px;
+  margin: 10px 16px 4px;
+  background: var(--border-light);
+  flex-shrink: 0;
+}
+
 /* Aktiver/hervorgehobener Eintrag (Scrollspy oder Klick):
    kein Schatten, keine Umrandung.
    UKAP/Thema: einheitliches Hellblau. KAP: transparente Toenung der eigenen
@@ -4006,6 +4016,8 @@ a { color: var(--accent-blue); }
   background: rgba(255, 255, 255, .15);
 }
 .doc-structure.ds-dark .ds-grip:hover { color: #FFFFFF; }
+.doc-structure.ds-dark .ds-divider { background: rgba(255, 255, 255, .25); }
+.doc-structure.ds-dark .ds-section { --ds-chapter-color: rgba(255, 255, 255, .55); }
 
 /* Eingeklappt: schmale Leiste bleibt hell (wie Export) */
 .doc-structure.ds-dark.collapsed { background: var(--bg-app); border-left-color: var(--border); }

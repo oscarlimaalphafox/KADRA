@@ -1605,7 +1605,7 @@ function renderDocStructure(protocol) {
     el.className = 'ds-item ' + cls;
     el.tabIndex = 0;
     el.setAttribute('role', 'button');
-    el.style.setProperty('--ds-chapter-color', color);
+    if (color) el.style.setProperty('--ds-chapter-color', color);
     const lbl = document.createElement('span');
     lbl.className = 'ds-label';
     lbl.textContent = label;
@@ -1620,6 +1620,26 @@ function renderDocStructure(protocol) {
     }
     return el;
   };
+
+  // Sprungmarke zu einer Karte ausserhalb der Kapitelstruktur (Titel,
+  // Teilnehmer, Anlagen, Aufgestellt, Legende) — Kapitel-Optik mit
+  // neutralem Dot, wie im HTML-Export. Ohne Plus/Grip, kein Drop-Ziel.
+  const makeSectionItem = (label, sectionId) => {
+    const el = makeItem('ds-chapter ds-section', label, null, null, null);
+    el.dataset.key     = 'x:' + sectionId;
+    el.dataset.type    = 'section';
+    el.dataset.section = sectionId;
+    return el;
+  };
+  const makeDivider = () => {
+    const d = document.createElement('div');
+    d.className = 'ds-divider';
+    return d;
+  };
+
+  frag.appendChild(makeSectionItem('Titel', 'sectionHeader'));
+  frag.appendChild(makeSectionItem('Teilnehmer', 'sectionParticipants'));
+  frag.appendChild(makeDivider());
 
   Object.entries(protocol.structure).forEach(([chKey, chapter]) => {
     chIndex++;
@@ -1670,6 +1690,11 @@ function renderDocStructure(protocol) {
       });
     });
   });
+
+  frag.appendChild(makeDivider());
+  frag.appendChild(makeSectionItem('Anlagen', 'sectionAttachments'));
+  frag.appendChild(makeSectionItem('Aufgestellt', 'sectionAuthor'));
+  frag.appendChild(makeSectionItem('Legende', 'sectionLegend'));
 
   // Scroll-Position erhalten (Re-Render nach Move soll die Leiste nicht zurueckspringen lassen).
   const prevScroll = body.scrollTop;
@@ -1736,6 +1761,17 @@ function highlightStructureForSelection(ctx) {
 
 // Klick-Navigation: Workspace hinscrollen + Zeile selektieren.
 function navigateToStructure(el) {
+  // Sprungmarken (Titel/Teilnehmer/Anlagen/Aufgestellt/Legende): Karte anscrollen.
+  if (el.dataset.type === 'section') {
+    const card = document.getElementById(el.dataset.section);
+    if (!card) return;
+    card.classList.remove('is-collapsed'); // eingeklappte Karte aufklappen
+    DocStructure._spySuppressUntil = Date.now() + 600;
+    scrollRowIntoWorkspace(card);
+    setDocStructureActive(el.dataset.key, true);
+    return;
+  }
+
   // Kapitel ggf. aufklappen, damit das Ziel sichtbar ist.
   if (el.dataset.type !== 'chapter') {
     const chId = 'chapter-' + el.dataset.chapter;
@@ -1829,8 +1865,14 @@ function updateDocStructureSpy() {
   // Spy-Linie auf das obere Drittel legen — deckungsgleich mit der Klick-Scrollposition.
   const lineY    = cRect.top + toolbarH + Math.round((cRect.height - toolbarH) / 3);
 
-  // Letzte Struktur-Zeile, die noch oberhalb der Linie beginnt = aktuelle Stelle.
-  const rows = container.querySelectorAll('#pointsBody .row-chapter, #pointsBody .row-subchapter, #pointsBody .row-topic');
+  // Letztes Element (Karten-Sprungmarke oder Struktur-Zeile), das noch
+  // oberhalb der Linie beginnt = aktuelle Stelle. querySelectorAll liefert
+  // Dokumentreihenfolge: Titel/Teilnehmer, Kapitelstruktur, Anlagen/Aufgestellt/Legende.
+  const rows = container.querySelectorAll(
+    '#sectionHeader, #sectionParticipants, ' +
+    '#pointsBody .row-chapter, #pointsBody .row-subchapter, #pointsBody .row-topic, ' +
+    '#sectionAttachments, #sectionAuthor, #sectionLegend'
+  );
   let current = null;
   rows.forEach(r => {
     if (r.offsetParent === null) return; // versteckt (Collapse/Filter/Suche)
@@ -1840,10 +1882,18 @@ function updateDocStructureSpy() {
     // Vor der ersten Struktur-Zeile: erstes Element aktiv lassen.
     current = Array.from(rows).find(r => r.offsetParent !== null) || null;
   }
+  // Ganz unten angekommen: letzten sichtbaren Eintrag aktivieren — sonst
+  // waere LEGENDE nie erreichbar, wenn sie die Spy-Linie nicht schafft.
+  if (container.scrollTop + container.clientHeight >= container.scrollHeight - 2) {
+    for (let i = rows.length - 1; i >= 0; i--) {
+      if (rows[i].offsetParent !== null) { current = rows[i]; break; }
+    }
+  }
   if (!current) return;
 
   let key;
-  if (current.classList.contains('row-chapter'))         key = 'c:' + current.dataset.chapter;
+  if (current.classList.contains('proto-card'))          key = 'x:' + current.id;
+  else if (current.classList.contains('row-chapter'))    key = 'c:' + current.dataset.chapter;
   else if (current.classList.contains('row-subchapter')) key = 's:' + current.dataset.subchapter;
   else                                                   key = 't:' + current.dataset.topic;
 
@@ -1996,6 +2046,7 @@ function initDocStructureControls() {
     const item = e.target.closest('.ds-item');
     if (!item || !App._dragType) return;
     const tType = item.dataset.type;
+    if (tType === 'section') return; // Sprungmarken sind keine Drop-Ziele
     const dType = App._dragType;
 
     // Davor/danach-Indikator (Reorder auf gleicher Ebene).
@@ -2031,6 +2082,7 @@ function initDocStructureControls() {
   body.addEventListener('drop', async (e) => {
     const item = e.target.closest('.ds-item');
     if (!item || !App._dragType) return;
+    if (item.dataset.type === 'section') return; // Sprungmarken sind keine Drop-Ziele
     e.preventDefault();
     item.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-into');
 

@@ -1538,6 +1538,12 @@ button.ds-action:hover {
   color: var(--text-secondary);
   background: rgba(14, 45, 88, .04);
 }
+.ds-divider {
+  height: 1px;
+  margin: 10px 16px 4px;
+  background: var(--border-light);
+  flex-shrink: 0;
+}
 .ds-item.ds-active {
   background: rgba(0, 0, 0, 0.12);
   color: var(--accent-blue);
@@ -4840,6 +4846,12 @@ a {
 }
 .doc-structure.ds-dark .ds-grip:hover {
   color: #FFFFFF;
+}
+.doc-structure.ds-dark .ds-divider {
+  background: rgba(255, 255, 255, .25);
+}
+.doc-structure.ds-dark .ds-section {
+  --ds-chapter-color: rgba(255, 255, 255, .55);
 }
 .doc-structure.ds-dark.collapsed {
   background: var(--bg-app);
