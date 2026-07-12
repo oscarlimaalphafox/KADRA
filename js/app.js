@@ -595,8 +595,8 @@ function renderParticipants(participants) {
       <div class="pg-col-abbr"><input class="table-input input-uppercase abbr-pill" value="${esc(p.abbr)}"
         ${abbrTag ? `style="--tc:var(--tag-${abbrTag})"` : ''} data-field="abbr" maxlength="4"/></div>
       <div class="pg-col-email"><input class="table-input" type="email" value="${esc(p.email)}" data-field="email"/></div>
-      <div class="pg-col-check pg-check-btn" data-field="attended"  data-checked="${p.attended  ?'1':''}">${p.attended  ? iconCheck() : ''}</div>
-      <div class="pg-col-check pg-check-btn" data-field="inDistrib" data-checked="${p.inDistrib ?'1':''}">${p.inDistrib ? iconCheck() : ''}</div>
+      <div class="pg-col-check pg-check-btn" data-field="attended"  data-checked="${p.attended  ?'1':''}">${p.attended  ? iconSquareCheckBig() : iconSquare()}</div>
+      <div class="pg-col-check pg-check-btn" data-field="inDistrib" data-checked="${p.inDistrib ?'1':''}">${p.inDistrib ? iconSquareCheckBig() : iconSquare()}</div>
       <div class="pg-col-action"><button class="btn-delete-row" data-action="deleteParticipant" data-idx="${idx}" title="Entfernen">${iconTrash()}</button></div>
     `;
     tr.querySelectorAll('input').forEach(el => el.addEventListener('change', saveCurrentProtocol));
@@ -614,7 +614,7 @@ function renderParticipants(participants) {
       btn.addEventListener('click', () => {
         const checked = btn.dataset.checked === '1';
         btn.dataset.checked = checked ? '' : '1';
-        btn.innerHTML = checked ? '' : iconCheck();
+        btn.innerHTML = checked ? iconSquare() : iconSquareCheckBig();
         saveCurrentProtocol();
       });
     });
@@ -4149,7 +4149,7 @@ function bindGlobalEvents() {
   function syncNewParticipantCheckbox(el) {
     if (!el) return;
     const checked = el.dataset.checked === '1';
-    el.innerHTML = checked ? iconCheck() : '';
+    el.innerHTML = checked ? iconSquareCheckBig() : iconSquare();
   }
 
   ['newParticipantAttended','newParticipantDistrib'].forEach(id => {
@@ -4345,7 +4345,7 @@ function bindGlobalEvents() {
     // [cleanup]
     ['newParticipantAttended','newParticipantDistrib'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) { el.dataset.checked = '1'; el.innerHTML = iconCheck(); }
+      if (el) { el.dataset.checked = '1'; el.innerHTML = iconSquareCheckBig(); }
     });
     // Eingabezeile wieder einklappen (Einfüge-Linie zeigen)
     App._collapseParticipantAdd?.();
