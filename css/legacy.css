@@ -1879,7 +1879,6 @@ input[type="date"].meta-input { color: var(--text-primary); }
   /* Kein overflow:hidden â€” sonst werden Icons abgeschnitten */
 }
 #participantsBody .pg-row:first-child { border-top: none; }
-.pg-row.pg-row-odd { background: transparent; }
 
 /* Alle Kinder: transparent */
 .pg-row > div {
@@ -1973,8 +1972,10 @@ input[type="date"].meta-input { color: var(--text-primary); }
 
 /* Drag-ZustÃ¤nde */
 .pg-row.drag-active { opacity: 0.4; }
-.pg-row.drag-over-top    { border-top: 2px solid var(--accent-blue); }
-.pg-row.drag-over-bottom { border-bottom: 2px solid var(--accent-blue); }
+/* Mit #participantsBody, damit der Indikator auch auf der ersten Zeile
+   sichtbar ist (deren border-top:none hat sonst hoehere Spezifitaet). */
+#participantsBody .pg-row.drag-over-top    { border-top: 2px solid var(--accent-blue); }
+#participantsBody .pg-row.drag-over-bottom { border-bottom: 2px solid var(--accent-blue); }
 
 /* â”€â”€ Eingabe-Zeile â”€â”€ */
 .pg-add-row {
@@ -2007,7 +2008,9 @@ input[type="date"].meta-input { color: var(--text-primary); }
 
 /* Eingabezeile eingeklappt; Einfüge-Linie oeffnet sie */
 .pg-add-row-collapsed { display: none !important; }
-.participant-add-line { margin: 12px 4px 2px; }
+/* Doppelklasse, damit .insert-line { margin: 0 } (spaeter im Karten-Block)
+   den Abstand nicht ueberschreibt. */
+.insert-line.participant-add-line { margin: 12px 4px 2px; }
 
 /* ============================================================
    PROTOKOLLPUNKTE-TABELLE

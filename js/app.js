@@ -584,7 +584,7 @@ function renderParticipants(participants) {
 
   participants.forEach((p, idx) => {
     const tr = document.createElement('div');
-    tr.className = 'pg-row' + (idx % 2 === 0 ? ' pg-row-odd' : '');
+    tr.className = 'pg-row';
     tr.dataset.idx = idx;
     tr.draggable = false;
     const abbrTag = abbrTags[String(p.abbr || '').toUpperCase()];
@@ -605,9 +605,14 @@ function renderParticipants(participants) {
     if (abbrInput) {
       abbrInput.addEventListener('change', () => {
         updateAbbrColorMap();
-        const tag = (App._abbrColors || {})[abbrInput.value.trim().toUpperCase()];
-        if (tag) abbrInput.style.setProperty('--tc', `var(--tag-${tag})`);
-        else abbrInput.style.removeProperty('--tc');
+        // Kompletter Sweep statt nur der eigenen Pill: ein Kuerzel-Wechsel
+        // kann auch die Farben anderer Traeger und der Workspace-Pills aendern.
+        document.querySelectorAll('#participantsBody .abbr-pill').forEach(inp => {
+          const tag = (App._abbrColors || {})[inp.value.trim().toUpperCase()];
+          if (tag) inp.style.setProperty('--tc', `var(--tag-${tag})`);
+          else inp.style.removeProperty('--tc');
+        });
+        document.querySelectorAll('#pointsBody .resp-select').forEach(w => _renderRespDisplay(w));
       });
     }
     tr.querySelectorAll('.pg-check-btn').forEach(btn => {
@@ -3475,7 +3480,10 @@ async function addPoint() {
       }
     }
 
-    if (!subId && (chapter.subchapters || []).length > 0) {
+    // Referenz ist ein loser Kapitel-Punkt (per Drag dorthin verschoben):
+    // daneben einfuegen ist eindeutig -> Guard nur fuer Struktur-Auswahl,
+    // bei der das Ziel-UKAP sonst mehrdeutig waere.
+    if (!subId && sel.type !== 'point' && (chapter.subchapters || []).length > 0) {
       showToast('Bitte Unterkapitel auswÃ¤hlen.', 'error');
       return;
     }
@@ -6204,7 +6212,9 @@ function executeSearch(rawQuery) {
 
     const content    = (tr.querySelector('[data-field="content"]')?.value || '').toLowerCase();
     const pointId    = (tr.querySelector('.point-id')?.textContent || '').toLowerCase();
-    const responsible= (tr.querySelector('.resp-display')?.textContent || '').toLowerCase();
+    // Rohwert statt Pill-Text: die Pills konkatenieren ohne Trenner
+    // ("MO"+"SK" -> "MOSK"), der Rohwert behaelt die Trennzeichen.
+    const responsible= (tr.querySelector('.resp-select')?.dataset.value || '').toLowerCase();
 
     const isMatch = content.includes(query) || pointId.includes(query) || responsible.includes(query);
 

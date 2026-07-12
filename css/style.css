@@ -2414,9 +2414,6 @@ input[type="date"].meta-input {
 #participantsBody .pg-row:first-child {
   border-top: none;
 }
-.pg-row.pg-row-odd {
-  background: transparent;
-}
 .pg-row > div {
   background: transparent;
   height: 100%;
@@ -2504,10 +2501,10 @@ input[type="date"].meta-input {
 .pg-row.drag-active {
   opacity: 0.4;
 }
-.pg-row.drag-over-top {
+#participantsBody .pg-row.drag-over-top {
   border-top: 2px solid var(--accent-blue);
 }
-.pg-row.drag-over-bottom {
+#participantsBody .pg-row.drag-over-bottom {
   border-bottom: 2px solid var(--accent-blue);
 }
 .pg-add-row {
@@ -2538,7 +2535,7 @@ input[type="date"].meta-input {
 .pg-add-row-collapsed {
   display: none !important;
 }
-.participant-add-line {
+.insert-line.participant-add-line {
   margin: 12px 4px 2px;
 }
 .row-chapter td {
