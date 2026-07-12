@@ -1739,7 +1739,13 @@ function setDocStructureActive(key, scrollIntoView) {
   });
   DocStructure._activeKey = activeEl ? key : null;
   if (activeEl && scrollIntoView) {
-    activeEl.scrollIntoView({ block: 'nearest' });
+    // Nur vertikal nachscrollen — scrollIntoView() fasst bei horizontalem
+    // Ueberhang auch scrollLeft an (overflow-x:hidden scrollt programmatisch
+    // trotzdem), dann "huepft" der Leisten-Text seitlich.
+    const bRect = body.getBoundingClientRect();
+    const eRect = activeEl.getBoundingClientRect();
+    if (eRect.top < bRect.top)         body.scrollTop += eRect.top - bRect.top;
+    else if (eRect.bottom > bRect.bottom) body.scrollTop += eRect.bottom - bRect.bottom;
   }
   return !!activeEl;
 }

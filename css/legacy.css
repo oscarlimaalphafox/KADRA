@@ -889,7 +889,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
+  /* Keine feste Breite: width:100% + margin-left (UKAP/Thema 24px) wuerde
+     den Body horizontal ueberlaufen lassen -> scrollIntoView scrollt dann
+     auch seitlich und der Leisten-Text "huepft". Auto-Breite fuellt den
+     Container abzueglich Margin. */
   text-align: left;
   border: none;
   background: transparent;
