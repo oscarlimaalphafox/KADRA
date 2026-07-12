@@ -395,8 +395,8 @@
                 </div>
                 <!-- Daten-Zeilen (via JS gerendert) -->
                 <div id="participantsBody"></div>
-                <!-- Eingabe-Zeile -->
-                <div class="pg-add-row">
+                <!-- Eingabe-Zeile (eingeklappt; Einfüge-Linie darunter öffnet sie) -->
+                <div class="pg-add-row pg-add-row-collapsed">
                   <div class="pg-col-drag"></div>
                   <div class="pg-col-name"><input type="text"  id="newParticipantName"    class="table-input" placeholder="Name ..." /></div>
                   <div class="pg-col-company"><input type="text"  id="newParticipantCompany" class="table-input" placeholder="Firma ..." /></div>
@@ -412,10 +412,13 @@
                   </div>
                   <div class="pg-col-action">
                     <button id="btnAddParticipant" class="btn-add-participant" title="Teilnehmer hinzufuegen">
-                      
+
                     </button>
                   </div>
                 </div>
+                <!-- Einfüge-Linie: öffnet die Eingabe-Zeile -->
+                <div id="participantAddLine" class="insert-line participant-add-line"
+                     role="button" tabindex="0" title="Neuen Teilnehmer hinzufügen"></div>
               </div>
             </div>
           </div>
@@ -425,22 +428,8 @@
             <div class="proto-card-header">
               <span>INHALTE</span>
             </div>
-            <div class="proto-card-body proto-card-body-table">
-              <table class="data-table points-table" id="pointsTable">
-                <thead>
-                  <tr>
-                    <th class="col-collapse"></th>
-                    <th class="col-id">ID</th>
-                    <th class="col-content">Sachverhalt</th>
-                    <th class="col-category">Kategorie</th>
-                    <th class="col-responsible">Zustaendig</th>
-                    <th class="col-deadline">Termin</th>
-                    <th class="col-done">Erledigt</th>
-                    <th class="col-action"></th>
-                  </tr>
-                </thead>
-                <tbody id="pointsBody"></tbody>
-              </table>
+            <div class="proto-card-body proto-card-body-points">
+              <div id="pointsBody" class="points-cards"></div>
             </div>
           </div>
 
@@ -523,7 +512,7 @@
                 <div class="legend-formatting">
                   <h3 class="legend-subtitle">Formatierungskonventionen</h3>
                   <ul class="legend-list">
-                    <li><strong>Fett:</strong> Neue Punkte (im aktuellen Protokoll erstellt)</li>
+                    <li><strong>Fette ID:</strong> Neue Punkte (im aktuellen Protokoll erstellt)</li>
                     <li><span class="text-blue">Blaue Schrift:</span> Ergaenzungen und Korrekturen an bestehenden Punkten</li>
                     <li><span class="text-gray">Hellgraue Schrift:</span> Erledigte Punkte (werden mit dem übernächsten Protokoll entfernt)</li>
                   </ul>
@@ -876,6 +865,33 @@
       <div class="modal-footer">
         <button class="btn-secondary" data-close="modalCloseDatabase">Abbrechen</button>
         <button id="btnConfirmCloseDatabase" class="btn-danger">Datenbank schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Einstellungen -->
+  <div id="modalSettings" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">Einstellungen</h2>
+        <button class="modal-close" data-close="modalSettings">
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Dokumentenstruktur-Leiste</label>
+          <div class="settings-choice">
+            <label class="filter-option">
+              <input type="radio" name="dsTheme" id="dsThemeDark" value="dark" /> Dunkel
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="dsTheme" id="dsThemeLight" value="light" /> Hell
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" data-close="modalSettings">Schließen</button>
       </div>
     </div>
   </div>
