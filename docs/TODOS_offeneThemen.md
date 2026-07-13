@@ -1,11 +1,16 @@
 # Offene Themen — konsolidierter Stand 2026-07-12
 
+> Projektuebergreifende Konvention: Diese Datei heisst in jedem Projekt
+> `docs\TODOS_offeneThemen.md` und ist der Einstiegspunkt fuer „was ist offen /
+> wo weitermachen" (siehe `AI\CLAUDE.md`). Vorher: `260712_Offene_Themen.md`.
+>
 > Zusammenfuehrung aller offenen Punkte aus Repo-Review vom 12.07.2026.
 > Ersetzt `NEXT_STEPS_UI.md` und `SESSION_HANDOVER.md` (Stand 15.03., grossteils
-> durch den Workspace-Karten-Umbau ueberholt — archiviert unter `docs/ToDo/archive/`).
+> durch den Workspace-Karten-Umbau ueberholt — archiviert unter `docs/Archiv_ToDo/`).
 >
 > Handgefuehrte Nutzerliste bleibt separat: `BUGS + FEATURES for later.md` (dort nichts aendern).
-> Kleinbugs von Claude gepflegt: `Kleinigkeiten + offene Punkte.md`.
+> Die frueher separate Claude-Liste `Kleinigkeiten + offene Punkte.md` ist am 13.07.2026
+> hier integriert worden (archiviert unter `Archiv_ToDo\`) — Kleinbugs ab jetzt direkt hier eintragen.
 >
 > Bewertung je Thema: **Invasivitaet** (isoliert vs. Render-/State-Logik) ·
 > **Fehleranfaelligkeit** · **Tokenintensitaet** (Umsetzungskosten).
@@ -45,9 +50,13 @@ Invasiv (Datenmodell + Render-Logik) · mittel fehleranfaellig · tokenintensiv.
 ### [ ] Import-Reparatur (VOCTA/Markdown)
 - Teilnehmer werden aus dem Markdown nicht uebernommen
 - Struktur nur Kapitel + Punkte — Unterkapitel sollen mit uebernommen werden
-- JFx-Markdown wird als Aktennotiz angelegt: erzwungene Praeambel `P`, Nummern statt Buchstaben
-  (Details: `Kleinigkeiten + offene Punkte.md`; Parser liefert A/B/C korrekt, Fehler entsteht in `importVoctaMarkdown()`)
+- JFx-Markdown wird als Aktennotiz angelegt: erzwungene Praeambel `P`, Kapitel teils
+  nummeriert (1, 2, 3 …) statt JFx-Buchstaben (A, B, C …) — Aktennotiz-Kapitellogik.
+  Der Parser (`parseVoctaMarkdown`) liefert die A/B/C-Struktur bereits korrekt 1:1;
+  der Fehler entsteht erst in `importVoctaMarkdown()` (`js/app.js`): Zieltyp ist hart
+  `'Aktennotiz'`, und `structure` bekommt fix ein vorangestelltes `P`. (Erfasst 21.05.2026)
 - **Grundsatzfrage vorab (Olaf):** Protokolltyp beim Import waehlbar machen oder aus Markdown-Titel ableiten?
+  Davon haengt der Loesungsweg ab.
 Invasiv (Import-Flow) · mittel · mittel tokenintensiv. **Zentral fuer den VOCTA→KADRA-Workflow.**
 
 ## B — Wichtig + ueberschaubar
@@ -59,9 +68,20 @@ GitHub-History abrufbar. Braucht History-Rewrite oder privates Repo
 Olaf kuemmert sich separat / Entscheidung offen.
 
 ### [ ] Loesch-Dialog-Bug (`appConfirm`)
-Bestaetigungsdialog beim Protokoll-Loeschen schliesst manchmal wirkungslos.
-Drei Fixversuche dokumentiert gescheitert — naechster Schritt: Live-Debugging mit
-Breakpoint in `settle()` (Details: `Kleinigkeiten + offene Punkte.md`).
+Bestaetigungsdialog beim Protokoll-Loeschen (Sidebar-3-Punkte-Menue) schliesst sich
+beim Klick auf „Verschieben" manchmal, ohne dass geloescht wird; erst ein zweiter
+Durchlauf funktioniert. Tritt **manchmal** auf, nicht immer. (Erfasst 21.05.2026)
+- **Betroffen:** `appConfirm()` in `js/app.js`; Aufruf aus dem Item-Menue
+  (`menuPanel`-Click-Handler, `action === 'del'`).
+- **Drei Fixversuche gescheitert (Stand 21.05.):** (1) Menue-Positionierung gefixt
+  (`offsetWidth` vor `display:block`) — war ein realer, aber anderer Bug;
+  (2) Modaloeffnung per `setTimeout(0)` verzoegert — half nur „manchmal";
+  (3) Handler von `addEventListener` auf `onclick`-Properties umgestellt
+  (Listener-Stacking ausgeschlossen) — Problem besteht weiter.
+- **Naechster Ansatz:** Ursache live mit DevTools eingrenzen — Breakpoint in
+  `appConfirm`-`settle()`, pruefen mit welchem Wert (`true`/`false`) und von welchem
+  Handler aus resolved wird. Verdacht: Event-Handling rund um das wiederverwendete
+  `modalConfirm`-Element bzw. Zusammenspiel mit dem Schliessen des Kontextmenues.
 Isoliert · hoch fehleranfaellig zu jagen · mittel.
 
 ## C — Nuetzlich, moderater Aufwand

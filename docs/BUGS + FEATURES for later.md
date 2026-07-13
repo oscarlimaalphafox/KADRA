@@ -8,8 +8,8 @@
 - [x] Wenn ein Thema angewählt ist, lassen sich keine neuen Punkte darin erzeugen.Sondern der neue Punkt entsteht immer nur dann, wenn man einen bereits bestehenden Punkt angewählt hat.
 - [x] Ein neues Thema lässt sich nicht erzeugen, wenn ein UKAP angewählt ist.
 - [x] Ein Punkt lässt sich nicht mehr aus einem Thema herausschieben - nur noch in ein anderes Thema innerhalb des UKAP.
-- [ ] Ein neuer Punkt soll immer direkt unter dem bereits angewählten Punkt erzeugt werden, nicht am Ende der Liste.
-- [ ] Der letzte und vorletzte Punkt von INHALTE hat folgendes Problem: Das Auswahlmenü unter Aufgabe wird nicht vollständig angezeigt, sondern verschwindet hinter dem nächsten Frame. In diesem Fall ANLAGEN.
+- [x] Ein neuer Punkt soll immer direkt unter dem bereits angewählten Punkt erzeugt werden, nicht am Ende der Liste.
+- [x] Der letzte und vorletzte Punkt von INHALTE hat folgendes Problem: Das Auswahlmenü unter Aufgabe wird nicht vollständig angezeigt, sondern verschwindet hinter dem nächsten Frame. In diesem Fall ANLAGEN.
 - [x] Wenn ein PKT als erledigt abgehakt wird, soll auch "zuständig" in grauer Schrift dargestellt werden
 - [x] Tooltip bei "Protokoll löschen" fehlt
 - [x] Seitenleiste zu -> Button muss sich ändern 
@@ -23,22 +23,22 @@
 - [x] Symbole von 
   - https://lucide.dev/  (preferred) oder
   - https://heroicons.com/
-- [ ] Überpürfen mit Skills von https://nervegna.substack.com/p/the-designers-essential-skills-for?r=5k6uti&utm_medium=ios&triedRedirect=true
+- [x] Überpürfen mit Skills von https://nervegna.substack.com/p/the-designers-essential-skills-for?r=5k6uti&utm_medium=ios&triedRedirect=true FUCK IT TOO COMPLICATED
 - [x] grip-vertical verwendet / Büroklammer aus lucide?
 - [x] Protokollpunkte anpinnen "ID/Inhalt/Kat./Zuständig/Termin/erledigt" ? sodass Inhalte drunter durchscrollen // NEIN
-- [ ] Tabs (mehrere Protokolle gleichzeitig offen)
+- [x] Tabs (mehrere Protokolle gleichzeitig offen) ENTFÄLLT, braucht kein Mensch
 - [x] Hamburger Menü: "Zuletzt verwendet" mit Untermenü unter "Datenbank öffnen"
 - [x] **STRUKTURLEISTE**: Bisher nur als Ansicht. Zukünftig kann man über die Strukturleiste Kapitel, Unterkapitel und Themen manipulieren, also neu erzeugen, löschen, Position per Drag & Drop verändern.
 - [x] TOOLBAR: Schatten nicht nur unten sondern rundherum ausweiten, sodass sich die Toolbar noch besser vom darunterliegenden Workspace abhebt
-- [ ] Das Suchfeld braucht ein löschen-X sodass die Texteingabe gelöscht wird
+- [x] Das Suchfeld braucht ein löschen-X sodass die Texteingabe gelöscht wird
 
 ## FEATURES
 
 - [x] Suchfeld direkt sichtbar und bereit zur Eingabe in der Toolbox
-- [ ] Dateinname der Anlagen auch im PDF Export sichtbar.
-- [ ] Der Kommentar unter "Aufgestellt" soll auch in PDF Export sichtbar sein.
-- [ ] Unter Teilnehmer eine zusätzliche Spalte einfügen. Funktion (des Teilnehmers) 
-- [ ] Im Datumspicker sollen auch die Kalenderwochen des Jahres angezeigt werden.
+- [x] Dateinname der Anlagen auch im PDF Export sichtbar.
+- [x] Der Kommentar unter "Aufgestellt" soll auch in PDF Export sichtbar sein.
+- [x] Unter Teilnehmer eine zusätzliche Spalte einfügen. Funktion (des Teilnehmers) 
+- [x] Im Datumspicker sollen auch die Kalenderwochen des Jahres angezeigt werden.
 - [ ] Anlagen sollen dem Protokoll Beim PDF-Export direkt angehängt wd 
 - [ ] "live Mode" mit Notizfeld neben dem Punkt?
 - [ ] "Textmarker" Mode, entweder einzelnen Wort (möglich?) oder das ganze Textfeld hinterlegen
@@ -54,7 +54,7 @@
   - Im Importfenster wird Der rübergeschobene Punkt ausgegraut.
 - [x] Export to .MD !!! WICHTIG
 - [x] Export to XLS // NEIN. Wenig Nutzen 
-- [ ] **Export HTML**: Aufgabenübersicht -> API call zur Kürzung des Aufgabetexts auf eine max. Länge ?
+- [x] **Export HTML**: Aufgabenübersicht -> API call zur Kürzung des Aufgabetexts auf eine max. Länge ?
 - [ ] AI CHAT (260303 AI-Chat Feature Spec.md)
 - [ ] Kontaktverwaltung: je Projekt | automatisch generiert aus den Teilnehmern aller Protokolle | Vorschläge beim Eintippen im Feld "Name" (260306 Kontakte Feature Spec.md)
-- [ ] Documentation (zB mit https://www.mintlify.com)
+- [x] Documentation (zB mit https://www.mintlify.com)  ENTFÄLLT
