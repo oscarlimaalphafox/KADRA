@@ -115,6 +115,10 @@ Spec: `docs/future_features/260306 Kontakte Feature Spec.md`.
 - [ ] `filterProtocolList()` filtert nur `.protocol-item`-Text, nicht Sektions-Header
   (Sidebar-Suche: Serien-/Sektions-Ueberschriften matchen nicht — z. B. Serienname
   tippen findet die Serie selbst nicht, nur Protokolle mit dem Text im Titel)
+- [ ] Kategorie-Pille „Freigabe erfordl" zu schmal → Text wird abgeschnitten
+  („FREIGABE ERFO…", nicht lesbar; Screenshot 15.07.2026). Pille an den laengsten
+  Kategorienamen anpassen (Mindestbreite/`white-space:nowrap` statt Truncation).
+  Betrifft `.cat-trigger.kat-*` in den Punkt-Karten. Isoliert (CSS) · niedrig · gering.
 
 ## F — Restpunkte aus den Maerz-Dokumenten (gegen Ist-Stand pruefen)
 
