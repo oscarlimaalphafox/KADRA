@@ -57,6 +57,19 @@ function iconDownload(cls)        { return _svg('<path d="M21 15v4a2 2 0 0 1-2 2
 function iconPaperclip(cls)       { return _svg('<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>', cls); }
 function iconShredder(cls)        { return _svg('<path d="M4 13V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v5"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 22v-5"/><path d="M14 19v-2"/><path d="M18 20v-3"/><path d="M2 13h20"/><path d="M6 20v-3"/>', cls); }
 
+/* ── Lesezeichen ─────────────────────────────────────────── */
+/* lucide: bookmark */
+function iconBookmark(cls)        { return _svg('<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>', cls); }
+/* lucide: bookmark (gefuellt — gesetztes Lesezeichen) */
+function iconBookmarkFilled(cls) {
+  const c = cls ? ` class="kadra-icon ${cls}"` : ' class="kadra-icon"';
+  return `<svg${c} xmlns="${S}" viewBox="0 0 24 24" fill="currentColor"
+    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+    width="var(--icon-size,16px)" height="var(--icon-size,16px)">
+    <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+  </svg>`;
+}
+
 /* ── Bearbeiten ──────────────────────────────────────────── */
 function iconTrash(cls)           { return _svg('<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>', cls); }
 function iconCopy(cls)            { return _svg('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>', cls); }

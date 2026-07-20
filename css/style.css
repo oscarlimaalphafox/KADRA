@@ -4973,6 +4973,128 @@ a {
 .kdp-today-btn:hover {
   background: var(--accent-blue-10);
 }
+.points-cards .entry-check {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.points-cards .point-bookmark-btn {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-tertiary, var(--text-secondary));
+  opacity: 0;
+  transition: opacity .12s, color .12s;
+  --icon-size: 15px;
+}
+.points-cards .row-point:hover .point-bookmark-btn, .points-cards .row-point.row-selected .point-bookmark-btn, .points-cards .point-bookmark-btn:focus-visible, .points-cards .row-point.point-bookmarked .point-bookmark-btn {
+  opacity: 1;
+}
+.points-cards .point-bookmark-btn:hover {
+  color: var(--secondary, var(--accent-blue));
+}
+.points-cards .row-point.point-bookmarked .point-bookmark-btn {
+  color: var(--secondary, var(--accent-blue));
+}
+.points-cards .row-point.point-bookmarked {
+  box-shadow: inset 3px 0 0 var(--secondary, var(--accent-blue));
+}
+.points-cards .row-point.point-bookmarked.row-selected {
+  box-shadow: 0 0 0 1px var(--accent-blue), inset 3px 0 0 var(--secondary, var(--accent-blue));
+}
+.ds-item .ds-bookmark-mark {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 6px;
+  flex: 0 0 auto;
+  color: var(--secondary, var(--accent-blue));
+  --icon-size: 13px;
+}
+.ds-item:hover .ds-bookmark-mark {
+  display: none;
+}
+#docStructure.ds-dark .ds-item .ds-bookmark-mark {
+  color: #7EA6E0;
+}
+.bookmark-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--secondary, var(--accent-blue));
+  border-left-width: 3px;
+  background: var(--accent-blue-10, rgba(21, 67, 132, .08));
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.bookmark-bar.hidden {
+  display: none;
+}
+.bookmark-bar-icon {
+  display: inline-flex;
+  color: var(--secondary, var(--accent-blue));
+  --icon-size: 15px;
+}
+.bookmark-bar-text {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+.bookmark-bar-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--secondary, var(--accent-blue));
+}
+.bookmark-bar-label {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bookmark-bar-when {
+  color: var(--text-tertiary, var(--text-secondary));
+  font-size: 11px;
+  white-space: nowrap;
+}
+.bookmark-bar-jump {
+  margin-left: auto;
+  flex: 0 0 auto;
+  border: 1px solid var(--secondary, var(--accent-blue));
+  border-radius: 4px;
+  background: none;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--secondary, var(--accent-blue));
+  cursor: pointer;
+}
+.bookmark-bar-jump:hover {
+  background: var(--secondary, var(--accent-blue));
+  color: #fff;
+}
+.bookmark-bar-close {
+  flex: 0 0 auto;
+  border: none;
+  background: none;
+  padding: 0 4px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.bookmark-bar-close:hover {
+  color: var(--text-primary);
+}
 @property --tw-rotate-x {
   syntax: "*";
   inherits: false;

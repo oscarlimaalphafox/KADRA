@@ -1,6 +1,6 @@
 {
   "name": "kadra",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "",
   "main": "sw.js",
   "scripts": {
@@ -21,6 +21,6 @@
   "homepage": "https://github.com/oscarlimaalphafox/KADRA#readme",
   "dependencies": {
     "@tailwindcss/cli": "^4.2.1",
-"tailwindcss": "^4.2.1"
+    "tailwindcss": "^4.2.1"
   }
 }

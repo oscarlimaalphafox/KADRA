@@ -14,7 +14,7 @@
  * [cleanup]
  */
 
-const APP_VERSION = '0.5.1';
+const APP_VERSION = '0.5.2';
 
 /* [cleanup] */
 const App = {
@@ -510,9 +510,12 @@ async function openProtocol(protocolId) {
   document.getElementById('workspaceToolbar').classList.remove('hidden');
 
   const protocol = await DB.Protocols.get(protocolId);
+  // Lesezeichen vor dem Render setzen — createPointRow() liest App._bookmarkPointId.
+  App._bookmarkPointId = protocol?.bookmark?.pointId || null;
   if (protocol) renderProtocol(protocol);
   updateSelectionHint();
   syncCollapseAllButtonState();
+  if (protocol) { renderBookmarkBar(protocol); markBookmarkInDocStructure(); }
 
 }
 
@@ -1732,6 +1735,7 @@ function renderDocStructure(protocol) {
 
   // Aktive Markierung nach Re-Render wiederherstellen (falls bekannt).
   if (DocStructure._activeKey) setDocStructureActive(DocStructure._activeKey, false);
+  markBookmarkInDocStructure();
 
   ensureDocStructureScrollSpy();
 }
@@ -2393,6 +2397,160 @@ function stopDragAutoScroll() {
   document.removeEventListener('dragover', _onDragScrollMove);
 }
 
+/* ── Lesezeichen ("Weiterarbeiten hier") ──────────────────────────────
+   Genau ein Lesezeichen pro Protokoll. Liegt als protocol.bookmark im
+   Protokolldatensatz (NICHT localStorage), damit es ueber Quick-Save /
+   DB-Backup den Rechnerwechsel mitmacht.
+   Form: { pointId, setAt (ISO), label }                                */
+
+// Optik einer Punkt-Karte an den Lesezeichen-Zustand angleichen.
+function applyBookmarkStateToRow(tr, on) {
+  tr.classList.toggle('point-bookmarked', on);
+  const btn = tr.querySelector('.point-bookmark-btn');
+  if (!btn) return;
+  btn.innerHTML = on ? iconBookmarkFilled() : iconBookmark();
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  const t = on ? 'Lesezeichen entfernen' : 'Lesezeichen setzen';
+  btn.title = t;
+  btn.setAttribute('aria-label', t);
+}
+
+// Kurzes Label fuer die Hinweisleiste: Themenbezeichnung, sonst Inhaltsanfang.
+function bookmarkLabelFor(point, protocol) {
+  const txt = (point?.content || '').trim().replace(/\s+/g, ' ');
+  if (txt) return txt.length > 60 ? txt.slice(0, 60) + '…' : txt;
+  const loc = findPointLocation(protocol, point?.id);
+  return loc?.topicLabel || loc?.subLabel || '';
+}
+
+// Struktur-Ort eines Punktes ermitteln (fuer Label + Sprung).
+function findPointLocation(protocol, pointId) {
+  if (!protocol || !pointId) return null;
+  const pt = (protocol.points || []).find(p => p.id === pointId);
+  if (!pt) return null;
+  const chapter = protocol.structure?.[pt.chapter];
+  const sub = (chapter?.subchapters || []).find(s => s.id === pt.subchapter);
+  const topic = (sub?.topics || []).find(t => t.id === pt.topic);
+  return {
+    point: pt,
+    chapterKey: pt.chapter,
+    subId: pt.subchapter,
+    topicId: pt.topic,
+    subLabel: sub?.label || '',
+    topicLabel: topic?.label || ''
+  };
+}
+
+async function toggleBookmark(pointId) {
+  const protocolId = App.currentProtocolId;
+  if (!protocolId) return;
+  await saveCurrentProtocol();
+  const protocol = await DB.Protocols.get(protocolId);
+  if (!protocol) return;
+
+  const wasSet = protocol.bookmark?.pointId === pointId;
+  if (wasSet) {
+    protocol.bookmark = null;
+    App._bookmarkPointId = null;
+  } else {
+    const pt = (protocol.points || []).find(p => p.id === pointId);
+    protocol.bookmark = {
+      pointId,
+      setAt: new Date().toISOString(),
+      label: bookmarkLabelFor(pt, protocol)
+    };
+    App._bookmarkPointId = pointId;
+  }
+  await DB.Protocols.save(protocol);
+
+  // Nur die betroffenen Karten umschalten — kein Re-Render noetig.
+  document.querySelectorAll('#pointsBody .row-point').forEach(tr => {
+    applyBookmarkStateToRow(tr, tr.dataset.pointId === App._bookmarkPointId);
+  });
+  markBookmarkInDocStructure();
+  renderBookmarkBar(protocol);
+}
+
+// Strukturleiste: Eintrag des Lesezeichen-Punktes markieren (Thema, sonst UKAP).
+function markBookmarkInDocStructure() {
+  const body = document.getElementById('docStructureBody');
+  if (!body) return;
+  body.querySelectorAll('.ds-bookmarked').forEach(el => {
+    el.classList.remove('ds-bookmarked');
+    el.querySelector('.ds-bookmark-mark')?.remove();
+  });
+  if (!App._bookmarkPointId) return;
+
+  const row = document.querySelector(
+    '#pointsBody .row-point[data-point-id="' + cssEscape(App._bookmarkPointId) + '"]');
+  if (!row) return;
+  const key = row.dataset.topic      ? 't:' + row.dataset.topic
+            : row.dataset.subchapter ? 's:' + row.dataset.subchapter
+            : 'c:' + row.dataset.chapter;
+  const item = body.querySelector('.ds-item[data-key="' + cssEscape(key) + '"]');
+  if (!item) return;
+  item.classList.add('ds-bookmarked');
+  const mark = document.createElement('span');
+  mark.className = 'ds-bookmark-mark';
+  mark.title = 'Lesezeichen in diesem Abschnitt';
+  mark.innerHTML = iconBookmarkFilled();
+  item.appendChild(mark);
+}
+
+// Hinweisleiste oben im Workspace: "Lesezeichen: … · Dorthin springen".
+function renderBookmarkBar(protocol) {
+  const bar = document.getElementById('bookmarkBar');
+  if (!bar) return;
+  const bm = protocol?.bookmark;
+  if (!bm?.pointId) { bar.classList.add('hidden'); bar.innerHTML = ''; return; }
+
+  const d = new Date(bm.setAt);
+  const when = isNaN(d) ? '' : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+    + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+  bar.innerHTML = `
+    <span class="bookmark-bar-icon">${iconBookmarkFilled()}</span>
+    <span class="bookmark-bar-text">
+      <strong>Lesezeichen:</strong>
+      <span class="bookmark-bar-id">${esc(bm.pointId)}</span>
+      ${bm.label ? '<span class="bookmark-bar-label">' + esc(bm.label) + '</span>' : ''}
+      ${when ? '<span class="bookmark-bar-when">gesetzt ' + esc(when) + '</span>' : ''}
+    </span>
+    <button type="button" class="bookmark-bar-jump">Dorthin springen</button>
+    <button type="button" class="bookmark-bar-close" title="Lesezeichen entfernen"
+      aria-label="Lesezeichen entfernen">×</button>
+  `;
+  bar.classList.remove('hidden');
+  bar.querySelector('.bookmark-bar-jump').addEventListener('click', jumpToBookmark);
+  bar.querySelector('.bookmark-bar-close').addEventListener('click', () => toggleBookmark(bm.pointId));
+}
+
+// Zum Lesezeichen springen: Kapitel/UKAP ggf. aufklappen, Karte anscrollen, selektieren.
+async function jumpToBookmark() {
+  const pointId = App._bookmarkPointId;
+  if (!pointId) return;
+  const protocol = await DB.Protocols.get(App.currentProtocolId);
+  const loc = findPointLocation(protocol, pointId);
+  if (!loc) return;
+
+  const chId = 'chapter-' + loc.chapterKey;
+  if (App.collapsedSections.has(chId)) toggleCollapse(chId);
+  if (loc.subId) {
+    const subId = 'subchapter-' + loc.subId;
+    if (App.collapsedSections.has(subId)) toggleCollapse(subId);
+  }
+
+  const row = document.querySelector(
+    '#pointsBody .row-point[data-point-id="' + cssEscape(pointId) + '"]');
+  if (!row) return;
+  DocStructure._spySuppressUntil = Date.now() + 600;
+  scrollRowIntoWorkspace(row);
+  selectRow({
+    type: 'point', chapterKey: loc.chapterKey, subchapterId: loc.subId,
+    topicId: loc.topicId, pointId, label: 'Punkt ' + pointId
+  }, row);
+}
+
 /* [cleanup] */
 function createPointRow(point, currentNum, chKey, subId, topicId, renderSignal) {
   const tr = document.createElement('div');
@@ -2427,6 +2585,10 @@ function createPointRow(point, currentNum, chKey, subId, topicId, renderSignal) 
         title="erledigt">
         ${point.done ? iconSquareCheckBig() : iconSquare()}
       </div>
+      <button type="button" class="point-bookmark-btn" data-action="toggleBookmark"
+        title="Lesezeichen setzen" aria-label="Lesezeichen setzen" aria-pressed="false">
+        ${iconBookmark()}
+      </button>
     </div>
     <div class="entry-id"><span class="point-id">${esc(point.id)}</span></div>
     <div class="entry-main">
@@ -2482,6 +2644,16 @@ function createPointRow(point, currentNum, chKey, subId, topicId, renderSignal) 
       tr.classList.toggle('point-done', !checked);
       selectRow(rowCtx, tr);
       saveCurrentProtocol();
+    });
+  }
+
+  // Lesezeichen: genau eines pro Protokoll — Klick setzt bzw. entfernt es.
+  const bmBtn = tr.querySelector('.point-bookmark-btn');
+  if (bmBtn) {
+    applyBookmarkStateToRow(tr, App._bookmarkPointId === point.id);
+    bmBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleBookmark(point.id);
     });
   }
 
